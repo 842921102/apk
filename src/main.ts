@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
+import { Capacitor } from '@capacitor/core'
 import App from './App.vue'
 import Home from './views/Home.vue'
 import About from './views/About.vue'
@@ -100,7 +101,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: Capacitor.isNativePlatform() ? createWebHashHistory() : createWebHistory(),
   routes
 })
 
