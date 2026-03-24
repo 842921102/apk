@@ -1,0 +1,496 @@
+/**
+ * 一饭封神 · 全站 App 视觉规范（第 6 步）
+ * 用法：在模板中组合 class，或配合 src/components/ui/* 使用。
+ * 颜色亦映射到 Tailwind theme.extend.colors.app.*
+ */
+
+:root {
+    --app-page: #f5f6f8;
+    --app-card: #ffffff;
+    --app-fg: #222222;
+    --app-muted: #8a8f99;
+    --app-accent: #7a57d1;
+    --app-accent-deep: #6743bf;
+    --app-accent-soft: #f3ecff;
+    --app-line: #eceef2;
+    --app-line-soft: #e8ddf5;
+    --app-shadow-card: 0 4px 24px rgba(0, 0, 0, 0.06);
+    --app-shadow-card-hover: 0 8px 28px rgba(122, 87, 209, 0.1);
+    --app-shadow-btn: 0 8px 24px rgba(122, 87, 209, 0.32);
+    --app-radius-card: 22px;
+    --app-radius-card-sm: 18px;
+    --app-radius-btn: 18px;
+    --app-radius-input: 16px;
+}
+
+@layer components {
+    /* ---------- 页面壳 ---------- */
+    .app-page {
+        @apply min-h-screen bg-app-page text-app-fg antialiased;
+    }
+
+    .app-shell {
+        @apply mx-auto w-full max-w-lg px-4 md:max-w-7xl md:px-6;
+    }
+
+    /* ---------- 按钮 ---------- */
+    .app-btn {
+        @apply inline-flex items-center justify-center gap-2 font-semibold;
+        transition:
+            transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+            box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+            opacity 0.2s ease,
+            background-color 0.2s ease,
+            color 0.2s ease;
+        @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent/45 focus-visible:ring-offset-2 focus-visible:ring-offset-app-page;
+        @apply disabled:pointer-events-none disabled:opacity-50;
+        border-radius: var(--app-radius-btn);
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .app-btn--primary {
+        @apply bg-gradient-to-r from-app-accent to-app-accent-deep text-white;
+        box-shadow: var(--app-shadow-btn);
+    }
+
+    .app-btn--primary:not(:disabled):hover {
+        box-shadow: 0 12px 32px rgba(122, 87, 209, 0.42);
+    }
+
+    .app-btn--primary:not(:disabled):active {
+        @apply scale-[0.98];
+    }
+
+    .app-btn--secondary {
+        @apply border-0 bg-app-card text-app-fg ring-1 ring-app-line;
+        @apply hover:bg-[#fafbfc] active:scale-[0.98];
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    }
+
+    .app-btn--ghost {
+        @apply bg-transparent text-app-accent hover:bg-app-accent-soft/80 active:scale-[0.98];
+    }
+
+    .app-btn--danger {
+        @apply border-0 bg-rose-50 text-rose-600 ring-1 ring-rose-100 hover:bg-rose-100/90 active:scale-[0.98];
+    }
+
+    .app-btn--sm {
+        @apply px-3 py-2 text-sm;
+    }
+
+    .app-btn--md {
+        @apply px-5 py-3 text-[15px];
+    }
+
+    .app-btn--lg {
+        @apply px-6 py-3.5 text-base;
+    }
+
+    .app-btn--xs {
+        @apply px-2.5 py-1.5 text-xs;
+    }
+
+    .app-btn__spinner {
+        @apply inline-block h-[1em] w-[1em] shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent opacity-90;
+    }
+
+    .app-btn.is-loading {
+        @apply pointer-events-none opacity-[0.92];
+    }
+
+    .app-btn.is-loading .app-btn__spinner {
+        @apply border-white border-t-transparent;
+    }
+
+    .app-btn--secondary.is-loading .app-btn__spinner,
+    .app-btn--ghost.is-loading .app-btn__spinner {
+        @apply border-app-accent border-t-transparent;
+    }
+
+    .app-btn--danger.is-loading .app-btn__spinner {
+        @apply border-rose-600 border-t-transparent;
+    }
+
+    /* ---------- 卡片 ---------- */
+    .app-card {
+        background-color: var(--app-card);
+        border-radius: var(--app-radius-card);
+        box-shadow: var(--app-shadow-card);
+        @apply ring-1 ring-app-line;
+    }
+
+    .app-card--sm {
+        border-radius: var(--app-radius-card-sm);
+    }
+
+    .app-card--pad {
+        @apply p-5 md:p-6;
+    }
+
+    .app-card--pad-sm {
+        @apply p-4;
+    }
+
+    /* ---------- 表单 ---------- */
+    .app-input {
+        @apply w-full min-h-[2.75rem] border-0 bg-app-card px-4 py-2.5 text-[15px] text-app-fg placeholder:text-app-muted/90;
+        @apply ring-1 ring-app-line transition-[box-shadow,ring-color] duration-200;
+        @apply focus:outline-none focus:ring-2 focus:ring-app-accent/40 focus:ring-offset-0;
+        border-radius: var(--app-radius-input);
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    @media (min-width: 768px) {
+        .app-input {
+            @apply py-3 text-sm;
+        }
+    }
+
+    .app-input:disabled {
+        @apply cursor-not-allowed bg-app-page/80 text-app-muted opacity-80;
+    }
+
+    .app-input--invalid {
+        @apply ring-2 ring-rose-200 focus:ring-rose-300/80;
+    }
+
+    .app-textarea {
+        @apply min-h-[100px] w-full resize-y border-0 bg-app-card px-4 py-3 text-[15px] text-app-fg placeholder:text-app-muted/90 md:text-sm;
+        @apply ring-1 ring-app-line transition-[box-shadow,ring-color] duration-200;
+        @apply focus:outline-none focus:ring-2 focus:ring-app-accent/40;
+        border-radius: var(--app-radius-input);
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .app-textarea:disabled {
+        @apply cursor-not-allowed bg-app-page/80 opacity-80;
+    }
+
+    .app-label {
+        @apply mb-1.5 block text-left text-xs font-semibold text-app-muted;
+    }
+
+    .app-form-hint {
+        @apply mt-1.5 text-xs leading-relaxed text-app-muted;
+    }
+
+    .app-form-error {
+        @apply mt-1.5 rounded-xl border border-rose-100/90 bg-rose-50/90 px-3 py-2 text-xs font-medium leading-relaxed text-rose-700;
+    }
+
+    .app-form-success {
+        @apply mt-4 rounded-xl border border-emerald-100/90 bg-emerald-50/90 px-3 py-2 text-sm font-medium leading-relaxed text-emerald-800;
+    }
+
+    /* 紧凑数字 / 短输入（表格内等） */
+    .app-input--compact {
+        @apply min-h-0 px-2.5 py-2 text-sm;
+        border-radius: 12px;
+    }
+
+    /* 滑块：统一轨道与强调色 */
+    .app-range {
+        @apply h-2 w-full cursor-pointer appearance-none rounded-full bg-app-line;
+    }
+
+    .app-range::-webkit-slider-thumb {
+        @apply h-4 w-4 cursor-pointer appearance-none rounded-full border-0 shadow-sm;
+        background: linear-gradient(135deg, var(--app-accent), var(--app-accent-deep));
+        margin-top: -4px;
+    }
+
+    .app-range::-moz-range-thumb {
+        height: 1rem;
+        width: 1rem;
+        cursor: pointer;
+        border: 0;
+        border-radius: 9999px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        background: linear-gradient(135deg, var(--app-accent), var(--app-accent-deep));
+    }
+
+    .app-range::-moz-range-track {
+        height: 0.5rem;
+        border-radius: 9999px;
+        background-color: var(--app-line);
+    }
+
+    /* 搜索框（与后台筛选区一致） */
+    .app-search {
+        @apply relative w-full min-w-0;
+    }
+
+    .app-search__icon {
+        @apply pointer-events-none absolute left-3.5 top-1/2 z-[1] -translate-y-1/2 text-app-muted;
+    }
+
+    .app-search__icon svg {
+        @apply h-[1.125rem] w-[1.125rem];
+    }
+
+    /* 与 .app-input 组合使用：class="app-input app-search__input" */
+    .app-search__input {
+        @apply pl-11;
+    }
+
+    /* 下拉 / 筛选 */
+    .app-select {
+        @apply w-full min-h-[2.75rem] cursor-pointer appearance-none border-0 bg-app-card bg-no-repeat px-4 py-2.5 pr-10 text-left text-[15px] text-app-fg;
+        @apply ring-1 ring-app-line transition-[box-shadow,ring-color] duration-200;
+        @apply focus:outline-none focus:ring-2 focus:ring-app-accent/40;
+        border-radius: var(--app-radius-input);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%238A8F99'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+        background-size: 1.125rem 1.125rem;
+        background-position: right 0.75rem center;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    @media (min-width: 768px) {
+        .app-select {
+            @apply py-3 text-sm;
+        }
+    }
+
+    .app-select:disabled {
+        @apply cursor-not-allowed bg-app-page/80 text-app-muted opacity-80;
+    }
+
+    .app-select--sm {
+        @apply min-h-[2.25rem] py-2 pl-3 pr-9 text-xs;
+        background-position: right 0.5rem center;
+        background-size: 1rem 1rem;
+        border-radius: 12px;
+    }
+
+    /* 开关 */
+    .app-switch {
+        @apply inline-flex cursor-pointer select-none items-center gap-3;
+    }
+
+    .app-switch.is-disabled {
+        @apply cursor-not-allowed opacity-60;
+    }
+
+    .app-switch__native {
+        @apply sr-only;
+    }
+
+    .app-switch__native:focus-visible + .app-switch__ui {
+        @apply ring-2 ring-app-accent/45 ring-offset-2 ring-offset-app-card;
+    }
+
+    .app-switch__ui {
+        @apply relative h-7 w-12 shrink-0 rounded-full bg-app-line transition-colors duration-300 ease-out;
+    }
+
+    .app-switch__thumb {
+        @apply absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform duration-300 ease-out;
+    }
+
+    .app-switch__native:checked + .app-switch__ui {
+        @apply bg-gradient-to-r from-app-accent to-app-accent-deep;
+    }
+
+    .app-switch__native:checked + .app-switch__ui .app-switch__thumb {
+        transform: translateX(1.25rem);
+    }
+
+    .app-switch__native:disabled + .app-switch__ui {
+        @apply opacity-50;
+    }
+
+    .app-switch__text {
+        @apply text-sm font-medium text-app-fg;
+    }
+
+    /* ---------- 标签 / 状态块 ---------- */
+    .app-tag {
+        @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold;
+    }
+
+    .app-tag--accent {
+        @apply bg-app-accent-soft text-app-accent ring-1 ring-app-line-soft;
+    }
+
+    .app-tag--muted {
+        @apply bg-app-page text-app-muted ring-1 ring-app-line;
+    }
+
+    .app-tag--success {
+        @apply bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100;
+    }
+
+    .app-tag--warning {
+        @apply bg-amber-50 text-amber-800 ring-1 ring-amber-100;
+    }
+
+    .app-tag--danger {
+        @apply bg-rose-50 text-rose-700 ring-1 ring-rose-100;
+    }
+
+    /* ---------- 页面标题区（紫氛围头，与已改版页一致） ---------- */
+    .app-page-hero {
+        @apply relative mt-2 overflow-hidden px-5 pb-7 pt-7 text-white;
+        box-shadow: 0 12px 40px rgba(122, 87, 209, 0.2);
+        border-radius: 24px;
+    }
+
+    .app-page-hero__bg {
+        @apply pointer-events-none absolute inset-0 bg-gradient-to-br from-app-accent via-[#9575e8] to-[#b8a3ef];
+    }
+
+    .app-page-hero__glow-a {
+        @apply pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full bg-white/20 blur-3xl;
+    }
+
+    .app-page-hero__glow-b {
+        @apply pointer-events-none absolute -bottom-16 -left-8 h-40 w-40 rounded-full bg-app-accent-soft/30 blur-3xl;
+    }
+
+    .app-page-hero__noise {
+        @apply pointer-events-none absolute inset-0 opacity-[0.14];
+        background-image: radial-gradient(circle at 18% 35%, #fff 0, transparent 42%),
+            radial-gradient(circle at 82% 65%, #fff 0, transparent 38%);
+    }
+
+    .app-page-hero__body {
+        @apply relative z-10;
+    }
+
+    .app-page-hero__eyebrow {
+        @apply text-[12px] font-medium uppercase tracking-[0.2em] text-white/70;
+    }
+
+    .app-page-hero__title {
+        @apply mt-1.5 text-2xl font-bold leading-tight tracking-tight text-white md:text-[26px];
+    }
+
+    .app-page-hero__subtitle {
+        @apply mt-2 max-w-lg text-[13px] leading-relaxed text-white/90;
+    }
+
+    /* ---------- 空状态 ---------- */
+    .app-empty {
+        @apply flex flex-col items-center px-4 py-10 text-center;
+    }
+
+    .app-empty__icon {
+        @apply mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-app-accent-soft text-3xl ring-1 ring-app-line-soft;
+    }
+
+    .app-empty__title {
+        @apply text-lg font-bold text-app-fg;
+    }
+
+    .app-empty__desc {
+        @apply mt-1.5 max-w-xs text-sm leading-relaxed text-app-muted;
+    }
+
+    /* ---------- 轻弹窗 / 遮罩 ---------- */
+    .app-modal-backdrop {
+        @apply fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px];
+    }
+
+    .app-modal-panel {
+        @apply w-full max-w-md overflow-hidden bg-app-card ring-1 ring-app-line;
+        border-radius: var(--app-radius-card);
+        box-shadow: var(--app-shadow-card);
+    }
+
+    .app-modal-header {
+        @apply border-b border-app-line bg-gradient-to-r from-app-accent-soft/90 to-app-page px-5 py-4;
+    }
+
+    .app-modal-title {
+        @apply flex items-center gap-2 text-lg font-bold text-app-fg;
+    }
+
+    .app-modal-body {
+        @apply space-y-3 p-6 text-sm leading-relaxed text-app-fg;
+    }
+
+    .app-modal-footer {
+        @apply flex gap-3 border-t border-app-line bg-app-page/50 px-5 py-4;
+    }
+
+    /* ---------- Toast（配合 showAppToast，结构化 DOM） ---------- */
+    .app-toast {
+        @apply pointer-events-auto z-[100] flex max-w-[min(100vw-2rem,22rem)] items-stretch overflow-hidden rounded-2xl text-left text-sm font-medium shadow-[0_8px_32px_rgba(15,23,42,0.12)] ring-1 backdrop-blur-md;
+        transition:
+            opacity 0.38s cubic-bezier(0.33, 1, 0.68, 1),
+            transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+        position: fixed;
+        left: 50%;
+        right: auto;
+        bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+        top: auto;
+        transform: translateX(-50%) translateY(12px) scale(0.96);
+        opacity: 0;
+    }
+
+    @media (min-width: 768px) {
+        .app-toast {
+            left: auto;
+            right: 1rem;
+            top: 1rem;
+            bottom: auto;
+            transform: translateX(16px) translateY(0) scale(0.96);
+        }
+    }
+
+    .app-toast.is-visible {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+    }
+
+    @media (min-width: 768px) {
+        .app-toast.is-visible {
+            transform: translateX(0) translateY(0) scale(1);
+        }
+    }
+
+    .app-toast__row {
+        @apply flex w-full min-w-0 items-center gap-3 px-4 py-3;
+    }
+
+    .app-toast__icon {
+        @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[15px] font-bold leading-none ring-1;
+    }
+
+    .app-toast__text {
+        @apply min-w-0 flex-1 leading-snug;
+    }
+
+    .app-toast--success {
+        @apply bg-emerald-50/95 text-emerald-900 ring-emerald-100/90;
+    }
+
+    .app-toast--success .app-toast__icon {
+        @apply bg-emerald-100 text-emerald-700 ring-emerald-200/80;
+    }
+
+    .app-toast--error {
+        @apply bg-rose-50/95 text-rose-900 ring-rose-100/90;
+    }
+
+    .app-toast--error .app-toast__icon {
+        @apply bg-rose-100 text-rose-600 ring-rose-200/80;
+    }
+
+    .app-toast--warning {
+        @apply bg-amber-50/95 text-amber-950 ring-amber-100/90;
+    }
+
+    .app-toast--warning .app-toast__icon {
+        @apply bg-amber-100 text-amber-800 ring-amber-200/80;
+    }
+
+    .app-toast--info {
+        @apply bg-app-accent-soft/95 text-app-accent-deep ring-app-line-soft;
+    }
+
+    .app-toast--info .app-toast__icon {
+        @apply bg-white/80 text-app-accent ring-app-line-soft;
+    }
+}

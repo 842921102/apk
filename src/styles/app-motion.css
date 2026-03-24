@@ -1,0 +1,275 @@
+/**
+ * 第 10 步 · 全站动效与过渡（轻量、生活服务 App 向）
+ * 与 app-ui.css 配色独立，仅负责时间与位移曲线。
+ */
+
+:root {
+    --app-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --app-ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --app-ease-soft: cubic-bezier(0.33, 1, 0.68, 1);
+    --app-dur-enter: 0.38s;
+    --app-dur-leave: 0.22s;
+    --app-dur-tap: 0.2s;
+}
+
+/* ---------- 底部 Tab 主页面切换（router-view） ---------- */
+.app-tab-enter-active {
+    transition:
+        opacity 0.28s var(--app-ease-out),
+        transform 0.28s var(--app-ease-out);
+}
+
+.app-tab-leave-active {
+    transition:
+        opacity 0.18s var(--app-ease-in),
+        transform 0.18s var(--app-ease-in);
+}
+
+.app-tab-enter-from {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+.app-tab-leave-to {
+    opacity: 0;
+    transform: translateY(-5px);
+}
+
+/* 非 Tab 页：不做整页过渡，避免后台/登录等闪烁 */
+.app-route-none-enter-active,
+.app-route-none-leave-active {
+    transition: none !important;
+}
+
+.app-route-none-enter-from,
+.app-route-none-leave-to,
+.app-route-none-enter-to,
+.app-route-none-leave-from {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+/* ---------- 卡片 / 区块：轻微上移 + 渐入 ---------- */
+@keyframes app-enter-up {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.app-enter-up {
+    animation: app-enter-up var(--app-dur-enter) var(--app-ease-out) both;
+}
+
+.app-enter-delay-1 {
+    animation-delay: 0.04s;
+}
+.app-enter-delay-2 {
+    animation-delay: 0.08s;
+}
+.app-enter-delay-3 {
+    animation-delay: 0.12s;
+}
+.app-enter-delay-4 {
+    animation-delay: 0.16s;
+}
+.app-enter-delay-5 {
+    animation-delay: 0.2s;
+}
+.app-enter-delay-6 {
+    animation-delay: 0.24s;
+}
+
+/* 宫格子项阶梯进入（首页四宫格、广场等） */
+.app-stagger-grid > * {
+    animation: app-enter-up var(--app-dur-enter) var(--app-ease-out) both;
+}
+
+.app-stagger-grid > *:nth-child(1) {
+    animation-delay: 0.02s;
+}
+.app-stagger-grid > *:nth-child(2) {
+    animation-delay: 0.06s;
+}
+.app-stagger-grid > *:nth-child(3) {
+    animation-delay: 0.1s;
+}
+.app-stagger-grid > *:nth-child(4) {
+    animation-delay: 0.14s;
+}
+.app-stagger-grid > *:nth-child(5) {
+    animation-delay: 0.18s;
+}
+.app-stagger-grid > *:nth-child(6) {
+    animation-delay: 0.22s;
+}
+.app-stagger-grid > *:nth-child(7) {
+    animation-delay: 0.26s;
+}
+.app-stagger-grid > *:nth-child(8) {
+    animation-delay: 0.3s;
+}
+.app-stagger-grid > *:nth-child(9) {
+    animation-delay: 0.34s;
+}
+.app-stagger-grid > *:nth-child(10) {
+    animation-delay: 0.38s;
+}
+.app-stagger-grid > *:nth-child(11) {
+    animation-delay: 0.42s;
+}
+.app-stagger-grid > *:nth-child(12) {
+    animation-delay: 0.46s;
+}
+
+/* 横向滚动宫格：子项仍阶梯，避免整排同时弹 */
+.app-stagger-row > * {
+    animation: app-enter-up calc(var(--app-dur-enter) + 0.04s) var(--app-ease-out) both;
+}
+
+.app-stagger-row > *:nth-child(1) {
+    animation-delay: 0.02s;
+}
+.app-stagger-row > *:nth-child(2) {
+    animation-delay: 0.07s;
+}
+.app-stagger-row > *:nth-child(3) {
+    animation-delay: 0.12s;
+}
+.app-stagger-row > *:nth-child(4) {
+    animation-delay: 0.17s;
+}
+.app-stagger-row > *:nth-child(5) {
+    animation-delay: 0.22s;
+}
+.app-stagger-row > *:nth-child(6) {
+    animation-delay: 0.27s;
+}
+
+/* 表格行：刷新后轻微依次浮现，减轻「整块跳变」感 */
+.app-tbody-enter tr {
+    animation: app-enter-up 0.34s var(--app-ease-out) both;
+}
+
+.app-tbody-enter tr:nth-child(1) {
+    animation-delay: 0.01s;
+}
+.app-tbody-enter tr:nth-child(2) {
+    animation-delay: 0.03s;
+}
+.app-tbody-enter tr:nth-child(3) {
+    animation-delay: 0.05s;
+}
+.app-tbody-enter tr:nth-child(4) {
+    animation-delay: 0.07s;
+}
+.app-tbody-enter tr:nth-child(5) {
+    animation-delay: 0.09s;
+}
+.app-tbody-enter tr:nth-child(6) {
+    animation-delay: 0.11s;
+}
+.app-tbody-enter tr:nth-child(7) {
+    animation-delay: 0.13s;
+}
+.app-tbody-enter tr:nth-child(8) {
+    animation-delay: 0.15s;
+}
+.app-tbody-enter tr:nth-child(9) {
+    animation-delay: 0.17s;
+}
+.app-tbody-enter tr:nth-child(10) {
+    animation-delay: 0.19s;
+}
+.app-tbody-enter tr:nth-child(11) {
+    animation-delay: 0.21s;
+}
+.app-tbody-enter tr:nth-child(12) {
+    animation-delay: 0.23s;
+}
+.app-tbody-enter tr:nth-child(n + 13) {
+    animation-delay: 0.25s;
+}
+
+/* ---------- 可点击宫格 / 列表项：统一按压反馈 ---------- */
+.app-tap {
+    transition:
+        transform var(--app-dur-tap) var(--app-ease-out),
+        box-shadow var(--app-dur-tap) var(--app-ease-out),
+        border-color var(--app-dur-tap) var(--app-ease-out),
+        background-color var(--app-dur-tap) var(--app-ease-out);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.app-tap:active:not(:disabled) {
+    transform: scale(0.97);
+}
+
+/* ---------- 蒙层淡入淡出（通知弹窗等） ---------- */
+.app-overlay-fade-enter-active,
+.app-overlay-fade-leave-active {
+    transition: opacity 0.32s var(--app-ease-soft);
+}
+
+.app-overlay-fade-enter-from,
+.app-overlay-fade-leave-to {
+    opacity: 0;
+}
+
+.app-overlay-fade-enter-active .app-overlay-fade__panel,
+.app-overlay-fade-leave-active .app-overlay-fade__panel {
+    transition:
+        opacity 0.34s var(--app-ease-out),
+        transform 0.36s var(--app-ease-out);
+}
+
+.app-overlay-fade-enter-from .app-overlay-fade__panel,
+.app-overlay-fade-leave-to .app-overlay-fade__panel {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+}
+
+@media (min-width: 640px) {
+    .app-overlay-fade-enter-from .app-overlay-fade__panel,
+    .app-overlay-fade-leave-to .app-overlay-fade__panel {
+        transform: scale(0.97);
+    }
+}
+
+/* ---------- 无障碍：减少动效 ---------- */
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --app-dur-enter: 0.01s;
+        --app-dur-leave: 0.01s;
+        --app-dur-tap: 0.01s;
+    }
+
+    .app-tab-enter-active,
+    .app-tab-leave-active {
+        transition: none !important;
+    }
+
+    .app-enter-up,
+    .app-stagger-grid > *,
+    .app-stagger-row > *,
+    .app-tbody-enter tr {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+
+    .app-tap:active:not(:disabled) {
+        transform: none;
+    }
+
+    .app-overlay-fade-enter-active,
+    .app-overlay-fade-leave-active,
+    .app-overlay-fade-enter-active .app-overlay-fade__panel,
+    .app-overlay-fade-leave-active .app-overlay-fade__panel {
+        transition: none !important;
+    }
+}

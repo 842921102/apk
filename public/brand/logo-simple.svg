@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96">
+  <rect width="320" height="96" rx="24" fill="#F5F6F8" />
+  <rect x="12" y="12" width="72" height="72" rx="18" fill="#7A57D1" />
+  <text x="48" y="60" text-anchor="middle" font-size="36" font-family="system-ui, -apple-system, Segoe UI, sans-serif" fill="#F5F6F8" font-weight="700">m</text>
+  <text x="104" y="54" font-size="34" font-family="system-ui, -apple-system, Segoe UI, sans-serif" fill="#222222" font-weight="700">m&</text>
+  <text x="104" y="78" font-size="16" font-family="system-ui, -apple-system, Segoe UI, sans-serif" fill="#7A57D1" font-weight="600">fan</text>
+</svg>
