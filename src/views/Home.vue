@@ -2,6 +2,7 @@
     <UserPageShell max-width-class="max-w-7xl" padding-class="px-3 pt-3 pb-8 md:px-6 md:pt-4 md:pb-10">
             <!-- 氛围头图 -->
             <div
+                v-if="frontendConfig.show_home_banner"
                 class="relative overflow-hidden rounded-[24px] mb-5 md:mb-8 shadow-[0_12px_40px_rgba(122,87,209,0.15)] ring-1 ring-white/60"
             >
                 <div
@@ -14,15 +15,15 @@
                 ></div>
                 <div class="relative px-5 py-8 md:py-10 md:px-10 text-center text-white">
                     <p class="text-white/85 text-xs md:text-sm font-medium tracking-[0.2em] uppercase mb-3">生活厨房</p>
-                    <h1 class="text-[1.65rem] md:text-3xl font-bold tracking-tight mb-2 drop-shadow-sm">饭否</h1>
+                    <h1 class="text-[1.65rem] md:text-3xl font-bold tracking-tight mb-2 drop-shadow-sm">{{ homeTitle }}</h1>
                     <p class="text-white/95 text-sm md:text-base font-medium leading-relaxed max-w-md mx-auto">
-                        今天想吃点什么？说说冰箱里的食材，大师帮你配好这一餐
+                        {{ homeSubtitle }}
                     </p>
                 </div>
             </div>
 
             <!-- 运营推荐位 -->
-            <section class="mb-5 app-enter-up">
+            <section v-if="frontendConfig.show_home_recommend" class="mb-5 app-enter-up">
                 <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
                     <router-link
                         :to="homeBanner.primary.to"
@@ -30,8 +31,8 @@
                     >
                         <div class="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-[#7A57D1]/10 blur-2xl" />
                         <p class="text-[11px] font-semibold tracking-wider text-[#7A57D1]">{{ homeBanner.primary.tag }}</p>
-                        <h3 class="mt-1 text-[17px] font-bold text-[#222222]">{{ homeBanner.primary.title }}</h3>
-                        <p class="mt-1 text-[13px] leading-relaxed text-[#8A8F99]">{{ homeBanner.primary.desc }}</p>
+                        <h3 class="mt-1 text-[17px] font-bold text-[#222222]">{{ homeBannerTitle }}</h3>
+                        <p class="mt-1 text-[13px] leading-relaxed text-[#8A8F99]">{{ homeBannerSubtitle }}</p>
                         <div class="mt-3 inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[12px] font-semibold text-[#7A57D1] ring-1 ring-[#E8DDF5]">
                             立即开始
                             <span>→</span>
@@ -64,9 +65,9 @@
 
             <!-- 今日推荐 / 热门玩法 / 新手入口 -->
             <section class="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-                <div class="app-enter-up rounded-[20px] border border-[#ECEEF2] bg-white p-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
-                    <p class="text-[11px] font-semibold tracking-wider text-[#8A8F99]">今日推荐</p>
-                    <h3 class="mt-1 text-[16px] font-bold text-[#222222]">今晚就做这三道</h3>
+                <div v-if="frontendConfig.show_home_recommend" class="app-enter-up rounded-[20px] border border-[#ECEEF2] bg-white p-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+                    <p class="text-[11px] font-semibold tracking-wider text-[#8A8F99]">{{ homeRecommendTitle }}</p>
+                    <h3 class="mt-1 text-[16px] font-bold text-[#222222]">{{ homeRecommendSubtitle }}</h3>
                     <div class="mt-3 space-y-2">
                         <div
                             v-for="item in todayRecommendations"
@@ -78,9 +79,9 @@
                     </div>
                 </div>
 
-                <div class="app-enter-up app-enter-delay-1 rounded-[20px] border border-[#ECEEF2] bg-white p-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
-                    <p class="text-[11px] font-semibold tracking-wider text-[#8A8F99]">热门玩法</p>
-                    <h3 class="mt-1 text-[16px] font-bold text-[#222222]">大家都在用</h3>
+                <div v-if="frontendConfig.show_home_hot" class="app-enter-up app-enter-delay-1 rounded-[20px] border border-[#ECEEF2] bg-white p-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+                    <p class="text-[11px] font-semibold tracking-wider text-[#8A8F99]">{{ homeHotTitle }}</p>
+                    <h3 class="mt-1 text-[16px] font-bold text-[#222222]">{{ homeHotSubtitle }}</h3>
                     <div class="mt-3 space-y-2">
                         <router-link
                             v-for="item in hotPlayEntries"
@@ -775,7 +776,19 @@ import AppStateEmpty from '@/components/ui/AppStateEmpty.vue'
 import AppStateError from '@/components/ui/AppStateError.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import { generateCustomRecipe, generateMultipleRecipesStream, generateRecipe } from '@/services/aiService'
+import { loadFrontendConfig } from '@/services/adminConfigService'
 import type { Recipe, CuisineType } from '@/types'
+
+const frontendConfig = loadFrontendConfig()
+const homeTitle = frontendConfig.home_title || frontendConfig.app_name || '饭否'
+const homeSubtitle =
+    frontendConfig.home_subtitle || '今天想吃点什么？说说冰箱里的食材，大师帮你配好这一餐'
+const homeBannerTitle = frontendConfig.home_banner_title || '今晚吃什么，一键给你完整思路'
+const homeBannerSubtitle = frontendConfig.home_banner_subtitle || '食材、菜系、步骤一次配齐，10 秒就能开做。'
+const homeRecommendTitle = frontendConfig.home_recommend_title || '今日推荐'
+const homeRecommendSubtitle = frontendConfig.home_recommend_subtitle || '今晚就做这三道'
+const homeHotTitle = frontendConfig.home_hot_title || '热门玩法'
+const homeHotSubtitle = frontendConfig.home_hot_subtitle || '大家都在用'
 
 /** 首页快捷入口（与底栏能力对齐，仅路由跳转） */
 const quickEntries = [
@@ -806,7 +819,10 @@ const hotPlayEntries = [
     { to: '/today-eat', label: '盲盒选菜，解决纠结' },
     { to: '/sauce-design', label: '给菜加点灵魂酱料' },
     { to: '/how-to-cook', label: '按步骤快速上手' }
-] as const
+].filter(item => {
+    if (item.to === '/sauce-design' && !frontendConfig.enable_sauce) return false
+    return true
+})
 
 const newbieSteps = [
     '先在下方添加 3-6 种食材',

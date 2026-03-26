@@ -13,9 +13,9 @@
         />
 
         <div class="relative z-10">
-          <p class="text-[13px] font-medium text-white/85">{{ welcomePhrase }}</p>
+          <p class="text-[13px] font-medium text-white/85">{{ profileSubtitle }}</p>
           <h1 class="mt-2 text-[22px] font-bold leading-snug tracking-tight text-white md:text-2xl">
-            {{ loggedIn ? userLine : '开启你的美食生活' }}
+            {{ profileTitle }}
           </h1>
           <p v-if="loggedIn" class="mt-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-[12px] text-white/90 backdrop-blur-sm">
             <span class="opacity-80">身份</span>
@@ -35,62 +35,36 @@
           <template v-if="loggedIn">
             <p class="mb-3 text-[13px] font-semibold text-[#222222]">常用功能</p>
             <div class="app-stagger-grid grid grid-cols-2 gap-3">
-              <router-link
-                to="/collect"
-                class="me-tile app-tap group flex flex-col gap-2.5 rounded-[18px] border border-[#ECEEF2] bg-[#FAFBFC] p-4"
-              >
-                <span
-                  class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F3ECFF] text-[#7A57D1] shadow-sm transition-transform duration-200 group-active:scale-95"
-                  aria-hidden="true"
+              <template v-for="entry in profileEntries" :key="entry.key">
+                <router-link
+                  v-if="entry.to !== '/admin'"
+                  :to="entry.to"
+                  class="me-tile app-tap group flex flex-col gap-2.5 rounded-[18px] border border-[#ECEEF2] bg-[#FAFBFC] p-4"
                 >
-                  <AppStrokeIcon name="bookmark" :size="26" />
-                </span>
-                <span class="text-[15px] font-semibold text-[#222222]">我的收藏</span>
-                <span class="text-[11px] leading-snug text-[#8A8F99]">菜谱与灵感</span>
-              </router-link>
-
-              <router-link
-                to="/histories"
-                class="me-tile app-tap group flex flex-col gap-2.5 rounded-[18px] border border-[#ECEEF2] bg-[#FAFBFC] p-4"
-              >
-                <span
-                  class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F3ECFF] text-[#7A57D1] shadow-sm transition-transform duration-200 group-active:scale-95"
-                  aria-hidden="true"
+                  <span
+                    class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F3ECFF] text-[#7A57D1] shadow-sm transition-transform duration-200 group-active:scale-95"
+                    aria-hidden="true"
+                  >
+                    <AppStrokeIcon :name="entry.icon" :size="26" />
+                  </span>
+                  <span class="text-[15px] font-semibold text-[#222222]">{{ entry.title }}</span>
+                  <span class="text-[11px] leading-snug text-[#8A8F99]">{{ entry.subtitle }}</span>
+                </router-link>
+                <router-link
+                  v-else
+                  to="/admin"
+                  class="me-tile me-tile--admin app-tap group flex flex-col gap-2.5 rounded-[18px] border border-[#E8DDF5] bg-gradient-to-br from-[#F3ECFF] to-[#FAFBFC] p-4"
                 >
-                  <AppStrokeIcon name="clock" :size="26" />
-                </span>
-                <span class="text-[15px] font-semibold text-[#222222]">我的历史</span>
-                <span class="text-[11px] leading-snug text-[#8A8F99]">生成记录</span>
-              </router-link>
-
-              <router-link
-                to="/settings"
-                class="me-tile app-tap group flex flex-col gap-2.5 rounded-[18px] border border-[#ECEEF2] bg-[#FAFBFC] p-4"
-              >
-                <span
-                  class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F3ECFF] text-[#7A57D1] shadow-sm transition-transform duration-200 group-active:scale-95"
-                  aria-hidden="true"
-                >
-                  <AppStrokeIcon name="sliders" :size="26" />
-                </span>
-                <span class="text-[15px] font-semibold text-[#222222]">系统设置</span>
-                <span class="text-[11px] leading-snug text-[#8A8F99]">偏好与体验</span>
-              </router-link>
-
-              <router-link
-                v-if="showAdminEntry"
-                to="/admin"
-                class="me-tile me-tile--admin app-tap group flex flex-col gap-2.5 rounded-[18px] border border-[#E8DDF5] bg-gradient-to-br from-[#F3ECFF] to-[#FAFBFC] p-4"
-              >
-                <span
-                  class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#7A57D1]/12 text-[#7A57D1] shadow-sm ring-1 ring-[#7A57D1]/15 transition-transform duration-200 group-active:scale-95"
-                  aria-hidden="true"
-                >
-                  <AppStrokeIcon name="wrench" :size="26" />
-                </span>
-                <span class="text-[15px] font-semibold text-[#7A57D1]">进入管理后台</span>
-                <span class="text-[11px] leading-snug text-[#8A8F99]">管理员入口</span>
-              </router-link>
+                  <span
+                    class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#7A57D1]/12 text-[#7A57D1] shadow-sm ring-1 ring-[#7A57D1]/15 transition-transform duration-200 group-active:scale-95"
+                    aria-hidden="true"
+                  >
+                    <AppStrokeIcon :name="entry.icon" :size="26" />
+                  </span>
+                  <span class="text-[15px] font-semibold text-[#7A57D1]">{{ entry.title }}</span>
+                  <span class="text-[11px] leading-snug text-[#8A8F99]">{{ entry.subtitle }}</span>
+                </router-link>
+              </template>
 
               <button
                 type="button"
@@ -111,15 +85,15 @@
               >
                 <AppStrokeIcon name="sparkles" :size="34" />
               </div>
-              <p class="text-[15px] font-semibold text-[#222222]">登录体验完整功能</p>
+              <p class="text-[15px] font-semibold text-[#222222]">{{ loginPromptTitle }}</p>
               <p class="mt-1.5 max-w-xs text-[13px] leading-relaxed text-[#8A8F99]">
-                同步收藏、历史记录与个性化设置。
+                {{ loginPromptSubtitle }}
               </p>
               <router-link
                 to="/login"
                 class="app-tap mt-6 w-full rounded-[18px] bg-[#7A57D1] py-3.5 text-center text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(122,87,209,0.35)] active:bg-[#6846BC]"
               >
-                去登录
+                {{ loginButtonText }}
               </router-link>
 
               <div class="mt-4 w-full rounded-[16px] border border-[#E8DDF5] bg-[#F3ECFF]/60 p-3 text-left">
@@ -136,20 +110,20 @@
       </section>
 
       <!-- 个人运营区：最近记录 / 身份提示 -->
-      <section v-if="loggedIn" class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+      <section v-if="loggedIn && (frontendConfig.show_recent_favorites || frontendConfig.show_recent_histories)" class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
         <div class="app-enter-up rounded-[20px] border border-[#ECEEF2] bg-white p-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)] md:col-span-2">
           <div class="flex items-center justify-between gap-2">
             <h3 class="text-[16px] font-bold text-[#222222]">最近足迹</h3>
             <router-link to="/collect" class="text-[12px] font-semibold text-[#7A57D1]">查看全部 →</router-link>
           </div>
           <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <div class="rounded-xl bg-[#FAFBFC] p-3 ring-1 ring-[#ECEEF2]">
+            <div v-if="frontendConfig.show_recent_favorites" class="rounded-xl bg-[#FAFBFC] p-3 ring-1 ring-[#ECEEF2]">
               <p class="text-[11px] font-semibold tracking-wider text-[#8A8F99]">最近收藏</p>
               <p class="mt-1 text-[13px] font-medium text-[#222222]">
                 {{ latestFavoriteTitle || '还没有收藏，看到喜欢的菜谱可以先点亮爱心' }}
               </p>
             </div>
-            <div class="rounded-xl bg-[#FAFBFC] p-3 ring-1 ring-[#ECEEF2]">
+            <div v-if="frontendConfig.show_recent_histories" class="rounded-xl bg-[#FAFBFC] p-3 ring-1 ring-[#ECEEF2]">
               <p class="text-[11px] font-semibold tracking-wider text-[#8A8F99]">最近生成</p>
               <p class="mt-1 text-[13px] font-medium text-[#222222]">
                 {{ latestHistoryTitle || '还没有生成记录，去首页做一道今日菜谱吧' }}
@@ -185,6 +159,8 @@ import { getCurrentUserRole } from '@/services/userProfileService'
 import { getFavorites } from '@/services/favoriteService'
 import { getHistories } from '@/services/historyService'
 import { canAccessAdmin, normalizeRole, roleLabelCN } from '@/lib/appRoles'
+import { loadFrontendConfig } from '@/services/adminConfigService'
+import type { StrokeIconName } from '@/components/icons/strokeIconPaths'
 
 const router = useRouter()
 const loggedIn = ref(false)
@@ -194,6 +170,17 @@ const showAdminEntry = ref(false)
 const rawRole = ref<string | null>(null)
 const latestFavoriteTitle = ref('')
 const latestHistoryTitle = ref('')
+const frontendConfig = loadFrontendConfig()
+
+type ProfileEntry = {
+  key: 'favorites' | 'histories' | 'settings' | 'admin'
+  to: string
+  icon: StrokeIconName
+  title: string
+  subtitle: string
+  sort: number
+  visible: boolean
+}
 
 const roleDisplay = computed(() => {
   if (!loggedIn.value) return '—'
@@ -201,12 +188,27 @@ const roleDisplay = computed(() => {
 })
 
 const welcomePhrase = computed(() => {
-  if (!loggedIn.value) return '你好呀'
+  const configuredText = frontendConfig.profile_welcome_text?.trim()
+  if (!loggedIn.value) return configuredText || '你好呀'
   const h = new Date().getHours()
-  if (h < 12) return '早上好'
-  if (h < 18) return '下午好'
-  return '晚上好'
+  const timeBased = h < 12 ? '早上好' : h < 18 ? '下午好' : '晚上好'
+  return configuredText || timeBased
 })
+
+const profileTitle = computed(() => {
+  if (!loggedIn.value) return frontendConfig.profile_title || '开启你的美食生活'
+  return frontendConfig.profile_title || userLine.value || '开启你的美食生活'
+})
+
+const profileSubtitle = computed(() => {
+  return frontendConfig.profile_subtitle || welcomePhrase.value
+})
+
+const profileGuestTitle = computed(() => frontendConfig.profile_guest_title || '登录体验完整功能')
+const profileGuestSubtitle = computed(() => frontendConfig.profile_guest_subtitle || '同步收藏、历史记录与个性化设置。')
+const loginPromptTitle = computed(() => frontendConfig.login_prompt_title || profileGuestTitle.value)
+const loginPromptSubtitle = computed(() => frontendConfig.login_prompt_subtitle || profileGuestSubtitle.value)
+const loginButtonText = computed(() => frontendConfig.login_button_text || '去登录')
 
 const userLine = computed(() => {
   if (!loggedIn.value) return ''
@@ -217,12 +219,57 @@ const userLine = computed(() => {
 
 const roleHintTitle = computed(() => {
   if (!showAdminEntry.value) return '普通用户模式'
-  return normalizeRole(rawRole.value) === 'super_admin' ? '超级管理员模式' : '运营管理模式'
+  const role = normalizeRole(rawRole.value)
+  if (role === 'super_admin') return '超级管理员模式'
+  if (role === 'operator') return '运营管理模式'
+  return '只读审核模式'
 })
 
 const roleHintDesc = computed(() => {
   if (!showAdminEntry.value) return '你可以专注收藏与历史记录，我们会持续为你优化日常做饭体验。'
-  return '你拥有后台访问能力，可查看运营数据与配置项；前台体验仍与普通用户一致。'
+  return frontendConfig.profile_admin_tip || '你拥有后台访问能力，可查看运营数据与配置项；前台体验仍与普通用户一致。'
+})
+
+const profileEntries = computed<ProfileEntry[]>(() => {
+  const rows: ProfileEntry[] = [
+    {
+      key: 'favorites',
+      to: '/collect',
+      icon: 'bookmark',
+      title: '我的收藏',
+      subtitle: '菜谱与灵感',
+      sort: frontendConfig.profile_favorites_sort,
+      visible: frontendConfig.show_profile_favorites
+    },
+    {
+      key: 'histories',
+      to: '/histories',
+      icon: 'clock',
+      title: '我的历史',
+      subtitle: '生成记录',
+      sort: frontendConfig.profile_histories_sort,
+      visible: frontendConfig.show_profile_histories
+    },
+    {
+      key: 'settings',
+      to: '/settings',
+      icon: 'sliders',
+      title: '系统设置',
+      subtitle: '偏好与体验',
+      sort: frontendConfig.profile_settings_sort,
+      visible: frontendConfig.show_profile_settings
+    },
+    {
+      key: 'admin',
+      to: '/admin',
+      icon: 'wrench',
+      title: '进入管理后台',
+      subtitle: '管理员入口',
+      sort: frontendConfig.profile_admin_entry_sort,
+      visible: frontendConfig.show_profile_admin_entry && showAdminEntry.value
+    }
+  ]
+  return rows.filter(item => item.visible).sort((a, b) => a.sort - b.sort)
 })
 
 let authSub: { unsubscribe: () => void } | null = null

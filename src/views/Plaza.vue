@@ -22,7 +22,7 @@
         />
         <div class="relative z-10">
           <p class="text-[12px] font-medium uppercase tracking-[0.2em] text-white/75">扩展玩法</p>
-          <h1 class="mt-1.5 text-[24px] font-bold leading-tight tracking-tight md:text-[26px]">功能广场</h1>
+          <h1 class="mt-1.5 text-[24px] font-bold leading-tight tracking-tight md:text-[26px]">{{ plazaTitle }}</h1>
           <p class="mt-2 max-w-[320px] text-[13px] leading-relaxed text-white/88 md:max-w-lg">
             {{ pageSubtitle }}
           </p>
@@ -143,6 +143,7 @@ import { ref, onMounted } from 'vue'
 import UserPageShell from '@/components/layout/UserPageShell.vue'
 import AppStrokeIcon from '@/components/icons/AppStrokeIcon.vue'
 import type { StrokeIconName } from '@/components/icons/strokeIconPaths'
+import { loadFrontendConfig } from '@/services/adminConfigService'
 
 type PlazaCard = {
   to: string
@@ -152,13 +153,18 @@ type PlazaCard = {
   tag?: string
 }
 
-const gridCards: PlazaCard[] = [
-  { to: '/table-design', icon: 'utensils', title: '满汉全席', desc: '一桌好菜，搭配用餐小剧本' },
-  { to: '/sauce-design', icon: 'droplet', title: '酱料大师', desc: '调味灵感与酱料设计' },
-  { to: '/fortune-cooking', icon: 'moon', title: '玄学厨房', desc: '趣味运势与今日菜色' },
-  { to: '/gallery', icon: 'image', title: '封神图鉴', desc: '美食图鉴随心浏览' },
-  { to: '/how-to-cook', icon: 'bookOpen', title: '菜谱教学', desc: '步骤清晰，跟做不慌' }
-]
+const frontendConfig = loadFrontendConfig()
+const plazaTitle = frontendConfig.plaza_title || '功能广场'
+
+const gridCards: PlazaCard[] = frontendConfig.plaza_entries
+  .filter(entry => entry.enabled)
+  .sort((a, b) => a.sort_order - b.sort_order)
+  .map(entry => ({
+    to: entry.route,
+    icon: entry.icon as StrokeIconName,
+    title: entry.title,
+    desc: entry.subtitle
+  }))
 
 /** 横向推荐区：与宫格可重复入口，突出产品感 */
 const hotPickTos = ['/table-design', '/fortune-cooking', '/how-to-cook'] as const
@@ -179,7 +185,7 @@ const playRoute = [
 const starterTips = ['想省时：先用「吃什么」再进教学。', '想有亮点：在「酱料大师」加一道灵魂酱。', '想晒图：做完记得去「封神图鉴」保存。'] as const
 
 const heroSubtitles = [
-    '选一站入口，把「今天玩什么」交给灵感 ✨',
+    frontendConfig.plaza_subtitle || '选一站入口，把「今天玩什么」交给灵感 ✨',
     '从一桌菜到一味酱，厨房乐趣都在这里',
     '不用翻菜单，先把想玩的都收藏进心里～',
     '轻点一下，解锁下一道生活小惊喜 🎁'

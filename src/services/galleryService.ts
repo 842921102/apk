@@ -9,6 +9,8 @@ export interface GalleryImage {
     ingredients: string[]
     generatedAt: string
     prompt?: string
+    userId?: string
+    userEmail?: string
 }
 
 export interface GalleryStats {

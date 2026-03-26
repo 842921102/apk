@@ -14,6 +14,7 @@ import type {
     NumberFortuneParams
 } from '@/types'
 import { getTextGenerationConfig } from '@/utils/apiConfig'
+import type { TextGenerationConfig } from '@/utils/apiConfig'
 
 // 创建动态 axios 实例
 const createAiClient = () => {
@@ -985,26 +986,111 @@ const generateFallbackWinePairing = (cuisine: CuisineType, ingredients: string[]
 /**
  * 测试 AI 服务连接
  */
-export const testAIConnection = async (): Promise<boolean> => {
-    try {
-        const aiClient = createAiClient()
-        const apiConfig = getTextGenerationConfig()
+export const testAIConnection = async (
+    overrideConfig?: Partial<TextGenerationConfig>,
+): Promise<
+    | { ok: true }
+    | {
+          ok: false
+          error: {
+              message: string
+              statusCode?: number
+              requestUrl?: string
+              responseData?: unknown
+          }
+      }
+> => {
+    const baseConfig = getTextGenerationConfig()
+    const config: TextGenerationConfig = {
+        baseUrl: (overrideConfig?.baseUrl ?? baseConfig.baseUrl).trim(),
+        apiKey: (overrideConfig?.apiKey ?? baseConfig.apiKey).trim(),
+        model: (overrideConfig?.model ?? baseConfig.model).trim(),
+        temperature:
+            typeof overrideConfig?.temperature === 'number' ? overrideConfig.temperature : baseConfig.temperature,
+        timeout:
+            typeof overrideConfig?.timeout === 'number' ? overrideConfig.timeout : baseConfig.timeout,
+    }
 
-        const response = await aiClient.post('/chat/completions', {
-            model: apiConfig.model,
-            messages: [
-                {
-                    role: 'user',
-                    content: '你好'
-                }
-            ],
-            max_tokens: 10
+    const baseUrlTrimmed = config.baseUrl.replace(/\/+$/, '')
+    // 兼容两种 base_url 写法：
+    // 1) 只填到版本前缀：.../api/paas/v4  （后续追加 /chat/completions）
+    // 2) 已填完整路径：.../api/paas/v4/chat/completions（此时不再重复拼接）
+    const requestUrl = /\/chat\/completions\/?$/.test(baseUrlTrimmed) ? baseUrlTrimmed : `${baseUrlTrimmed}/chat/completions`
+
+    const requestBody = {
+        model: config.model,
+        messages: [
+            {
+                role: 'user',
+                content: '你好',
+            },
+        ],
+        max_tokens: 10,
+    }
+
+    // 不打印 apiKey 明文，避免日志泄露
+    const maskedAuth = config.apiKey
+        ? `Bearer ${config.apiKey.slice(0, 3)}***${config.apiKey.slice(-4)}`
+        : 'Bearer ***'
+
+    console.info('[testAIConnection] requestUrl:', requestUrl)
+    console.info('[testAIConnection] requestBody:', requestBody)
+    console.info('[testAIConnection] Authorization:', maskedAuth)
+
+    try {
+        const response = await axios.post(requestUrl, requestBody, {
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${config.apiKey}`,
+            },
+            timeout: config.timeout,
+            // 让 4xx/5xx 也走到下面的 response 分支，统一返回错误信息
+            validateStatus: () => true,
         })
 
-        return response.status === 200
-    } catch (error) {
-        console.error('AI 服务连接测试失败:', error)
-        return false
+        const status = response.status
+        if (status >= 200 && status < 300) {
+            return { ok: true }
+        }
+
+        const responseData = response.data
+        const message =
+            responseData?.error?.message ||
+            responseData?.message ||
+            (typeof responseData === 'string' ? responseData : `HTTP ${status}`)
+
+        console.error('[testAIConnection] response not ok:', { status, message, responseData })
+
+        return {
+            ok: false,
+            error: {
+                message: String(message),
+                statusCode: status,
+                requestUrl,
+                responseData,
+            },
+        }
+    } catch (e: unknown) {
+        const err = e as any
+        const statusCode: number | undefined = err?.response?.status
+        const responseData: unknown = err?.response?.data
+        const message =
+            err?.response?.data?.error?.message ||
+            err?.response?.data?.message ||
+            err?.message ||
+            '未知错误'
+
+        console.error('[testAIConnection] axios error:', { statusCode, message, responseData })
+
+        return {
+            ok: false,
+            error: {
+                message: String(message),
+                statusCode,
+                requestUrl,
+                responseData,
+            },
+        }
     }
 }
 

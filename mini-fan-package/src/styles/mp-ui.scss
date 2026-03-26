@@ -1,0 +1,257 @@
+/**
+ * 小程序端与 Web App 对齐的视觉规范（浅底、白卡片、紫色强调、轻阴影）
+ * 在 App.vue 中全局引入，页面根节点可加 class="mp-page"
+ */
+
+@import '../uni.scss';
+
+page {
+  background-color: $mp-bg-page;
+}
+
+.mp-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 32rpx;
+  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
+  background: $mp-bg-page;
+}
+
+/* —— 氛围头图（对齐 TodayEat / Plaza / Home Banner）—— */
+.mp-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: $mp-radius-hero;
+  padding: 48rpx 40rpx;
+  margin-bottom: 24rpx;
+  background: linear-gradient(135deg, #7a57d1 0%, #9575e8 52%, #b8a3ef 100%);
+  box-shadow: 0 24rpx 80rpx rgba(122, 87, 209, 0.2);
+}
+
+.mp-hero__kicker {
+  display: block;
+  font-size: 24rpx;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.mp-hero__title {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.mp-hero__sub {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 26rpx;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 620rpx;
+}
+
+/* —— 章节标签（对齐 App 的 11px tracking-wider）—— */
+.mp-kicker {
+  display: block;
+  font-size: 22rpx;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: $mp-text-muted;
+}
+
+.mp-kicker--accent {
+  color: $mp-accent;
+}
+
+.mp-kicker--on-dark {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+/* —— 卡片 —— */
+.mp-card {
+  background: $mp-surface;
+  border-radius: $mp-radius-card;
+  padding: 32rpx 28rpx;
+  border: 1rpx solid $mp-border;
+  box-shadow: $mp-shadow-card;
+}
+
+.mp-card + .mp-card {
+  margin-top: 24rpx;
+}
+
+.mp-card--inset {
+  background: #fafbfc;
+  box-shadow: none;
+  border-color: $mp-border;
+}
+
+.mp-card--accent-soft {
+  background: rgba(243, 236, 255, 0.65);
+  border-color: $mp-ring-accent;
+  box-shadow: 0 8rpx 24rpx rgba(122, 87, 209, 0.08);
+}
+
+/* —— 主按钮 / 次按钮 —— */
+.mp-btn-primary {
+  margin: 0;
+  padding: 28rpx 32rpx;
+  width: 100%;
+  line-height: 1.35;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 24rpx;
+  background: linear-gradient(90deg, #7a57d1 0%, #6743bf 100%) !important;
+  box-shadow: 0 16rpx 48rpx rgba(122, 87, 209, 0.35);
+}
+
+.mp-btn-primary::after {
+  border: none !important;
+}
+
+.mp-btn-secondary {
+  margin: 0;
+  padding: 24rpx 32rpx;
+  line-height: 1.35;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: $mp-accent !important;
+  background: #fff !important;
+  border: 1rpx solid $mp-ring-accent !important;
+  border-radius: 22rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.mp-btn-secondary::after {
+  border: none !important;
+}
+
+.mp-btn-ghost {
+  margin: 0;
+  padding: 20rpx 28rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: $mp-text-secondary !important;
+  background: transparent !important;
+  border: 1rpx solid $mp-border !important;
+  border-radius: 20rpx;
+}
+
+.mp-btn-ghost::after {
+  border: none !important;
+}
+
+.mp-btn-danger-plain {
+  margin: 0;
+  padding: 12rpx 24rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #b45309 !important;
+  background: #fff7ed !important;
+  border: 1rpx solid #fed7aa !important;
+  border-radius: 999rpx;
+}
+
+.mp-btn-danger-plain::after {
+  border: none !important;
+}
+
+/* —— 空状态 —— */
+.mp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 64rpx 40rpx 48rpx;
+  text-align: center;
+}
+
+.mp-empty__icon {
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 28rpx;
+  background: $mp-accent-soft;
+  border: 1rpx solid $mp-ring-accent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52rpx;
+  line-height: 1;
+  margin-bottom: 28rpx;
+  box-shadow: 0 4rpx 16rpx rgba(122, 87, 209, 0.08);
+}
+
+.mp-empty__title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: $mp-text-primary;
+}
+
+.mp-empty__sub {
+  margin-top: 16rpx;
+  font-size: 26rpx;
+  line-height: 1.55;
+  color: $mp-text-secondary;
+  max-width: 560rpx;
+}
+
+.mp-empty .mp-btn-primary {
+  margin-top: 36rpx;
+  max-width: 420rpx;
+}
+
+/* —— 列表容器 —— */
+.mp-list-shell {
+  background: $mp-surface;
+  border-radius: $mp-radius-card;
+  border: 1rpx solid $mp-border;
+  box-shadow: $mp-shadow-soft;
+  overflow: hidden;
+}
+
+.mp-list-row {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 24rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+}
+
+.mp-list-row:last-child {
+  border-bottom-width: 0;
+}
+
+/* —— 页面内状态块（loading / 错误），与 mp-empty 图标规格对齐 —— */
+.mp-state-icon {
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 28rpx;
+  background: $mp-accent-soft;
+  border: 1rpx solid $mp-ring-accent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52rpx;
+  line-height: 1;
+  margin-bottom: 28rpx;
+  box-shadow: 0 4rpx 16rpx rgba(122, 87, 209, 0.08);
+}
+
+.mp-state-icon--muted {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  box-shadow: none;
+}
+
+.mp-state-icon--danger {
+  background: #fef2f2;
+  border-color: #fecaca;
+  box-shadow: none;
+}

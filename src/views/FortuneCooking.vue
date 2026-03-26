@@ -178,6 +178,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { generateDailyFortune, generateMoodCooking, generateNumberFortune } from '@/services/aiService'
 import type { FortuneType, FortuneResult, DailyFortuneParams, MoodFortuneParams, NumberFortuneParams } from '@/types'
+import { addFortuneRecord } from '@/services/fortuneRecordService'
 import { zodiacConfigs, animalConfigs, moodConfigs, fortuneTeller, getRandomGreeting, getRandomMysticalWord } from '@/config/fortune'
 import FortuneCard from '@/components/FortuneCard.vue'
 import UserPageShell from '@/components/layout/UserPageShell.vue'
@@ -308,6 +309,12 @@ const startFortune = async () => {
         await new Promise(resolve => setTimeout(resolve, 2000))
 
         fortuneResult.value = result
+        await addFortuneRecord({
+            title: result.dishName || `${selectedType.value} 占卜结果`,
+            fortune_type: result.type || selectedType.value,
+            result_content: result.description || result.reason || result.mysticalMessage || '',
+            raw_result: result as unknown as Record<string, unknown>
+        })
 
         // 滚动到结果区域
         setTimeout(() => {

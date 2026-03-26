@@ -13,8 +13,8 @@
           <div class="app-page-hero__noise" />
           <div class="app-page-hero__body">
             <p class="app-page-hero__eyebrow">回访页</p>
-            <h1 class="app-page-hero__title">我的收藏</h1>
-            <p class="app-page-hero__subtitle">喜欢的菜谱会保存在这里，随时可以回看和复刻。</p>
+            <h1 class="app-page-hero__title">{{ favoritesTitle }}</h1>
+            <p class="app-page-hero__subtitle">{{ favoritesSubtitle }}</p>
           </div>
         </section>
 
@@ -47,16 +47,16 @@
           <AppStateEmpty
             v-if="authRequired"
             stroke="user"
-            title="先登录再查看收藏"
-            description="访客模式下你可以先逛首页和功能广场。登录后，收藏会自动跟随账号同步。"
+            :title="loginPromptTitle"
+            :description="loginPromptSubtitle"
             :with-panel="true"
           >
             <template #actions>
               <router-link :to="loginTarget" class="app-btn app-btn--primary app-btn--md w-full sm:w-auto">
-                去登录
+                {{ loginButtonText }}
               </router-link>
               <router-link to="/" class="app-btn app-btn--secondary app-btn--md w-full sm:w-auto">
-                先去首页逛逛
+                {{ commonEmptyButtonText }}
               </router-link>
             </template>
           </AppStateEmpty>
@@ -64,7 +64,7 @@
           <AppStateError
             v-else-if="fetchError"
             class="mb-6"
-            title="收藏列表加载失败"
+            :title="toastLoadFailed"
             :description="fetchError"
             retry-label="重新加载"
             @retry="loadFavorites"
@@ -73,13 +73,13 @@
           <AppStateEmpty
             v-else-if="favorites.length === 0"
             stroke="heart"
-            title="暂无收藏"
-            description="在首页或生成结果里点亮爱心，菜谱会同步保存在这里，随时打开回顾。"
+            :title="favoritesEmptyTitle"
+            :description="favoritesEmptySubtitle"
             :with-panel="true"
           >
             <template #actions>
               <router-link to="/" class="app-btn app-btn--primary app-btn--md w-full sm:w-auto">
-                去首页找菜谱
+                {{ favoritesEmptyButtonText }}
               </router-link>
               <button type="button" class="app-btn app-btn--secondary app-btn--md w-full sm:w-auto" @click="addDemoFavorite">
                 新增一条测试收藏
@@ -161,6 +161,7 @@ import AppStateLoading from '@/components/ui/AppStateLoading.vue'
 import { ref, onMounted, withDefaults, defineProps, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { getFavorites, addFavorite, deleteFavorite } from '../services/favoriteService'
+import { loadFrontendConfig } from '@/services/adminConfigService'
 
 const props = withDefaults(
   defineProps<{
@@ -189,6 +190,23 @@ const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
 const selectedFavorite = ref<FavoriteItem | null>(null)
 const authRequired = computed(() => /请先登录/i.test(fetchError.value))
+const frontendConfig = loadFrontendConfig()
+const favoritesTitle = frontendConfig.favorites_title || '我的收藏'
+const favoritesSubtitle = frontendConfig.favorites_subtitle || '喜欢的菜谱会保存在这里，随时可以回看和复刻。'
+const favoritesEmptyTitle = frontendConfig.favorites_empty_title || '暂无收藏'
+const favoritesEmptySubtitle =
+  frontendConfig.favorites_empty_subtitle ||
+  frontendConfig.common_empty_subtitle ||
+  '在首页或生成结果里点亮爱心，菜谱会同步保存在这里，随时打开回顾。'
+const favoritesEmptyButtonText =
+  frontendConfig.favorites_empty_button_text || frontendConfig.common_empty_button_text || '去首页找菜谱'
+const loginPromptTitle = frontendConfig.login_prompt_title || '先登录再查看收藏'
+const loginPromptSubtitle =
+  frontendConfig.login_prompt_subtitle || '访客模式下你可以先逛首页和功能广场。登录后，收藏会自动跟随账号同步。'
+const loginButtonText = frontendConfig.login_button_text || '去登录'
+const commonEmptyButtonText = frontendConfig.common_empty_button_text || '先去首页逛逛'
+const toastLoadFailed = frontendConfig.toast_load_failed || '加载失败，请稍后重试'
+const toastFavoriteDeleted = frontendConfig.toast_favorite_deleted || '收藏已删除'
 const loginTarget = computed(() => ({
   path: '/login',
   query: { redirect: route.fullPath || '/collect' }
@@ -219,8 +237,8 @@ async function loadFavorites() {
     favorites.value = (list || []) as FavoriteItem[]
   } catch (err: any) {
     messageType.value = 'error'
-    message.value = err.message || '读取收藏失败'
-    fetchError.value = err.message || '读取收藏失败'
+    message.value = err.message || toastLoadFailed
+    fetchError.value = err.message || toastLoadFailed
   } finally {
     loading.value = false
   }
@@ -253,7 +271,7 @@ async function handleDelete(id: number) {
     message.value = ''
     await deleteFavorite(id)
     messageType.value = 'success'
-    message.value = '删除成功'
+    message.value = toastFavoriteDeleted
     await loadFavorites()
   } catch (err: any) {
     if (/请先登录/i.test(err?.message || '')) {

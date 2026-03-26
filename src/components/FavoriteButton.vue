@@ -16,6 +16,7 @@ import { ref, onMounted, watch } from 'vue'
 import type { Recipe } from '@/types'
 import { addFavorite, isFavoriteByTitle, deleteFavoriteByTitle } from '@/services/favoriteService'
 import { showAppToast } from '@/utils/showAppToast'
+import { loadFrontendConfig } from '@/services/adminConfigService'
 
 interface Props {
     recipe: Recipe
@@ -29,6 +30,10 @@ const emit = defineEmits<{
 
 const isLoading = ref(false)
 const isFavorited = ref(false)
+const frontendConfig = loadFrontendConfig()
+const toastFavoriteSuccess = frontendConfig.toast_favorite_success || '已添加到收藏'
+const toastFavoriteCancel = frontendConfig.toast_favorite_cancel || '已取消收藏'
+const toastSaveFailed = frontendConfig.toast_save_failed || '操作失败，请重试'
 
 // 把 Recipe 转成文本内容
 const buildRecipeContent = (recipe: Recipe) => {
@@ -71,7 +76,7 @@ const toggleFavorite = async () => {
         if (isFavorited.value) {
             await deleteFavoriteByTitle(props.recipe.name)
             isFavorited.value = false
-            showAppToast('已取消收藏', 'info')
+            showAppToast(toastFavoriteCancel, 'info')
         } else {
             await addFavorite({
                 title: props.recipe.name,
@@ -82,13 +87,13 @@ const toggleFavorite = async () => {
             })
 
             isFavorited.value = true
-            showAppToast('已添加到收藏', 'success')
+            showAppToast(toastFavoriteSuccess, 'success')
         }
 
         emit('favoriteChanged', isFavorited.value)
     } catch (error) {
         console.error('收藏操作失败:', error)
-        showAppToast(error instanceof Error ? error.message : '操作失败，请重试', 'error')
+        showAppToast(error instanceof Error ? error.message : toastSaveFailed, 'error')
     } finally {
         isLoading.value = false
     }

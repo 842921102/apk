@@ -473,6 +473,7 @@ import UserPageShell from '@/components/layout/UserPageShell.vue'
 import AppStrokeIcon from '@/components/icons/AppStrokeIcon.vue'
 import type { StrokeIconName } from '@/components/icons/strokeIconPaths'
 import { generateTableMenu, generateDishRecipe } from '@/services/aiService'
+import { addTableMenuRecord } from '@/services/tableMenuRecordService'
 
 // 配置选项
 interface TableConfig {
@@ -643,6 +644,22 @@ const generateTableMenuAction = async () => {
         }))
 
         generatedDishes.value = dishes
+        // 后台“满汉全席数据”最小管理能力：生成成功后持久化一份菜单记录（不影响前台主流程）。
+        const title = dishes.length > 0 ? `${dishes[0].name} 等 ${dishes.length} 道菜` : '满汉全席菜单'
+        await addTableMenuRecord({
+          title,
+          menu_content: aiDishes,
+          config_snapshot: {
+            dishCount: config.dishCount,
+            flexibleCount: config.flexibleCount,
+            tastes: [...config.tastes],
+            cuisineStyle: config.cuisineStyle,
+            diningScene: config.diningScene,
+            nutritionFocus: config.nutritionFocus,
+            customRequirement: config.customRequirement,
+            customDishes: [...config.customDishes]
+          }
+        })
     } catch (error) {
         console.error('生成菜单失败:', error)
         // 显示错误提示

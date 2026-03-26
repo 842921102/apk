@@ -13,8 +13,8 @@
           <div class="app-page-hero__noise" />
           <div class="app-page-hero__body">
             <p class="app-page-hero__eyebrow">回访页</p>
-            <h1 class="app-page-hero__title">最近生成记录</h1>
-            <p class="app-page-hero__subtitle">每一次生成都会保留在这里，方便你回看、复刻和优化。</p>
+            <h1 class="app-page-hero__title">{{ historiesTitle }}</h1>
+            <p class="app-page-hero__subtitle">{{ historiesSubtitle }}</p>
           </div>
         </section>
 
@@ -22,8 +22,8 @@
           <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <p class="text-[11px] font-semibold uppercase tracking-wider text-app-muted">回访页</p>
-              <h1 class="mt-1 text-[24px] font-bold text-app-fg">最近生成记录</h1>
-              <p class="mt-1 text-sm text-app-muted">这里会保存你生成过的菜谱，方便回看、复刻与调整。</p>
+              <h1 class="mt-1 text-[24px] font-bold text-app-fg">{{ historiesTitle }}</h1>
+              <p class="mt-1 text-sm text-app-muted">{{ historiesSubtitle }}</p>
             </div>
             <div class="flex flex-wrap gap-2">
               <button type="button" class="app-btn app-btn--secondary app-btn--sm" @click="loadHistories">刷新历史</button>
@@ -47,16 +47,16 @@
           <AppStateEmpty
             v-if="authRequired"
             stroke="user"
-            title="先登录再查看历史"
-            description="登录后会自动同步你的生成记录，换设备也能继续接着做。"
+            :title="loginPromptTitle"
+            :description="loginPromptSubtitle"
             :with-panel="true"
           >
             <template #actions>
               <router-link :to="loginTarget" class="app-btn app-btn--primary app-btn--md w-full sm:w-auto">
-                去登录
+                {{ loginButtonText }}
               </router-link>
               <router-link to="/" class="app-btn app-btn--secondary app-btn--md w-full sm:w-auto">
-                先去首页创作
+                {{ commonEmptyButtonText }}
               </router-link>
             </template>
           </AppStateEmpty>
@@ -64,7 +64,7 @@
           <AppStateError
             v-else-if="fetchError"
             class="mb-6"
-            title="历史记录加载失败"
+            :title="toastLoadFailed"
             :description="fetchError"
             retry-label="重新加载"
             @retry="loadHistories"
@@ -73,13 +73,13 @@
           <AppStateEmpty
             v-else-if="histories.length === 0"
             stroke="scrollText"
-            title="暂无历史记录"
-            description="去首页添加食材并生成菜谱，每一次创作都会自动同步到这里，方便你回看与复用。"
+            :title="historiesEmptyTitle"
+            :description="historiesEmptySubtitle"
             :with-panel="true"
           >
             <template #actions>
               <router-link to="/" class="app-btn app-btn--primary app-btn--md w-full sm:w-auto">
-                去首页创作
+                {{ historiesEmptyButtonText }}
               </router-link>
               <button type="button" class="app-btn app-btn--secondary app-btn--md w-full sm:w-auto" @click="addDemoHistory">
                 新增一条测试记录
@@ -160,6 +160,7 @@ import AppStateLoading from '@/components/ui/AppStateLoading.vue'
 import { ref, onMounted, withDefaults, defineProps, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { addHistory, getHistories, deleteHistory } from '../services/historyService'
+import { loadFrontendConfig } from '@/services/adminConfigService'
 
 const props = withDefaults(
   defineProps<{
@@ -186,6 +187,22 @@ const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
 const selectedHistory = ref<HistoryItem | null>(null)
 const authRequired = computed(() => /请先登录/i.test(fetchError.value))
+const frontendConfig = loadFrontendConfig()
+const historiesTitle = frontendConfig.histories_title || '最近生成记录'
+const historiesSubtitle = frontendConfig.histories_subtitle || '每一次生成都会保留在这里，方便你回看、复刻和优化。'
+const historiesEmptyTitle = frontendConfig.histories_empty_title || '暂无历史记录'
+const historiesEmptySubtitle =
+  frontendConfig.histories_empty_subtitle ||
+  frontendConfig.common_empty_subtitle ||
+  '去首页添加食材并生成菜谱，每一次创作都会自动同步到这里，方便你回看与复用。'
+const historiesEmptyButtonText =
+  frontendConfig.histories_empty_button_text || frontendConfig.common_empty_button_text || '去首页创作'
+const loginPromptTitle = frontendConfig.login_prompt_title || '先登录再查看历史'
+const loginPromptSubtitle = frontendConfig.login_prompt_subtitle || '登录后会自动同步你的生成记录，换设备也能继续接着做。'
+const loginButtonText = frontendConfig.login_button_text || '去登录'
+const commonEmptyButtonText = frontendConfig.common_empty_button_text || '先去首页创作'
+const toastLoadFailed = frontendConfig.toast_load_failed || '加载失败，请稍后重试'
+const toastHistoryDeleted = frontendConfig.toast_history_deleted || '历史记录已删除'
 const loginTarget = computed(() => ({
   path: '/login',
   query: { redirect: route.fullPath || '/collect?tab=histories' }
@@ -216,8 +233,8 @@ async function loadHistories() {
     histories.value = (list || []) as HistoryItem[]
   } catch (err: any) {
     messageType.value = 'error'
-    message.value = err.message || '读取历史失败'
-    fetchError.value = err.message || '读取历史失败'
+    message.value = err.message || toastLoadFailed
+    fetchError.value = err.message || toastLoadFailed
   } finally {
     loading.value = false
   }
@@ -251,7 +268,7 @@ async function handleDelete(id: number) {
     message.value = ''
     await deleteHistory(id)
     messageType.value = 'success'
-    message.value = '删除成功'
+    message.value = toastHistoryDeleted
     await loadHistories()
   } catch (err: any) {
     if (/请先登录/i.test(err?.message || '')) {

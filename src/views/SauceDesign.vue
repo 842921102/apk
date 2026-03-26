@@ -277,6 +277,7 @@ import AppStateLoading from '@/components/ui/AppStateLoading.vue'
 import { showAppToast } from '@/utils/showAppToast'
 import AppSearch from '@/components/ui/AppSearch.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import { addSauceRecord } from '@/services/sauceRecordService'
 
 // 响应式数据
 const searchQuery = ref('')
@@ -378,6 +379,7 @@ const searchSauce = async () => {
     try {
         const result = await generateSauceRecipe(sauceName)
         currentSauce.value = result
+        await addSauceRecord(result)
 
         // 滚动到结果区域
         setTimeout(() => {
@@ -404,6 +406,7 @@ const selectRecommendedSauce = async (sauceName: string) => {
     try {
         const result = await generateSauceRecipe(sauceName)
         currentSauce.value = result
+        await addSauceRecord(result)
 
         // 滚动到结果区域
         setTimeout(() => {
