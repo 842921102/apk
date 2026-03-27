@@ -136,6 +136,14 @@
           <text v-if="selected.prompt" class="gl__modal-k">生成说明</text>
           <text v-if="selected.prompt" class="gl__modal-prompt">{{ selected.prompt }}</text>
           <view class="gl__modal-actions">
+            <button
+              v-if="isLoggedIn"
+              class="mp-btn-ghost gl__modal-btn"
+              :disabled="galleryFavLoading"
+              @click="onToggleGalleryFavorite"
+            >
+              <text>{{ isGalleryFavorited ? '取消收藏' : '加入收藏' }}</text>
+            </button>
             <button class="mp-btn-primary gl__modal-btn" @click="previewImage(selected)">全屏预览</button>
             <button class="mp-btn-ghost gl__modal-btn" @click="confirmDelete(selected.id)">删除此条</button>
           </view>
@@ -148,7 +156,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
 import MpIcoTabBar from '@/components/MpIcoTabBar.vue'
 import {
@@ -157,9 +165,15 @@ import {
   clearLocalGallery,
 } from '@/api/gallery'
 import { useAuth } from '@/composables/useAuth'
+import { useAppMessages } from '@/composables/useAppMessages'
+import { isFavoriteRecipe, toggleFavoriteRecipe } from '@/api/biz'
 import type { GalleryItem } from '@/types/gallery'
 
-const { syncAuthFromSupabase } = useAuth()
+const msg = useAppMessages()
+const { syncAuthFromSupabase, isLoggedIn } = useAuth()
+
+const isGalleryFavorited = ref(false)
+const galleryFavLoading = ref(false)
 
 const items = ref<GalleryItem[]>([])
 const loading = ref(true)
@@ -278,6 +292,57 @@ function clearFilters() {
   searchQuery.value = ''
   selectedCuisine.value = ''
   sortBy.value = 'date-desc'
+}
+
+function galleryRecipeContent(img: GalleryItem): string {
+  return (img.prompt?.trim() || img.recipeName || '').trim()
+}
+
+async function syncGalleryFavoriteState() {
+  const img = selected.value
+  if (!img || !isLoggedIn.value) {
+    isGalleryFavorited.value = false
+    return
+  }
+  try {
+    isGalleryFavorited.value = await isFavoriteRecipe({
+      source_type: 'gallery',
+      source_id: String(img.id),
+    })
+  } catch {
+    isGalleryFavorited.value = false
+  }
+}
+
+watch([selected, isLoggedIn], () => {
+  void syncGalleryFavoriteState()
+})
+
+async function onToggleGalleryFavorite() {
+  const img = selected.value
+  if (!img || !isLoggedIn.value) return
+  if (galleryFavLoading.value) return
+  galleryFavLoading.value = true
+  try {
+    const recipeContent = galleryRecipeContent(img)
+    const { favorited } = await toggleFavoriteRecipe({
+      source_type: 'gallery',
+      source_id: String(img.id),
+      title: img.recipeName,
+      cuisine: img.cuisine ?? null,
+      ingredients: img.ingredients ?? [],
+      recipe_content: recipeContent || img.recipeName,
+      extra_payload: { image_url: img.url },
+    })
+    isGalleryFavorited.value = favorited
+    if (favorited) msg.toastFavoriteSuccess()
+    else msg.toastFavoriteCancel()
+  } catch (e: unknown) {
+    const err = e as Error
+    uni.showToast({ title: err.message?.slice(0, 42) || '操作失败', icon: 'none' })
+  } finally {
+    galleryFavLoading.value = false
+  }
 }
 
 function openDetail(img: GalleryItem) {

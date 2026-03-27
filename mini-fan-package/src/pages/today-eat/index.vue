@@ -147,6 +147,21 @@
             <text>{{ isFavorited ? '取消收藏' : '加入收藏' }}</text>
           </button>
         </view>
+
+        <view class="te__recent">
+          <text class="te__recent-title">最近吃么么记录</text>
+          <view v-if="recentLoading" class="te__recent-empty">加载中…</view>
+          <view v-else-if="recentRecords.length === 0" class="te__recent-empty">暂无记录</view>
+          <view v-else class="te__recent-list">
+            <view v-for="row in recentRecords" :key="row.id" class="te__recent-item">
+              <view class="te__recent-main" @click="onReplayRecord(row.id)">
+                <text class="te__recent-name">{{ row.result_title || '未命名结果' }}</text>
+                <text class="te__recent-meta">{{ row.result_cuisine || '—' }} · {{ row.created_at || '' }}</text>
+              </view>
+              <text class="te__recent-del" @click="onDeleteRecord(row.id)">删除</text>
+            </view>
+          </view>
+        </view>
       </view>
       <button class="mp-btn-primary te__again te__again--hero" @click="resetIdle">
         <text class="te__again-txt">再生成一次</text>
@@ -164,7 +179,16 @@ import { HttpError } from '@/api/http'
 import { useAuth } from '@/composables/useAuth'
 import { useAppConfig } from '@/composables/useAppConfig'
 import { useAppMessages } from '@/composables/useAppMessages'
-import { insertRecipeHistoryFromTodayEat, isFavoriteRecipe, toggleFavoriteRecipe, BIZ_UNAUTHORIZED } from '@/api/biz'
+import {
+  insertRecipeHistoryFromTodayEat,
+  isFavoriteRecipe,
+  toggleFavoriteRecipe,
+  BIZ_UNAUTHORIZED,
+  BIZ_NEED_LARAVEL_AUTH,
+  BIZ_NOT_CONFIGURED,
+} from '@/api/biz'
+import { fetchEatMemeRecords, deleteEatMemeRecord, type EatMemeRecordItem } from '@/api/eatMeme'
+import { favoriteContentDigest } from '@/lib/favoriteDigest'
 import type { TodayEatResult } from '@/types/ai'
 
 type Phase = 'idle' | 'loading' | 'success' | 'error'
@@ -183,6 +207,8 @@ const needLogin = ref(false)
 const historyNote = ref('')
 const favoriteLoading = ref(false)
 const isFavorited = ref(false)
+const recentRecords = ref<EatMemeRecordItem[]>([])
+const recentLoading = ref(false)
 
 const ingredientsText = computed(() => {
   const ing = result.value?.ingredients
@@ -204,6 +230,7 @@ const prefFilledCount = computed(() => {
 
 onShow(() => {
   void syncAuthFromSupabase()
+  void loadRecentRecords()
 })
 
 function buildPeople(): number | undefined {
@@ -247,6 +274,7 @@ async function onGenerate() {
 
     await maybeSaveHistoryLocally(data, preferences)
     await syncFavoriteState()
+    await loadRecentRecords()
 
     phase.value = 'success'
   } catch (e: unknown) {
@@ -287,6 +315,10 @@ async function maybeSaveHistoryLocally(data: TodayEatResult, preferences: Record
     const e = err as Error & { code?: string }
     if (e.code === BIZ_UNAUTHORIZED || e.message === BIZ_UNAUTHORIZED) {
       msg.toastSaveFailed('登录已过期')
+    } else if (e.code === BIZ_NEED_LARAVEL_AUTH || e.message === BIZ_NEED_LARAVEL_AUTH) {
+      msg.toastSaveFailed('请使用微信一键登录后再试')
+    } else if (e.code === BIZ_NOT_CONFIGURED || e.message === BIZ_NOT_CONFIGURED) {
+      historyNote.value = '当前环境未启用历史写入配置，已跳过历史记录保存。'
     } else {
       msg.toastSaveFailed(e.message)
       console.error('[today-eat] history insert failed:', err)
@@ -301,9 +333,10 @@ async function syncFavoriteState() {
     return
   }
   try {
+    const sid = favoriteContentDigest(result.value.title, result.value.content)
     isFavorited.value = await isFavoriteRecipe({
-      title: result.value.title,
-      recipe_content: result.value.content,
+      source_type: 'today_eat',
+      source_id: sid,
     })
   } catch {
     isFavorited.value = false
@@ -320,7 +353,10 @@ async function onToggleFavorite() {
 
   favoriteLoading.value = true
   try {
+    const sid = favoriteContentDigest(result.value.title, result.value.content)
     const { favorited } = await toggleFavoriteRecipe({
+      source_type: 'today_eat',
+      source_id: sid,
       title: result.value.title,
       cuisine: result.value.cuisine ?? null,
       ingredients: result.value.ingredients ?? [],
@@ -331,8 +367,14 @@ async function onToggleFavorite() {
     if (favorited) msg.toastFavoriteSuccess()
     else msg.toastFavoriteCancel()
   } catch (e: unknown) {
-    const err = e as Error
-    msg.toastSaveFailed(err.message)
+    const err = e as Error & { code?: string }
+    if (err.code === BIZ_NEED_LARAVEL_AUTH || err.message === BIZ_NEED_LARAVEL_AUTH) {
+      msg.toastSaveFailed('请先使用微信一键登录')
+    } else if (err.code === BIZ_NOT_CONFIGURED || err.message === BIZ_NOT_CONFIGURED) {
+      msg.toastSaveFailed('当前环境未开启收藏配置')
+    } else {
+      msg.toastSaveFailed(err.message || '收藏失败')
+    }
   } finally {
     favoriteLoading.value = false
   }
@@ -351,6 +393,41 @@ function resetIdle() {
 function goLogin() {
   const redirect = encodeURIComponent('/pages/today-eat/index')
   uni.navigateTo({ url: `/pages/login/index?redirect=${redirect}` })
+}
+
+async function loadRecentRecords() {
+  recentLoading.value = true
+  try {
+    recentRecords.value = await fetchEatMemeRecords(1, 10)
+  } catch {
+    recentRecords.value = []
+  } finally {
+    recentLoading.value = false
+  }
+}
+
+function onReplayRecord(id: number) {
+  const row = recentRecords.value.find((x) => x.id === id)
+  if (!row || !row.result_content || !row.result_title) return
+  result.value = {
+    title: row.result_title,
+    cuisine: row.result_cuisine ?? undefined,
+    ingredients: row.result_ingredients ?? [],
+    content: row.result_content,
+    history_saved: false,
+  }
+  phase.value = 'success'
+}
+
+async function onDeleteRecord(id: number) {
+  try {
+    await deleteEatMemeRecord(id)
+    recentRecords.value = recentRecords.value.filter((x) => x.id !== id)
+    uni.showToast({ title: '已删除', icon: 'success' })
+  } catch (e: unknown) {
+    const err = e as Error
+    msg.toastSaveFailed(err.message || '删除失败')
+  }
 }
 </script>
 
@@ -939,5 +1016,66 @@ function goLogin() {
 .te__again-go {
   font-size: 32rpx;
   font-weight: 800;
+}
+
+.te__recent {
+  margin: 4rpx 28rpx 22rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx dashed $mp-border;
+}
+
+.te__recent-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: $mp-text-primary;
+}
+
+.te__recent-empty {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: $mp-text-muted;
+}
+
+.te__recent-list {
+  margin-top: 10rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.te__recent-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  padding: 14rpx 16rpx;
+  border-radius: 14rpx;
+  background: #f6f7fb;
+}
+
+.te__recent-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  min-width: 0;
+  flex: 1;
+}
+
+.te__recent-name {
+  font-size: 26rpx;
+  color: $mp-text-primary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.te__recent-meta {
+  font-size: 22rpx;
+  color: $mp-text-muted;
+}
+
+.te__recent-del {
+  font-size: 24rpx;
+  color: #e55151;
 }
 </style>

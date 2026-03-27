@@ -320,7 +320,9 @@ import {
   isFavoriteRecipe,
   toggleFavoriteRecipe,
   BIZ_UNAUTHORIZED,
+  BIZ_NEED_LARAVEL_AUTH,
 } from '@/api/biz'
+import { favoriteContentDigest } from '@/lib/favoriteDigest'
 import type { TableMenuConfigPayload, TableMenuDishItem, TableDishRecipeResponse } from '@/types/tableMenu'
 import {
   TABLE_MENU_TASTE_OPTIONS,
@@ -423,9 +425,10 @@ async function syncOverlayFavoriteState() {
   }
   try {
     const recipeContent = formatTableDishRecipeContent(r)
+    const sid = favoriteContentDigest(r.name, recipeContent)
     isOverlayFavorited.value = await isFavoriteRecipe({
-      title: r.name,
-      recipe_content: recipeContent,
+      source_type: 'table_design',
+      source_id: sid,
     })
   } catch {
     isOverlayFavorited.value = false
@@ -448,7 +451,10 @@ async function onToggleOverlayFavorite() {
   overlayFavoriteLoading.value = true
   try {
     const recipeContent = formatTableDishRecipeContent(r)
+    const sid = favoriteContentDigest(r.name, recipeContent)
     const { favorited } = await toggleFavoriteRecipe({
+      source_type: 'table_design',
+      source_id: sid,
       title: r.name,
       cuisine: r.cuisine ?? null,
       ingredients: r.ingredients ?? [],
@@ -545,6 +551,8 @@ async function maybeSaveHistory(data: { history_saved?: boolean }, payload: Tabl
     const e = err as Error & { code?: string }
     if (e.code === BIZ_UNAUTHORIZED || e.message === BIZ_UNAUTHORIZED) {
       msg.toastSaveFailed('登录已过期')
+    } else if (e.code === BIZ_NEED_LARAVEL_AUTH || e.message === BIZ_NEED_LARAVEL_AUTH) {
+      msg.toastSaveFailed('请使用微信一键登录后再试')
     } else {
       msg.toastSaveFailed(e.message)
       console.error('[table-menu] history insert failed:', err)

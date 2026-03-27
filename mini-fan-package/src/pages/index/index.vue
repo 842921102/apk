@@ -72,6 +72,34 @@
       </view>
     </view>
 
+    <view class="home__section">
+      <view class="home__section-rail">
+        <text class="home__section-rail-k">看板</text>
+        <text class="home__section-rail-h">我的数据</text>
+      </view>
+      <view class="mp-card home__dash-card">
+        <view class="home__dash-head">
+          <text class="home__dash-title">{{ isLoggedIn ? '已登录账号概览' : '登录后可同步数据' }}</text>
+          <button v-if="isLoggedIn" class="home__dash-link" @click="goMe">个人中心 ›</button>
+          <button v-else class="home__dash-link" @click="goMe">去登录 ›</button>
+        </view>
+        <view class="home__dash-grid">
+          <view class="home__dash-item" @click="goFavorites">
+            <text class="home__dash-k">我的收藏</text>
+            <text class="home__dash-v">{{ dashboardFavorites }}</text>
+          </view>
+          <view class="home__dash-item" @click="goHistories">
+            <text class="home__dash-k">我的历史</text>
+            <text class="home__dash-v">{{ dashboardHistories }}</text>
+          </view>
+        </view>
+        <view class="home__dash-latest">
+          <text class="home__dash-latest-k">最近生成</text>
+          <text class="home__dash-latest-v">{{ latestHistoryTitle }}</text>
+        </view>
+      </view>
+    </view>
+
     <!-- 4. 今日推荐 / 运营说明（配置开关，结构对齐 Web 推荐卡） -->
     <view v-if="config.show_home_recommend" class="home__section">
       <view class="home__section-rail">
@@ -198,15 +226,215 @@
         <text class="home__tablePreview-foot">首页预览不请求网络，仅用于体验和入口引导。</text>
       </view>
     </view>
+
+    <view class="home__section home__wizard">
+      <view class="home__section-rail">
+        <text class="home__section-rail-k home__section-rail-k--accent">吃什么工作区</text>
+        <text class="home__section-rail-h">逻辑与 UI 对齐 PC 端</text>
+      </view>
+
+      <view class="mp-card home__wizard-card">
+        <view class="home__wizard-step">
+          <text class="home__wizard-step-num">1</text>
+          <view class="home__wizard-body">
+            <text class="home__wizard-title">添加食材</text>
+            <input v-model="currentIngredient" class="home__wizard-input" placeholder="输入食材，回车添加" @confirm="addIngredient" />
+            <button class="mp-btn-ghost home__wizard-photo" :disabled="photoLoading" @click="pickIngredientPhoto">
+              {{ photoLoading ? '识别中…' : '上传照片识别食材' }}
+            </button>
+            <view v-if="recognizedCandidates.length" class="home__recognized">
+              <view class="home__recognized-head">
+                <text class="home__wizard-picker-title">识别候选（可勾选后加入）</text>
+                <view class="home__recognized-actions">
+                  <text class="home__recognized-link" @click="selectAllRecognized">全选</text>
+                  <text class="home__recognized-link" @click="clearRecognizedSelection">清空</text>
+                </view>
+              </view>
+              <checkbox-group class="home__recognized-list" @change="onRecognizedChange">
+                <label v-for="item in recognizedCandidates" :key="item" class="home__recognized-item">
+                  <template v-if="editingCandidate !== item">
+                    <checkbox :value="item" :checked="recognizedSelected.includes(item)" color="#7c4dff" />
+                    <text class="home__recognized-txt">{{ item }}</text>
+                    <text class="home__recognized-edit" @click.stop.prevent="startEditCandidate(item)">编辑</text>
+                  </template>
+                  <template v-else>
+                    <input v-model="editingCandidateDraft" class="home__recognized-input" maxlength="20" />
+                    <text class="home__recognized-edit" @click.stop.prevent="saveEditCandidate(item)">保存</text>
+                    <text class="home__recognized-edit home__recognized-edit--muted" @click.stop.prevent="cancelEditCandidate">取消</text>
+                  </template>
+                </label>
+              </checkbox-group>
+              <button class="mp-btn-secondary home__recognized-confirm" @click="addRecognizedIngredients">加入已勾选食材</button>
+            </view>
+            <view class="home__wizard-picker">
+              <text class="home__wizard-picker-title">快速选择食材</text>
+              <view class="home__wizard-picker-groups">
+                <view v-for="g in ingredientGroups" :key="g.id" class="home__wizard-picker-group">
+                  <text class="home__wizard-picker-k">{{ g.icon }} {{ g.name }}</text>
+                  <view class="home__wizard-picker-items">
+                    <view v-for="item in g.items" :key="item" class="home__wizard-pick" @click="addIngredientByName(item)">
+                      {{ item }}
+                    </view>
+                  </view>
+                </view>
+              </view>
+            </view>
+            <view class="home__wizard-tags">
+              <view v-for="ing in ingredients" :key="ing" class="home__wizard-tag" @click="removeIngredient(ing)">
+                {{ ing }} · 删除
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view class="home__wizard-step">
+          <text class="home__wizard-step-num">2</text>
+          <view class="home__wizard-body">
+            <text class="home__wizard-title">选择菜系 / 自定义要求</text>
+            <view class="home__wizard-cuisines">
+              <view
+                v-for="c in cuisineOptions"
+                :key="c.id"
+                class="home__wizard-cuisine"
+                :class="{ 'home__wizard-cuisine--on': selectedCuisines.includes(c.id) }"
+                @click="toggleCuisine(c.id)"
+              >
+                {{ c.icon }} {{ c.name }}
+              </view>
+            </view>
+            <textarea
+              v-model="customPrompt"
+              class="home__wizard-textarea"
+              maxlength="200"
+              placeholder="例如：想吃清淡、少油、适合晚餐的一道菜"
+            />
+            <view class="home__wizard-presets">
+              <text class="home__wizard-picker-title">场景预设</text>
+              <view class="home__wizard-preset-row">
+                <view v-for="p in scenePresets" :key="p.id" class="home__wizard-preset" @click="applyPreset(p.prompt)">
+                  {{ p.name }}
+                </view>
+              </view>
+              <text class="home__wizard-picker-title">口味预设</text>
+              <view class="home__wizard-preset-row">
+                <view v-for="p in tastePresets" :key="p.id" class="home__wizard-preset" @click="applyPreset(p.prompt)">
+                  {{ p.name }}
+                </view>
+              </view>
+            </view>
+            <button class="mp-btn-ghost home__wizard-rand" @click="getRandomInspiration">随机灵感</button>
+          </view>
+        </view>
+
+        <view class="home__wizard-step">
+          <text class="home__wizard-step-num">3</text>
+          <view class="home__wizard-body">
+            <text class="home__wizard-title">交给大师</text>
+            <text class="home__wizard-desc">已选食材 {{ ingredients.length }} 个，菜系 {{ selectedCuisines.length }} 个</text>
+            <button class="mp-btn-primary home__wizard-go" :disabled="wizardLoading" @click="generateFromWizard">
+              {{ wizardLoading ? '生成中…' : '开始生成' }}
+            </button>
+          </view>
+        </view>
+
+        <view class="home__wizard-step">
+          <text class="home__wizard-step-num">4</text>
+          <view class="home__wizard-body">
+            <text class="home__wizard-title">菜谱结果</text>
+            <view v-if="wizardLoading" class="home__wizard-loading">
+              <text class="home__wizard-loading-text">{{ wizardStageText }}</text>
+              <view class="home__wizard-progress-track">
+                <view class="home__wizard-progress-fill" :style="{ width: `${wizardProgress}%` }" />
+              </view>
+              <text class="home__wizard-progress-val">{{ Math.round(wizardProgress) }}%</text>
+            </view>
+            <text v-if="wizardError" class="home__wizard-err">{{ wizardError }}</text>
+            <view v-else-if="wizardRecipe" class="home__wizard-result">
+              <text class="home__wizard-r-title">{{ wizardRecipe.title }}</text>
+              <text class="home__wizard-r-meta">{{ wizardRecipe.cuisine || '—' }}</text>
+              <text class="home__wizard-r-content">{{ wizardRecipe.content }}</text>
+              <button class="mp-btn-ghost home__wizard-image-btn" :disabled="recipeImageLoading" @click="generateWizardImage">
+                {{ recipeImageLoading ? '生成图片中…' : '生成菜品图片' }}
+              </button>
+              <image v-if="wizardImageUrl" class="home__wizard-image" :src="wizardImageUrl" mode="widthFix" />
+            </view>
+            <text v-else class="home__wizard-empty">等待生成结果…</text>
+          </view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { HOME_CTA_LABEL } from '@/config/homeCopy'
 import { useAppConfig } from '@/composables/useAppConfig'
+import { useAuth } from '@/composables/useAuth'
+import { fetchHistories, getFavoritesCount, getHistoriesCount } from '@/api/biz'
+import { requestTodayEat, requestRecipeImage, requestRecognizeIngredients } from '@/api/ai'
+import { upsertLocalGalleryItem } from '@/api/gallery'
+import { favoriteContentDigest } from '@/lib/favoriteDigest'
 
 const { config } = useAppConfig()
+const { isLoggedIn, syncAuthFromSupabase } = useAuth()
 const ctaLabel = HOME_CTA_LABEL
+const dashboardFavorites = ref('—')
+const dashboardHistories = ref('—')
+const latestHistoryTitle = ref('暂无记录')
+const currentIngredient = ref('')
+const ingredients = ref<string[]>([])
+const selectedCuisines = ref<string[]>([])
+const customPrompt = ref('')
+const wizardLoading = ref(false)
+const wizardProgress = ref(0)
+const wizardStageText = ref('准备食材中…')
+const wizardError = ref('')
+const wizardRecipe = ref<{ title: string; cuisine?: string; content: string } | null>(null)
+const photoLoading = ref(false)
+const recognizedCandidates = ref<string[]>([])
+const recognizedSelected = ref<string[]>([])
+const editingCandidate = ref('')
+const editingCandidateDraft = ref('')
+const recipeImageLoading = ref(false)
+const wizardImageUrl = ref('')
+let wizardTimer: ReturnType<typeof setInterval> | null = null
+
+const cuisineOptions = [
+  { id: 'sichuan', name: '川菜', icon: '🌶️' },
+  { id: 'cantonese', name: '粤菜', icon: '🥬' },
+  { id: 'hunan', name: '湘菜', icon: '🔥' },
+  { id: 'jiangsu', name: '苏菜', icon: '🍤' },
+  { id: 'japanese', name: '日式', icon: '🍣' },
+  { id: 'western', name: '西式', icon: '🥩' },
+] as const
+
+const randomInspirations = [
+  '下班快手菜，20 分钟完成',
+  '清淡低脂，晚餐无负担',
+  '重口下饭，适合配米饭',
+  '适合 2 人共享，口味平衡',
+  '汤菜搭配，暖胃舒服',
+]
+
+const ingredientGroups = [
+  { id: 'meat', name: '荤菜', icon: '🥩', items: ['猪肉', '牛肉', '鸡肉', '排骨'] },
+  { id: 'veg', name: '蔬菜', icon: '🥬', items: ['西红柿', '土豆', '青椒', '西兰花'] },
+  { id: 'egg', name: '蛋奶豆', icon: '🥚', items: ['鸡蛋', '豆腐', '牛奶', '香菇'] },
+] as const
+
+const scenePresets = [
+  { id: 'quick', name: '快手菜', prompt: '20 分钟内完成，步骤简洁' },
+  { id: 'family', name: '家庭晚餐', prompt: '适合家庭共享，口味平衡' },
+  { id: 'light', name: '清淡养胃', prompt: '清淡少油，晚餐无负担' },
+] as const
+
+const tastePresets = [
+  { id: 'spicy', name: '香辣', prompt: '偏香辣，开胃下饭' },
+  { id: 'fresh', name: '鲜香', prompt: '突出鲜味，层次清晰' },
+  { id: 'sweet', name: '微甜', prompt: '口味温和，带一点甜' },
+] as const
 
 type QuickEntryKey = 'today-eat' | 'favorites' | 'histories' | 'plaza'
 
@@ -276,6 +504,243 @@ function onQuickEntryTap(key: QuickEntryKey) {
     case 'plaza':
       goPlaza()
       break
+  }
+}
+
+function addIngredient() {
+  const v = currentIngredient.value.trim()
+  if (!v || ingredients.value.includes(v) || ingredients.value.length >= 10) return
+  ingredients.value.push(v)
+  currentIngredient.value = ''
+}
+
+function removeIngredient(ing: string) {
+  ingredients.value = ingredients.value.filter((x) => x !== ing)
+}
+
+function addIngredientByName(name: string) {
+  if (!name || ingredients.value.includes(name) || ingredients.value.length >= 10) return
+  ingredients.value.push(name)
+}
+
+async function pickIngredientPhoto() {
+  if (photoLoading.value) return
+  photoLoading.value = true
+  try {
+    const choose = await uni.chooseImage({
+      count: 1,
+      sizeType: ['compressed'],
+      sourceType: ['camera', 'album'],
+    })
+    const path = choose.tempFilePaths?.[0]
+    if (!path) return
+    const imageBase64 = await readFileAsBase64(path)
+    const result = await requestRecognizeIngredients({ image_base64: imageBase64 })
+    const items = Array.isArray(result.ingredients) ? result.ingredients : []
+    recognizedCandidates.value = items.map((x) => String(x)).filter(Boolean)
+    recognizedSelected.value = [...recognizedCandidates.value]
+    uni.showToast({ title: items.length ? `识别到 ${items.length} 种食材` : '未识别到食材', icon: 'none' })
+  } catch (e: unknown) {
+    const err = e as Error
+    uni.showToast({ title: err.message || '图片识别失败', icon: 'none' })
+  } finally {
+    photoLoading.value = false
+  }
+}
+
+function readFileAsBase64(path: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const fs = uni.getFileSystemManager()
+    fs.readFile({
+      filePath: path,
+      encoding: 'base64',
+      success: (res) => {
+        const data = typeof res.data === 'string' ? res.data : ''
+        if (!data) reject(new Error('图片读取失败'))
+        else resolve(data)
+      },
+      fail: () => reject(new Error('图片读取失败')),
+    })
+  })
+}
+
+function onRecognizedChange(e: { detail?: { value?: string[] } }) {
+  const values = Array.isArray(e?.detail?.value) ? e.detail.value : []
+  recognizedSelected.value = values.map(String)
+}
+
+function startEditCandidate(item: string) {
+  editingCandidate.value = item
+  editingCandidateDraft.value = item
+}
+
+function cancelEditCandidate() {
+  editingCandidate.value = ''
+  editingCandidateDraft.value = ''
+}
+
+function saveEditCandidate(oldItem: string) {
+  const next = editingCandidateDraft.value.trim()
+  if (!next) {
+    uni.showToast({ title: '食材名不能为空', icon: 'none' })
+    return
+  }
+  recognizedCandidates.value = recognizedCandidates.value.map((x) => (x === oldItem ? next : x))
+  recognizedSelected.value = recognizedSelected.value.map((x) => (x === oldItem ? next : x))
+  // 去重，避免编辑成相同名称
+  recognizedCandidates.value = Array.from(new Set(recognizedCandidates.value))
+  recognizedSelected.value = Array.from(new Set(recognizedSelected.value))
+  cancelEditCandidate()
+}
+
+function selectAllRecognized() {
+  recognizedSelected.value = [...recognizedCandidates.value]
+}
+
+function clearRecognizedSelection() {
+  recognizedSelected.value = []
+}
+
+function addRecognizedIngredients() {
+  const before = ingredients.value.length
+  recognizedSelected.value.forEach((item) => addIngredientByName(item))
+  const added = ingredients.value.length - before
+  recognizedCandidates.value = []
+  recognizedSelected.value = []
+  cancelEditCandidate()
+  uni.showToast({ title: added > 0 ? `已加入 ${added} 个食材` : '没有可加入的新食材', icon: 'none' })
+}
+
+function toggleCuisine(id: string) {
+  if (selectedCuisines.value.includes(id)) {
+    selectedCuisines.value = selectedCuisines.value.filter((x) => x !== id)
+  } else {
+    selectedCuisines.value.push(id)
+  }
+}
+
+function getRandomInspiration() {
+  const text = randomInspirations[Math.floor(Math.random() * randomInspirations.length)]
+  customPrompt.value = customPrompt.value ? `${customPrompt.value}；${text}` : text
+}
+
+function applyPreset(prompt: string) {
+  if (!prompt) return
+  customPrompt.value = customPrompt.value ? `${customPrompt.value}；${prompt}` : prompt
+}
+
+async function generateFromWizard() {
+  if (ingredients.value.length === 0) {
+    uni.showToast({ title: '请先添加食材', icon: 'none' })
+    return
+  }
+
+  wizardLoading.value = true
+  wizardProgress.value = 8
+  wizardStageText.value = '大师正在挑选食材…'
+  wizardError.value = ''
+  wizardRecipe.value = null
+  wizardImageUrl.value = ''
+  if (wizardTimer) clearInterval(wizardTimer)
+  wizardTimer = setInterval(() => {
+    wizardProgress.value = Math.min(92, wizardProgress.value + 7)
+    if (wizardProgress.value < 35) wizardStageText.value = '大师正在挑选食材…'
+    else if (wizardProgress.value < 70) wizardStageText.value = '大师正在融合口味与菜系…'
+    else wizardStageText.value = '大师正在润色步骤与细节…'
+  }, 350)
+  try {
+    const cuisineText = cuisineOptions.filter((x) => selectedCuisines.value.includes(x.id)).map((x) => x.name).join('、')
+    const tasteText = [cuisineText ? `偏好菜系：${cuisineText}` : '', customPrompt.value ? `要求：${customPrompt.value}` : '', `食材：${ingredients.value.join('、')}`]
+      .filter(Boolean)
+      .join('；')
+
+    const res = await requestTodayEat({
+      preferences: {
+        taste: tasteText || undefined,
+      },
+      locale: 'zh-CN',
+    })
+
+    wizardRecipe.value = {
+      title: res.title,
+      cuisine: res.cuisine,
+      content: res.content,
+    }
+    wizardProgress.value = 100
+    wizardStageText.value = '生成完成'
+  } catch (e: unknown) {
+    const err = e as Error
+    wizardError.value = err.message || '生成失败，请稍后重试'
+  } finally {
+    if (wizardTimer) {
+      clearInterval(wizardTimer)
+      wizardTimer = null
+    }
+    wizardLoading.value = false
+  }
+}
+
+async function generateWizardImage() {
+  if (!wizardRecipe.value || recipeImageLoading.value) return
+  recipeImageLoading.value = true
+  try {
+    const prompt = [
+      `生成一道美食成品图，菜名：${wizardRecipe.value.title}`,
+      `菜系：${wizardRecipe.value.cuisine || '家常菜'}`,
+      `食材：${ingredients.value.join('、') || '常见家常食材'}`,
+      `菜谱：${wizardRecipe.value.content.slice(0, 220)}`,
+      '风格：高清写实、美食摄影、干净背景',
+    ].join('\n')
+    const res = await requestRecipeImage({ prompt, size: '1024x1024' })
+    wizardImageUrl.value = res.url || ''
+    if (wizardImageUrl.value) {
+      const id = favoriteContentDigest(`${wizardRecipe.value.title}:${Date.now()}`, wizardImageUrl.value)
+      upsertLocalGalleryItem({
+        id,
+        url: wizardImageUrl.value,
+        recipeName: wizardRecipe.value.title,
+        recipeId: id,
+        cuisine: wizardRecipe.value.cuisine || '',
+        ingredients: [...ingredients.value],
+        generatedAt: new Date().toISOString(),
+        prompt,
+      })
+      uni.showToast({ title: '图片已生成并入图鉴', icon: 'success' })
+    }
+  } catch (e: unknown) {
+    const err = e as Error
+    uni.showToast({ title: err.message || '生成图片失败', icon: 'none' })
+  } finally {
+    recipeImageLoading.value = false
+  }
+}
+
+onShow(async () => {
+  await refreshDashboard()
+})
+
+async function refreshDashboard() {
+  await syncAuthFromSupabase()
+  if (!isLoggedIn.value) {
+    dashboardFavorites.value = '—'
+    dashboardHistories.value = '—'
+    latestHistoryTitle.value = '登录后查看'
+    return
+  }
+
+  try {
+    const [fav, hist, rows] = await Promise.all([
+      getFavoritesCount(),
+      getHistoriesCount(),
+      fetchHistories(),
+    ])
+    dashboardFavorites.value = String(fav)
+    dashboardHistories.value = String(hist)
+    latestHistoryTitle.value = rows[0]?.title || '暂无记录'
+  } catch {
+    dashboardFavorites.value = '—'
+    dashboardHistories.value = '—'
+    latestHistoryTitle.value = '暂时无法获取'
   }
 }
 </script>
@@ -540,6 +1005,79 @@ function onQuickEntryTap(key: QuickEntryKey) {
   width: 100%;
 }
 
+.home__dash-card {
+  border: 1rpx solid $mp-border;
+}
+
+.home__dash-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.home__dash-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: $mp-text-primary;
+}
+
+.home__dash-link {
+  font-size: 24rpx;
+  color: $mp-accent;
+  background: transparent;
+  border: none;
+  padding: 0;
+  line-height: 1.2;
+}
+
+.home__dash-grid {
+  margin-top: 18rpx;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14rpx;
+}
+
+.home__dash-item {
+  background: #fafbfc;
+  border: 1rpx solid $mp-border;
+  border-radius: 16rpx;
+  padding: 20rpx;
+}
+
+.home__dash-k {
+  display: block;
+  font-size: 24rpx;
+  color: $mp-text-muted;
+}
+
+.home__dash-v {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 38rpx;
+  font-weight: 800;
+  color: $mp-text-primary;
+}
+
+.home__dash-latest {
+  margin-top: 16rpx;
+  padding: 16rpx;
+  border-radius: 14rpx;
+  background: $mp-accent-soft;
+}
+
+.home__dash-latest-k {
+  font-size: 22rpx;
+  color: $mp-text-muted;
+}
+
+.home__dash-latest-v {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 26rpx;
+  color: $mp-text-primary;
+}
+
 /* 推荐标签 */
 .home__tag-grid {
   margin-top: 24rpx;
@@ -766,5 +1304,326 @@ function onQuickEntryTap(key: QuickEntryKey) {
   font-weight: 800;
   margin-left: 16rpx;
   opacity: 0.95;
+}
+
+.home__wizard-card {
+  border: 1rpx solid $mp-border;
+}
+
+.home__wizard-step {
+  display: flex;
+  gap: 14rpx;
+  padding: 14rpx 0;
+}
+
+.home__wizard-step + .home__wizard-step {
+  border-top: 1rpx dashed $mp-border;
+}
+
+.home__wizard-step-num {
+  width: 42rpx;
+  height: 42rpx;
+  line-height: 42rpx;
+  text-align: center;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 800;
+  color: $mp-accent;
+  background: #fff;
+  border: 1rpx solid #dccdf7;
+  flex-shrink: 0;
+}
+
+.home__wizard-body {
+  flex: 1;
+}
+
+.home__wizard-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: $mp-text-primary;
+}
+
+.home__wizard-input,
+.home__wizard-textarea {
+  margin-top: 10rpx;
+  width: 100%;
+  border: 1rpx solid $mp-border;
+  border-radius: 14rpx;
+  background: #fafbfc;
+  padding: 16rpx;
+  font-size: 24rpx;
+}
+
+.home__wizard-photo {
+  margin-top: 10rpx;
+}
+
+.home__recognized {
+  margin-top: 14rpx;
+  padding: 16rpx;
+  border-radius: 12rpx;
+  background: #f5f1ff;
+  border: 1rpx solid #e5dbff;
+}
+
+.home__recognized-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.home__recognized-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.home__recognized-link {
+  font-size: 22rpx;
+  color: #7c4dff;
+}
+
+.home__recognized-list {
+  margin-top: 10rpx;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8rpx 12rpx;
+}
+
+.home__recognized-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.home__recognized-txt {
+  margin-left: 8rpx;
+  font-size: 24rpx;
+  color: $mp-text-primary;
+}
+
+.home__recognized-confirm {
+  margin-top: 12rpx;
+}
+
+.home__recognized-edit {
+  margin-left: auto;
+  font-size: 22rpx;
+  color: #7c4dff;
+}
+
+.home__recognized-edit--muted {
+  color: #8a8a9b;
+}
+
+.home__recognized-input {
+  flex: 1;
+  min-width: 120rpx;
+  height: 52rpx;
+  line-height: 52rpx;
+  padding: 0 14rpx;
+  border-radius: 10rpx;
+  border: 1rpx solid $mp-border;
+  background: #fff;
+  font-size: 24rpx;
+}
+
+.home__wizard-picker {
+  margin-top: 12rpx;
+  padding: 12rpx;
+  border-radius: 14rpx;
+  border: 1rpx solid $mp-border;
+  background: #fff;
+}
+
+.home__wizard-picker-title {
+  display: block;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: $mp-text-muted;
+  margin-bottom: 8rpx;
+}
+
+.home__wizard-picker-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.home__wizard-picker-k {
+  font-size: 22rpx;
+  color: $mp-text-secondary;
+}
+
+.home__wizard-picker-items {
+  margin-top: 6rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+}
+
+.home__wizard-pick {
+  font-size: 21rpx;
+  padding: 6rpx 12rpx;
+  border-radius: 999rpx;
+  background: #fafbfc;
+  border: 1rpx solid $mp-border;
+}
+
+.home__wizard-tags {
+  margin-top: 10rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.home__wizard-tag {
+  font-size: 22rpx;
+  color: $mp-accent;
+  background: $mp-accent-soft;
+  border: 1rpx solid $mp-ring-accent;
+  border-radius: 999rpx;
+  padding: 8rpx 14rpx;
+}
+
+.home__wizard-cuisines {
+  margin-top: 10rpx;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10rpx;
+}
+
+.home__wizard-cuisine {
+  border: 1rpx solid $mp-border;
+  border-radius: 12rpx;
+  background: #fafbfc;
+  font-size: 22rpx;
+  text-align: center;
+  padding: 10rpx 8rpx;
+}
+
+.home__wizard-cuisine--on {
+  background: $mp-accent;
+  color: #fff;
+  border-color: $mp-accent;
+}
+
+.home__wizard-rand {
+  margin-top: 10rpx;
+}
+
+.home__wizard-presets {
+  margin-top: 10rpx;
+}
+
+.home__wizard-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-bottom: 8rpx;
+}
+
+.home__wizard-preset {
+  font-size: 21rpx;
+  padding: 6rpx 12rpx;
+  border-radius: 999rpx;
+  color: $mp-accent;
+  background: $mp-accent-soft;
+  border: 1rpx solid $mp-ring-accent;
+}
+
+.home__wizard-desc,
+.home__wizard-empty,
+.home__wizard-err {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 23rpx;
+  color: $mp-text-secondary;
+}
+
+.home__wizard-err {
+  color: #d15454;
+}
+
+.home__wizard-go {
+  margin-top: 10rpx;
+}
+
+.home__wizard-loading {
+  margin-top: 10rpx;
+  padding: 14rpx;
+  border: 1rpx solid $mp-border;
+  border-radius: 14rpx;
+  background: #fafbfc;
+}
+
+.home__wizard-loading-text {
+  display: block;
+  font-size: 24rpx;
+  color: $mp-text-primary;
+}
+
+.home__wizard-progress-track {
+  margin-top: 10rpx;
+  width: 100%;
+  height: 14rpx;
+  border-radius: 999rpx;
+  background: #eceff4;
+  overflow: hidden;
+}
+
+.home__wizard-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #9575e8 0%, #7a57d1 50%, #6743bf 100%);
+}
+
+.home__wizard-progress-val {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: $mp-text-muted;
+}
+
+.home__wizard-result {
+  margin-top: 10rpx;
+  border: 1rpx solid $mp-border;
+  background: #fafbfc;
+  border-radius: 14rpx;
+  padding: 14rpx;
+}
+
+.home__wizard-r-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: $mp-text-primary;
+}
+
+.home__wizard-r-meta {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: $mp-text-muted;
+}
+
+.home__wizard-r-content {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: $mp-text-primary;
+  white-space: pre-wrap;
+}
+
+.home__wizard-image-btn {
+  margin-top: 12rpx;
+}
+
+.home__wizard-image {
+  margin-top: 12rpx;
+  width: 100%;
+  border-radius: 12rpx;
+  border: 1rpx solid $mp-border;
 }
 </style>

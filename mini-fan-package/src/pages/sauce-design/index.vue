@@ -261,7 +261,9 @@ import {
   isFavoriteRecipe,
   toggleFavoriteRecipe,
   BIZ_UNAUTHORIZED,
+  BIZ_NEED_LARAVEL_AUTH,
 } from '@/api/biz'
+import { favoriteContentDigest } from '@/lib/favoriteDigest'
 import type { SaucePreference, SauceRecipe, SauceStep } from '@/types/sauce'
 import {
   SAUCE_USE_CASE_OPTIONS,
@@ -430,6 +432,8 @@ async function maybeSaveRecipeHistory(
     const e = err as Error & { code?: string }
     if (e.code === BIZ_UNAUTHORIZED || e.message === BIZ_UNAUTHORIZED) {
       msg.toastSaveFailed('登录已过期')
+    } else if (e.code === BIZ_NEED_LARAVEL_AUTH || e.message === BIZ_NEED_LARAVEL_AUTH) {
+      msg.toastSaveFailed('请使用微信一键登录后再试')
     } else {
       msg.toastSaveFailed(e.message)
       console.error('[sauce-design] history insert failed:', err)
@@ -445,9 +449,10 @@ async function syncFavoriteState() {
   }
   try {
     const recipeContent = formatSauceText(currentSauce.value)
+    const sid = favoriteContentDigest(currentSauce.value.name, recipeContent)
     isFavorited.value = await isFavoriteRecipe({
-      title: currentSauce.value.name,
-      recipe_content: recipeContent,
+      source_type: 'sauce_design',
+      source_id: sid,
     })
   } catch {
     isFavorited.value = false
@@ -464,7 +469,10 @@ async function onToggleFavorite() {
   favoriteLoading.value = true
   try {
     const recipeContent = formatSauceText(currentSauce.value)
+    const sid = favoriteContentDigest(currentSauce.value.name, recipeContent)
     const { favorited } = await toggleFavoriteRecipe({
+      source_type: 'sauce_design',
+      source_id: sid,
       title: currentSauce.value.name,
       cuisine: categoryLabel(currentSauce.value.category),
       ingredients: currentSauce.value.ingredients ?? [],

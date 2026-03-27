@@ -285,7 +285,8 @@ import { HttpError } from '@/api/http'
 import { useAuth } from '@/composables/useAuth'
 import { useAppConfig } from '@/composables/useAppConfig'
 import { useAppMessages } from '@/composables/useAppMessages'
-import { insertRecipeHistoryFromTodayEat, isFavoriteRecipe, toggleFavoriteRecipe, BIZ_UNAUTHORIZED } from '@/api/biz'
+import { insertRecipeHistoryFromTodayEat, isFavoriteRecipe, toggleFavoriteRecipe, BIZ_UNAUTHORIZED, BIZ_NEED_LARAVEL_AUTH } from '@/api/biz'
+import { favoriteContentDigest } from '@/lib/favoriteDigest'
 import type { FortuneType, FortuneResult, FortuneRequestBody } from '@/types/fortune'
 import {
   FORTUNE_TYPE_CARDS,
@@ -543,6 +544,8 @@ async function maybeSaveHistory(data: { history_saved?: boolean }, f: FortuneRes
     const e = err as Error & { code?: string }
     if (e.code === BIZ_UNAUTHORIZED || e.message === BIZ_UNAUTHORIZED) {
       msg.toastSaveFailed('登录已过期')
+    } else if (e.code === BIZ_NEED_LARAVEL_AUTH || e.message === BIZ_NEED_LARAVEL_AUTH) {
+      msg.toastSaveFailed('请使用微信一键登录后再试')
     } else {
       msg.toastSaveFailed(e.message)
       console.error('[fortune-cooking] history insert failed:', err)
@@ -571,9 +574,10 @@ async function syncFavoriteState() {
 
   try {
     const recipeContent = formatFortuneContent(result.value)
+    const sid = favoriteContentDigest(result.value.dishName, recipeContent)
     isFavorited.value = await isFavoriteRecipe({
-      title: result.value.dishName,
-      recipe_content: recipeContent,
+      source_type: 'fortune_cooking',
+      source_id: sid,
     })
   } catch {
     isFavorited.value = false
@@ -592,7 +596,10 @@ async function onToggleFavorite() {
 
   try {
     const recipeContent = formatFortuneContent(result.value)
+    const sid = favoriteContentDigest(result.value.dishName, recipeContent)
     const { favorited } = await toggleFavoriteRecipe({
+      source_type: 'fortune_cooking',
+      source_id: sid,
       title: result.value.dishName,
       cuisine: fortuneTypeLabel(result.value.type),
       ingredients: result.value.ingredients ?? [],

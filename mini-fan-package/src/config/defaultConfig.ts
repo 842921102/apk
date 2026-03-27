@@ -143,9 +143,9 @@ export const APP_CONFIG_DEFAULT: AppConfig = {
   profile_guest_subtitle: '登录后可在小程序同步收藏与历史记录',
 
   favorites_title: '收藏',
-  favorites_subtitle: '与 Web 同步的收藏列表',
+  favorites_subtitle: '收藏已同步至饭否服务器，可与管理后台联查',
   favorites_empty_title: '暂无收藏',
-  favorites_empty_subtitle: '在 Web 端添加收藏后会显示在这里',
+  favorites_empty_subtitle: '在吃什么、满汉全席等结果页加入收藏后会显示在这里',
   favorites_empty_button_text: '去吃什么',
 
   histories_title: '历史',

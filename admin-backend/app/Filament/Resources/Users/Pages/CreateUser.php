@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users\Pages;
 
 use App\Filament\Resources\Users\UserResource;
+use App\Support\AdminActionLogger;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Validation\ValidationException;
 
@@ -19,5 +20,13 @@ class CreateUser extends CreateRecord
         }
 
         return $data;
+    }
+
+    protected function afterCreate(): void
+    {
+        AdminActionLogger::record('user.created', $this->getRecord(), [
+            'email' => $this->getRecord()->email,
+            'role' => $this->getRecord()->role,
+        ]);
     }
 }

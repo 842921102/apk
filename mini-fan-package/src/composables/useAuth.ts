@@ -8,7 +8,8 @@ const currentUser = ref<AuthCurrentUser | null>(null)
 
 const isLoggedIn: ComputedRef<boolean> = computed(() => Boolean(accessToken.value))
 
-const LARAVEL_ACCESS_TOKEN_PREFIX = 'laravel_access_'
+/** 与 Laravel `App\Support\LaravelAccessToken::PREFIX` 一致 */
+export const LARAVEL_ACCESS_TOKEN_PREFIX = 'laravel_access_'
 
 function hydrateFromStorageToState() {
   try {

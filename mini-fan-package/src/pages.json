@@ -68,6 +68,18 @@
         "navigationBarTitleText": "封神图鉴",
         "enablePullDownRefresh": true
       }
+    },
+    {
+      "path": "pages/result-detail/index",
+      "style": {
+        "navigationBarTitleText": "结果详情"
+      }
+    },
+    {
+      "path": "pages/profile/index",
+      "style": {
+        "navigationBarTitleText": "个人资料"
+      }
     }
   ],
   "globalStyle": {

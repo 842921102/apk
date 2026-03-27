@@ -1,7 +1,7 @@
 <template>
   <view class="mp-page hist has-bottom-nav">
     <view
-      v-if="ready && isLoggedIn && configured && config.histories_subtitle"
+      v-if="ready && isLoggedIn && backendReady && config.histories_subtitle"
       class="mp-card mp-card--inset hist__lead"
     >
       <text class="mp-kicker mp-kicker--accent">说明</text>
@@ -21,11 +21,20 @@
       </view>
     </view>
 
-    <view v-else-if="!configured" class="mp-card hist__state">
+    <view v-else-if="!hasApiBase" class="mp-card hist__state">
       <view class="mp-empty">
         <view class="mp-empty__icon">⚙️</view>
-        <text class="mp-empty__title">未配置 Supabase</text>
-        <text class="mp-empty__sub">请在 fan-miniapp-phase1 配置 VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY</text>
+        <text class="mp-empty__title">未配置接口地址</text>
+        <text class="mp-empty__sub">请在项目中配置 VITE_API_BASE_URL（通常为 BFF 根地址，与微信登录一致）</text>
+      </view>
+    </view>
+
+    <view v-else-if="isLoggedIn && !isLaravelSession" class="mp-card hist__state">
+      <view class="mp-empty">
+        <view class="mp-empty__icon">🔗</view>
+        <text class="mp-empty__title">请使用微信登录</text>
+        <text class="mp-empty__sub">历史已写入饭否服务器，需通过微信一键登录后查看与同步</text>
+        <button class="mp-btn-primary" @click="goLogin">{{ config.common_empty_button_text }}</button>
       </view>
     </view>
 
@@ -50,6 +59,7 @@
           :key="'r' + item.id"
           class="hist__recent-row"
           :class="{ 'hist__recent-row--first': idx === 0 }"
+          @click="openHistory(item)"
         >
           <text class="hist__recent-line-title">{{ item.title || '未命名' }}</text>
           <text class="hist__recent-line-meta">{{ item.cuisine || '—' }} · {{ formatListTime(item.created_at) }}</text>
@@ -59,11 +69,11 @@
       <scroll-view v-if="mainList.length > 0" class="hist__scroll" scroll-y>
         <view class="mp-list-shell">
           <view v-for="item in mainList" :key="item.id" class="mp-list-row hist__row">
-            <view class="hist__row-main">
+            <view class="hist__row-main" @click="openHistory(item)">
               <text class="hist__row-title">{{ item.title || '未命名' }}</text>
               <text class="hist__row-meta">{{ item.cuisine || '—' }} · {{ formatListTime(item.created_at) }}</text>
             </view>
-            <button class="mp-btn-danger-plain" @click="onDelete(item)">删除</button>
+            <button class="mp-btn-danger-plain" @click.stop="onDelete(item)">删除</button>
           </view>
         </view>
       </scroll-view>
@@ -93,21 +103,28 @@ import {
   fetchHistories,
   deleteHistoryById,
   BIZ_UNAUTHORIZED,
-  BIZ_NOT_CONFIGURED,
+  BIZ_NEED_LARAVEL_AUTH,
 } from '@/api/biz'
-import { isSupabaseConfigured } from '@/lib/supabase'
+import { openResultDetail, toDetailPayloadFromHistory } from '@/lib/resultDetail'
 import { formatListTime } from '@/utils/dateFormat'
 import type { HistoryRow } from '@/types/dto'
+import { API_BASE_URL } from '@/constants'
+import { LARAVEL_ACCESS_TOKEN_PREFIX } from '@/composables/useAuth'
 
 const { config } = useAppConfig()
 const msg = useAppMessages()
-const { syncAuthFromSupabase, isLoggedIn } = useAuth()
+const { syncAuthFromSupabase, isLoggedIn, accessToken } = useAuth()
 
 useNavigationBarTitleFromConfig(config, 'histories_title')
 
 const ready = ref(false)
 const list = ref<HistoryRow[]>([])
-const configured = computed(() => isSupabaseConfigured())
+const hasApiBase = computed(() => Boolean(API_BASE_URL.trim()))
+const isLaravelSession = computed(() => {
+  const t = accessToken.value
+  return typeof t === 'string' && t.startsWith(LARAVEL_ACCESS_TOKEN_PREFIX)
+})
+const backendReady = computed(() => hasApiBase.value && isLaravelSession.value)
 
 const { recentList, mainList } = useRecentPartitionedList(
   list,
@@ -123,7 +140,11 @@ async function load(fromPull = false) {
   ready.value = true
 
   list.value = []
-  if (!configured.value || !isLoggedIn.value) {
+  if (!hasApiBase.value || !isLoggedIn.value) {
+    uni.stopPullDownRefresh()
+    return
+  }
+  if (!isLaravelSession.value) {
     uni.stopPullDownRefresh()
     return
   }
@@ -134,8 +155,9 @@ async function load(fromPull = false) {
     const err = e as Error & { code?: string }
     if (err.code === BIZ_UNAUTHORIZED || err.message === BIZ_UNAUTHORIZED) {
       list.value = []
-    } else if (err.code === BIZ_NOT_CONFIGURED || err.message === BIZ_NOT_CONFIGURED) {
-      /* template */
+    } else if (err.code === BIZ_NEED_LARAVEL_AUTH || err.message === BIZ_NEED_LARAVEL_AUTH) {
+      list.value = []
+      msg.toastLoadFailed('请使用微信登录后查看历史')
     } else {
       msg.toastLoadFailed(err.message)
     }
@@ -159,6 +181,10 @@ function goLogin() {
 
 function goTodayEat() {
   uni.switchTab({ url: '/pages/today-eat/index' })
+}
+
+function openHistory(item: HistoryRow) {
+  openResultDetail(toDetailPayloadFromHistory(item))
 }
 
 function onDelete(item: HistoryRow) {

@@ -18,6 +18,7 @@
 
       <text v-if="!apiReady" class="warn">请先在项目中配置 VITE_API_BASE_URL（指向 BFF；真机勿用 localhost，见下方说明）。</text>
       <template v-else>
+        <text class="hint">当前 BFF：{{ apiBaseUrlDisplay }}</text>
         <text class="hint">登录需要 BFF 已配置 ADMIN_BACKEND_BASE_URL，且 Laravel 已配置 WECHAT_APP_ID / WECHAT_APP_SECRET。</text>
         <text v-if="apiUsesLoopback" class="warn loopback-hint">
           真机无法访问本机的 localhost。请把 .env 里的 VITE_API_BASE_URL 改成电脑的局域网地址（示例 http://192.168.1.12:8787，与手机同一 Wi‑Fi），重新编译；并在微信开发者工具「详情 → 本地设置」勾选「不校验合法域名…」。
@@ -45,8 +46,10 @@ const { setToken, setCurrentUser } = useAuth()
 
 const wxLoading = ref(false)
 const redirectPath = ref('')
+const isWxDevtools = ref(false)
 
 const apiReady = computed(() => Boolean(API_BASE_URL.trim()))
+const apiBaseUrlDisplay = computed(() => API_BASE_URL.trim() || '(未配置)')
 
 /** 真机请求 localhost / 127.0.0.1 会失败且报「url not in domain list:localhost」 */
 const apiUsesLoopback = computed(() => {
@@ -55,6 +58,12 @@ const apiUsesLoopback = computed(() => {
 })
 
 onLoad((options) => {
+  try {
+    const p = String(uni.getSystemInfoSync()?.platform || '').toLowerCase()
+    isWxDevtools.value = p === 'devtools'
+  } catch {
+    isWxDevtools.value = false
+  }
   if (options?.redirect) {
     try {
       redirectPath.value = decodeURIComponent(String(options.redirect))
@@ -77,6 +86,14 @@ function toastFromError(e: unknown): string {
 async function onWeChatLogin() {
   if (!apiReady.value) {
     uni.showToast({ title: '未配置 BFF 地址', icon: 'none' })
+    return
+  }
+  if (apiUsesLoopback.value && !isWxDevtools.value) {
+    uni.showToast({
+      title: '真机请改用局域网 IP 的 BFF 地址',
+      icon: 'none',
+      duration: 2600,
+    })
     return
   }
   wxLoading.value = true

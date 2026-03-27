@@ -6,6 +6,9 @@
 export interface FavoriteRow {
   id?: number
   user_id?: string
+  /** Laravel favorites.source_type */
+  source_type?: string
+  source_id?: string | null
   title: string
   cuisine?: string | null
   ingredients?: string[]
@@ -17,10 +20,13 @@ export interface FavoriteRow {
 export interface HistoryRow {
   id?: number
   user_id?: string
+  source_type?: string
+  source_id?: string | null
   title?: string | null
   cuisine?: string | null
   ingredients?: string[]
   request_payload?: unknown
+  extra_payload?: unknown
   response_content: string
   image_url?: string | null
   created_at?: string

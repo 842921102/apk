@@ -40,10 +40,19 @@
       <view class="mp-hero me__profile-hero">
         <view class="me__hero-inner">
           <text class="mp-hero__kicker mp-kicker--on-dark">已登录</text>
-          <view class="me__avatar-wrap">
+          <view class="me__top-actions">
+            <button class="me__top-action-btn" @click.stop="onSettingsTap">
+              设置
+            </button>
+            <button class="me__top-action-btn" @click.stop="onFeedbackTap">
+              反馈
+            </button>
+          </view>
+
+          <view class="me__avatar-wrap" @click="goProfile">
             <text class="me__avatar">{{ avatarLetter }}</text>
           </view>
-          <text class="me__profile-name">{{ displayPrimary }}</text>
+          <text class="me__profile-name" @click="goProfile">{{ displayPrimary }}</text>
           <text class="me__profile-id">账号 ID · {{ shortId }}</text>
           <view class="me__hero-rule" />
         </view>
@@ -51,9 +60,9 @@
 
       <view class="me__sheet">
         <view class="mp-card me__user-card">
-          <text class="me__rail">账户摘要</text>
+          <text class="me__rail">账号信息</text>
           <text class="me__user-card-name">{{ displayPrimary }}</text>
-          <text class="me__user-card-id">{{ shortId }}</text>
+          <text class="me__user-card-id">用户ID：{{ shortId }}</text>
           <view
             v-if="config.profile_title || config.profile_subtitle"
             class="me__user-card-extra"
@@ -64,49 +73,158 @@
           </view>
         </view>
 
-        <view v-if="configured" class="mp-card me__stats">
-          <text class="me__rail">数据概览</text>
-          <text class="me__stats-desc">以下为当前账号在小程序内已同步的条数（实时拉取）</text>
-          <view class="me__stats-grid">
-            <view class="me__stat-tile">
-              <text class="me__stat-label">{{ statsFavoritesLabel }}</text>
-              <text class="me__stat-num">{{ favDisplay }}</text>
-            </view>
-            <view class="me__stat-tile">
-              <text class="me__stat-label">{{ statsHistoriesLabel }}</text>
-              <text class="me__stat-num">{{ histDisplay }}</text>
-            </view>
+        <!-- 会员/身份卡片 -->
+        <view class="mp-card me__membership">
+          <view class="me__membership-head">
+            <text class="me__rail">身份与权益</text>
+            <button class="me__link-btn" @click="onMemberCenterTap">
+              会员中心 ›
+            </button>
+          </view>
+          <text class="me__membership-title">{{ memberLabel }}</text>
+          <text class="me__membership-sub">{{ memberSubtitle }}</text>
+          <view class="me__membership-badges">
+            <view class="me__badge me__badge--accent">云端同步：收藏/历史</view>
+            <view class="me__badge">统一回看详情</view>
           </view>
         </view>
 
-        <view class="me__menu-block">
-          <view class="me__menu-head">
-            <text class="me__rail">{{ menuSectionLabel }}</text>
-            <text class="me__menu-h2">收藏与记录</text>
-            <text class="me__menu-lead">点击进入对应列表页，支持下拉刷新</text>
+        <!-- 我的资产区 -->
+        <view v-if="configured" class="mp-card me__assets">
+          <view class="me__assets-head">
+            <text class="me__rail">我的资产</text>
+            <text class="me__assets-sub">更像“资产区”，而不是简单按钮</text>
           </view>
-          <view class="me__tiles">
-            <view
-              v-for="item in menuEntries"
-              :key="item.id"
-              class="me__tile"
-              @click="goMenu(item.path)"
-            >
-              <view class="me__tile-ico">
-                <text class="me__tile-emoji">{{ menuIcon(item.id) }}</text>
+
+          <view class="me__assets-grid">
+            <view class="me__asset-tile" @click="goMenu('/pages/favorites/index')">
+              <text class="me__asset-label">我的收藏</text>
+              <text class="me__asset-num">{{ favDisplay }}</text>
+              <text class="me__asset-link">查看明细 ›</text>
+            </view>
+            <view class="me__asset-tile" @click="goMenu('/pages/histories/index')">
+              <text class="me__asset-label">我的历史</text>
+              <text class="me__asset-num">{{ histDisplay }}</text>
+              <text class="me__asset-link">查看明细 ›</text>
+            </view>
+          </view>
+
+          <view class="me__recent">
+            <view class="me__assets-head me__recent-head">
+              <text class="me__rail me__rail--muted">最近生成</text>
+              <button class="me__link-btn" @click="goMenu('/pages/histories/index')">
+                全部 ›
+              </button>
+            </view>
+
+            <view v-if="recentHistoriesLoading" class="me__recent-state">
+              加载中…
+            </view>
+            <view v-else-if="recentHistories.length === 0" class="me__recent-state">
+              暂无最近记录
+            </view>
+            <view v-else class="me__recent-list">
+              <view
+                v-for="h in recentHistories"
+                :key="h.id"
+                class="me__recent-item"
+                @click="openHistoryDetail(h)"
+              >
+                <view class="me__recent-item-left">
+                  <text class="me__recent-item-title">{{ h.title || '未命名' }}</text>
+                  <text class="me__recent-item-meta">{{ h.cuisine || '—' }} · {{ formatListTime(h.created_at) }}</text>
+                </view>
+                <text class="me__recent-item-arrow">›</text>
               </view>
-              <text class="me__tile-title">{{ item.title }}</text>
-              <text v-if="item.subtitle" class="me__tile-sub">{{ item.subtitle }}</text>
             </view>
           </view>
         </view>
 
-        <view class="me__logout-zone">
+        <view v-else class="mp-card me__assets me__assets--placeholder">
+          <text class="me__rail">我的资产</text>
+          <text class="me__assets-sub">请先完成微信一键登录后再查看云端数据。</text>
+        </view>
+
+        <!-- 我的记录区 -->
+        <view class="mp-card me__features">
+          <view class="me__features-head">
+            <text class="me__rail">我的记录</text>
+            <text class="me__features-sub">按类型快速回看详情</text>
+          </view>
+
+          <view class="me__features-grid">
+            <view
+              v-for="tile in recordTiles"
+              :key="tile.id"
+              class="me__feature-item"
+              @click="onRecordTileTap(tile.type)"
+            >
+              <text class="me__feature-icon">{{ tile.icon }}</text>
+              <text class="me__feature-title">{{ tile.title }}</text>
+              <text v-if="latestByType[tile.type]?.title" class="me__feature-subtext">
+                {{ latestByType[tile.type]?.title }}
+              </text>
+              <text v-else class="me__feature-subtext me__feature-subtext--muted">暂无记录</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 服务中心 -->
+        <view class="mp-card me__service">
+          <view class="me__support-head">
+            <text class="me__rail">服务中心</text>
+          </view>
+          <view class="me__support-list">
+            <view
+              v-for="entry in serviceEntries"
+              :key="entry.id"
+              class="me__support-item"
+              @click="onServiceTap(entry.id)"
+            >
+              <view class="me__support-left">
+                <text class="me__support-icon">{{ entry.icon }}</text>
+                <view>
+                  <text class="me__support-title">{{ entry.title }}</text>
+                  <text class="me__support-sub">{{ entry.subtitle }}</text>
+                </view>
+              </view>
+              <text class="me__support-arrow">›</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 支持与设置区 -->
+        <view class="mp-card me__support">
+          <view class="me__support-head">
+            <text class="me__rail">支持与设置</text>
+          </view>
+          <view class="me__support-list">
+            <view
+              v-for="entry in supportSettingsEntries"
+              :key="entry.id"
+              class="me__support-item"
+              @click="onSupportSettingsTap(entry.id)"
+            >
+              <view class="me__support-left">
+                <text class="me__support-icon">{{ entry.icon }}</text>
+                <view>
+                  <text class="me__support-title">{{ entry.title }}</text>
+                  <text class="me__support-sub">{{ entry.subtitle }}</text>
+                </view>
+              </view>
+              <text class="me__support-arrow">›</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 底部操作区 -->
+        <view class="me__logout-zone mp-card">
           <text class="me__rail me__rail--danger">账号与安全</text>
           <text class="me__logout-hint">退出后需重新登录才能继续同步收藏与历史</text>
           <button class="me__logout" @click="onLogoutTap">
             <text class="me__logout-txt">{{ logoutButtonLabel }}</text>
           </button>
+          <text class="me__version">版本号 v{{ appVersion }}</text>
         </view>
       </view>
     </view>
@@ -117,18 +235,20 @@
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useAuth } from '@/composables/useAuth'
-import { getFavoritesCount, getHistoriesCount, BIZ_UNAUTHORIZED } from '@/api/biz'
+import { fetchHistories, getFavoritesCount, getHistoriesCount } from '@/api/biz'
 import { isSupabaseConfigured } from '@/lib/supabase'
-import { ME_MENU_ENTRIES } from '@/config/meEntries'
+import { API_BASE_URL } from '@/constants'
 import { useAppConfig } from '@/composables/useAppConfig'
 import {
   LOGGED_STATS_FAVORITES,
   LOGGED_STATS_HISTORIES,
-  LOGGED_MENU_SECTION_LABEL,
   LOGOUT_BUTTON,
   LOGOUT_CONFIRM_TITLE,
   LOGOUT_CONFIRM_CONTENT,
 } from '@/config/meCopy'
+import type { HistoryRow } from '@/types/dto'
+import { formatListTime } from '@/utils/dateFormat'
+import { openResultDetail, toDetailPayloadFromHistory, normalizeSourceType, type ResultSourceType } from '@/lib/resultDetail'
 
 const { config } = useAppConfig()
 
@@ -141,12 +261,81 @@ const {
 
 const statsFavoritesLabel = LOGGED_STATS_FAVORITES
 const statsHistoriesLabel = LOGGED_STATS_HISTORIES
-const menuSectionLabel = LOGGED_MENU_SECTION_LABEL
 const logoutButtonLabel = LOGOUT_BUTTON
+const appVersion = '1.0.0'
 
-const menuEntries = ME_MENU_ENTRIES
+const memberLabel = ref('普通用户')
+const memberSubtitle = ref('收藏与历史已接入云端，支持回看与再次使用（会员功能占位）')
 
-const configured = computed(() => isSupabaseConfigured())
+const featureEntries = [
+  { id: 'today_eat', title: '吃什么', icon: '🍽️', path: '/pages/today-eat/index' },
+  { id: 'table_design', title: '一桌好菜', icon: '🥘', path: '/pages/table-menu/index' },
+  { id: 'fortune_cooking', title: '玄学厨房', icon: '🔮', path: '/pages/fortune-cooking/index' },
+  { id: 'sauce_design', title: '酱料大师', icon: '🧑‍🍳', path: '/pages/sauce-design/index' },
+  { id: 'plaza', title: '功能广场', icon: '🧭', path: '/pages/plaza/index' },
+  { id: 'favorites', title: '我的收藏', icon: '⭐', path: '/pages/favorites/index' },
+  { id: 'histories', title: '我的历史', icon: '📜', path: '/pages/histories/index' },
+  { id: 'settings', title: '设置', icon: '⚙️', path: '' },
+  { id: 'about', title: '关于我们', icon: 'ℹ️', path: '' },
+  { id: 'feedback', title: '意见反馈', icon: '💬', path: '' },
+  { id: 'member_center', title: '会员中心', icon: '🎫', path: '' },
+] as const
+
+const supportEntries = [
+  { id: 'help_center', title: '帮助中心', subtitle: '使用指引与常见问题', icon: '📘' },
+  { id: 'user_agreement', title: '用户协议', subtitle: '占位内容', icon: '📄' },
+  { id: 'privacy_policy', title: '隐私政策', subtitle: '占位内容', icon: '🔒' },
+  { id: 'contact_customer', title: '联系客服', subtitle: '占位内容', icon: '🧑‍💻' },
+] as const
+
+// 记录区：从最近历史里按 source_type 聚合一条用于快速回看
+const recordTiles = [
+  { id: 'today_eat_record', type: 'today_eat' as const, title: '吃什么记录', icon: '🍽️' },
+  { id: 'table_design_record', type: 'table_design' as const, title: '一桌好菜记录', icon: '🥘' },
+  { id: 'fortune_cooking_record', type: 'fortune_cooking' as const, title: '玄学厨房记录', icon: '🔮' },
+  { id: 'sauce_design_record', type: 'sauce_design' as const, title: '酱料大师记录', icon: '🧑‍🍳' },
+] as const
+
+// 服务中心，按国内小程序常见“服务/支持”结构摆放
+const serviceEntries = [
+  { id: 'menu_tutorial', title: '菜谱教学', subtitle: '入门指引与模板', icon: '📘' },
+  { id: 'function_square', title: '功能广场', subtitle: '浏览全部工具入口', icon: '🧭' },
+  { id: 'about_us', title: '关于我们', subtitle: '饭否小程序（占位）', icon: 'ℹ️' },
+  { id: 'member_center', title: '会员中心', subtitle: '权益与订阅（占位）', icon: '🎫' },
+] as const
+
+// 支持与设置（帮助中心/协议/隐私/设置/反馈）
+const supportSettingsEntries = [
+  { id: 'help_center', title: '帮助中心', subtitle: '使用指引与常见问题', icon: '📘' },
+  { id: 'user_agreement', title: '用户协议', subtitle: '占位内容', icon: '📄' },
+  { id: 'privacy_policy', title: '隐私政策', subtitle: '占位内容', icon: '🔒' },
+  { id: 'settings', title: '设置', subtitle: '账号与偏好（占位）', icon: '⚙️' },
+  { id: 'feedback', title: '反馈/客服', subtitle: '意见与问题（占位）', icon: '💬' },
+] as const
+
+function inferHistorySourceType(h: HistoryRow): ResultSourceType {
+  return normalizeSourceType(h.source_type, h.request_payload)
+}
+
+const latestByType = computed(() => {
+  const out: Record<ResultSourceType, HistoryRow | null> = {
+    today_eat: null,
+    table_design: null,
+    fortune_cooking: null,
+    sauce_design: null,
+    gallery: null,
+  }
+
+  for (const h of recentHistories.value) {
+    const t = inferHistorySourceType(h)
+    if (out[t] === null) out[t] = h
+  }
+
+  return out
+})
+
+/** 收藏可走 Laravel；历史仍依赖 Supabase 会话（可并行展示，各自失败则为 0） */
+const configured = computed(() => isSupabaseConfigured() || Boolean(API_BASE_URL.trim()))
 
 const favCount = ref(0)
 const histCount = ref(0)
@@ -183,6 +372,9 @@ const histDisplay = computed(() => {
   return String(histCount.value)
 })
 
+const recentHistories = ref<HistoryRow[]>([])
+const recentHistoriesLoading = ref(false)
+
 onShow(() => {
   void refresh()
 })
@@ -193,21 +385,23 @@ async function refresh() {
     favCount.value = 0
     histCount.value = 0
     statsLoading.value = false
+    recentHistories.value = []
     return
   }
   statsLoading.value = true
+  recentHistoriesLoading.value = true
   try {
-    const [f, h] = await Promise.all([getFavoritesCount(), getHistoriesCount()])
-    favCount.value = f
-    histCount.value = h
-  } catch (e: unknown) {
-    const err = e as Error & { code?: string }
-    if (err.code === BIZ_UNAUTHORIZED || err.message === BIZ_UNAUTHORIZED) {
-      favCount.value = 0
-      histCount.value = 0
-    }
+    const [fSettled, hSettled, recentSettled] = await Promise.allSettled([
+      getFavoritesCount(),
+      getHistoriesCount(),
+      (async () => (await fetchHistories()).slice(0, 3))(),
+    ])
+    favCount.value = fSettled.status === 'fulfilled' ? fSettled.value : 0
+    histCount.value = hSettled.status === 'fulfilled' ? hSettled.value : 0
+    recentHistories.value = recentSettled.status === 'fulfilled' ? recentSettled.value : []
   } finally {
     statsLoading.value = false
+    recentHistoriesLoading.value = false
   }
 }
 
@@ -220,10 +414,116 @@ function goMenu(path: string) {
   uni.navigateTo({ url: path })
 }
 
-function menuIcon(id: string) {
-  if (id === 'favorites') return '⭐'
-  if (id === 'histories') return '📜'
-  return '·'
+function goProfile() {
+  uni.navigateTo({ url: '/pages/profile/index' })
+}
+
+function onSettingsTap() {
+  uni.showModal({
+    title: '设置',
+    content: '设置功能暂未接入（占位）。',
+    showCancel: false,
+  })
+}
+
+function onFeedbackTap() {
+  uni.showModal({
+    title: '意见反馈',
+    content: '反馈入口暂未接入（占位）。',
+    showCancel: false,
+  })
+}
+
+function onMemberCenterTap() {
+  uni.showToast({ title: '会员中心占位', icon: 'none' })
+}
+
+function onRecordTileTap(type: ResultSourceType) {
+  const h = latestByType.value[type]
+  if (h) {
+    openHistoryDetail(h)
+    return
+  }
+  goMenu('/pages/histories/index')
+}
+
+function onServiceTap(id: (typeof serviceEntries)[number]['id']) {
+  if (id === 'menu_tutorial' || id === 'function_square') {
+    goMenu('/pages/plaza/index')
+    return
+  }
+  if (id === 'about_us') {
+    uni.showModal({
+      title: '关于我们',
+      content: '饭否小程序（体验版）\n主功能：生成、收藏、历史、回看。',
+      showCancel: false,
+    })
+    return
+  }
+  if (id === 'member_center') return onMemberCenterTap()
+}
+
+function onSupportSettingsTap(id: (typeof supportSettingsEntries)[number]['id']) {
+  if (id === 'help_center') {
+    uni.showModal({
+      title: '帮助中心',
+      content: '占位内容：后续可接入 FAQ 或帮助页。',
+      showCancel: false,
+    })
+    return
+  }
+  if (id === 'user_agreement') {
+    uni.showModal({ title: '用户协议', content: '占位内容', showCancel: false })
+    return
+  }
+  if (id === 'privacy_policy') {
+    uni.showModal({ title: '隐私政策', content: '占位内容', showCancel: false })
+    return
+  }
+  if (id === 'settings') return onSettingsTap()
+  if (id === 'feedback') return onFeedbackTap()
+}
+
+function onFeatureTap(id: (typeof featureEntries)[number]['id']) {
+  const entry = featureEntries.find((e) => e.id === id)
+  if (!entry) return
+  if (entry.path) {
+    goMenu(entry.path)
+    return
+  }
+  if (id === 'settings') return onSettingsTap()
+  if (id === 'about') {
+    uni.showModal({
+      title: '关于我们',
+      content: '饭否小程序（体验版）\n主功能：生成、收藏、历史、回看。\n',
+      showCancel: false,
+    })
+    return
+  }
+  if (id === 'feedback') return onFeedbackTap()
+  if (id === 'member_center') return onMemberCenterTap()
+  if (id === 'histories') return goMenu('/pages/histories/index')
+  if (id === 'favorites') return goMenu('/pages/favorites/index')
+}
+
+function onSupportTap(id: (typeof supportEntries)[number]['id']) {
+  const titleMap: Record<string, string> = {
+    help_center: '帮助中心',
+    user_agreement: '用户协议',
+    privacy_policy: '隐私政策',
+    contact_customer: '联系客服',
+  }
+  uni.showModal({
+    title: titleMap[id] ?? '服务与支持',
+    content: '占位内容：后续可接入页面或富文本展示。',
+    showCancel: false,
+  })
+}
+
+function openHistoryDetail(h: HistoryRow) {
+  if (!h) return
+  if (h.id == null) return
+  openResultDetail(toDetailPayloadFromHistory(h))
 }
 
 function onLogoutTap() {
@@ -540,6 +840,7 @@ async function doLogout() {
 /* 宫格入口 */
 .me__menu-block {
   margin-top: 0;
+  padding: 28rpx 24rpx;
 }
 
 .me__menu-head {
@@ -562,33 +863,56 @@ async function doLogout() {
   color: $mp-text-secondary;
 }
 
-.me__tiles {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20rpx;
-}
-
-.me__tile {
-  padding: 28rpx 22rpx 24rpx;
-  border-radius: 22rpx;
-  background: #fafbfc;
-  border: 1rpx solid $mp-border;
-  box-shadow: $mp-shadow-soft;
+.me__quick-grid {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  gap: 14rpx;
+}
+
+.me__quick-item {
+  padding: 22rpx 20rpx;
+  border-radius: 18rpx;
+  background: #fafbfc;
+  border: 1rpx solid $mp-border;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.me__quick-left {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  min-width: 0;
+}
+
+.me__quick-right {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.me__quick-count {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: $mp-accent;
+}
+
+.me__quick-arrow {
+  font-size: 30rpx;
+  color: $mp-text-muted;
 }
 
 .me__tile-ico {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 18rpx;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 16rpx;
   background: $mp-accent-soft;
   border: 1rpx solid $mp-ring-accent;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16rpx;
+  margin-bottom: 0;
 }
 
 .me__tile-emoji {
@@ -609,9 +933,56 @@ async function doLogout() {
   color: $mp-text-secondary;
 }
 
+.me__tools {
+  padding: 28rpx 24rpx;
+}
+
+.me__tool-row {
+  padding: 18rpx 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1rpx solid #f3f4f6;
+}
+
+.me__tool-row:first-of-type {
+  border-top: none;
+}
+
+.me__tool-left {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.me__tool-icon {
+  font-size: 30rpx;
+  width: 42rpx;
+  text-align: center;
+}
+
+.me__tool-title {
+  display: block;
+  font-size: 27rpx;
+  color: $mp-text-primary;
+  font-weight: 600;
+}
+
+.me__tool-sub {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: $mp-text-muted;
+}
+
+.me__tool-arrow {
+  font-size: 30rpx;
+  color: $mp-text-muted;
+}
+
 /* 退出：贴近 Web 浅红底 + 描边，识别度高 */
 .me__logout-zone {
-  padding-bottom: 8rpx;
+  padding: 28rpx 24rpx 20rpx;
 }
 
 .me__logout-hint {
@@ -641,4 +1012,338 @@ async function doLogout() {
 .me__logout-txt {
   font-weight: 800;
 }
+
+/* —— 个人中心新版结构（顶部快捷 / 会员 / 资产 / 功能 / 支持） —— */
+.me__profile-hero {
+  position: relative;
+}
+
+.me__top-actions {
+  position: absolute;
+  top: 16rpx;
+  right: 24rpx;
+  display: flex;
+  flex-direction: row;
+  gap: 12rpx;
+}
+
+.me__top-action-btn {
+  font-size: 22rpx;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.18);
+  border: 1rpx solid rgba(255, 255, 255, 0.32);
+  padding: 10rpx 16rpx;
+  border-radius: 18rpx;
+}
+
+.me__link-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  color: $mp-accent;
+  font-size: 22rpx;
+  font-weight: 900;
+}
+
+.me__badge {
+  display: inline-block;
+  padding: 10rpx 14rpx;
+  border-radius: 999rpx;
+  background: #f3f4f6;
+  border: 1rpx solid #e5e7eb;
+  font-size: 22rpx;
+  color: $mp-text-secondary;
+  margin-right: 12rpx;
+  margin-bottom: 10rpx;
+}
+
+.me__badge--accent {
+  background: rgba(122, 87, 209, 0.12);
+  border-color: rgba(122, 87, 209, 0.22);
+  color: $mp-accent;
+}
+
+.me__membership,
+.me__assets,
+.me__features,
+.me__support,
+.me__service {
+  padding: 28rpx 24rpx;
+}
+
+.me__membership-head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.me__membership-title {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 34rpx;
+  font-weight: 900;
+  color: $mp-text-primary;
+}
+
+.me__membership-sub {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: $mp-text-secondary;
+}
+
+.me__membership-badges {
+  margin-top: 16rpx;
+}
+
+.me__assets-head {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.me__assets-sub {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  line-height: 1.4;
+  color: $mp-text-secondary;
+}
+
+.me__assets-grid {
+  margin-top: 12rpx;
+  display: flex;
+  flex-direction: row;
+  gap: 20rpx;
+}
+
+.me__asset-tile {
+  flex: 1;
+  padding: 22rpx 18rpx;
+  border-radius: 18rpx;
+  background: #fafbfc;
+  border: 1rpx solid $mp-border;
+}
+
+.me__asset-label {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 800;
+  color: $mp-text-primary;
+}
+
+.me__asset-num {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 46rpx;
+  font-weight: 950;
+  color: $mp-accent;
+  line-height: 1;
+}
+
+.me__asset-link {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  font-weight: 850;
+  color: $mp-accent;
+}
+
+.me__recent {
+  margin-top: 22rpx;
+}
+
+.me__rail--muted {
+  color: $mp-text-muted;
+}
+
+.me__recent-head {
+  margin-bottom: 14rpx;
+}
+
+.me__recent-state {
+  padding: 18rpx 0;
+  text-align: center;
+  font-size: 24rpx;
+  color: $mp-text-secondary;
+}
+
+.me__recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
+
+.me__recent-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  padding: 16rpx 14rpx;
+  border-radius: 18rpx;
+  background: #fff;
+  border: 1rpx solid $mp-border;
+}
+
+.me__recent-item-left {
+  min-width: 0;
+  flex: 1;
+}
+
+.me__recent-item-title {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 900;
+  color: $mp-text-primary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.me__recent-item-meta {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: $mp-text-secondary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.me__recent-item-arrow {
+  font-size: 30rpx;
+  font-weight: 950;
+  color: $mp-text-muted;
+}
+
+.me__features-head {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.me__features-sub {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: $mp-text-secondary;
+}
+
+.me__features-grid {
+  margin-top: 18rpx;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+}
+
+.me__feature-item {
+  padding: 22rpx 18rpx;
+  border-radius: 18rpx;
+  background: #fafbfc;
+  border: 1rpx solid $mp-border;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.me__feature-icon {
+  font-size: 36rpx;
+  line-height: 1;
+}
+
+.me__feature-title {
+  font-size: 24rpx;
+  font-weight: 900;
+  color: $mp-text-primary;
+}
+
+.me__feature-subtext {
+  display: block;
+  margin-top: 2rpx;
+  font-size: 22rpx;
+  color: $mp-text-secondary;
+}
+
+.me__feature-subtext--muted {
+  color: $mp-text-muted;
+}
+
+.me__support-head {
+  display: block;
+  margin-bottom: 6rpx;
+}
+
+.me__support-list {
+  margin-top: 12rpx;
+}
+
+.me__support-item {
+  padding: 18rpx 0;
+  border-top: 1rpx solid #f3f4f6;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.me__support-item:first-child {
+  border-top: none;
+}
+
+.me__support-left {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 14rpx;
+  min-width: 0;
+  flex: 1;
+}
+
+.me__support-icon {
+  font-size: 32rpx;
+  width: 50rpx;
+  text-align: center;
+}
+
+.me__support-title {
+  display: block;
+  font-size: 24rpx;
+  font-weight: 900;
+  color: $mp-text-primary;
+  word-break: break-all;
+}
+
+.me__support-sub {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 20rpx;
+  color: $mp-text-secondary;
+  word-break: break-all;
+}
+
+.me__support-arrow {
+  font-size: 30rpx;
+  font-weight: 950;
+  color: $mp-text-muted;
+}
+
+.me__version {
+  display: block;
+  margin-top: 18rpx;
+  font-size: 20rpx;
+  color: $mp-text-muted;
+  text-align: center;
+}
+
 </style>

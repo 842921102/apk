@@ -36,12 +36,17 @@ const PORT = Number(process.env.PORT || 8787)
 /** 绑定到所有网卡，手机真机才能访问电脑的局域网 IP（勿用默认仅本机回环） */
 const HOST = process.env.HOST || '0.0.0.0'
 
-const BIGMODEL_BASE_URL = process.env.BIGMODEL_BASE_URL || 'https://open.bigmodel.cn/api/paas/v4'
-const BIGMODEL_API_KEY = process.env.BIGMODEL_API_KEY || ''
-const BIGMODEL_MODEL = process.env.BIGMODEL_MODEL || 'glm-4-flash'
+const ADMIN_BACKEND_BASE_URL = process.env.ADMIN_BACKEND_BASE_URL || process.env.LARAVEL_ADMIN_BASE_URL || ''
+const INTERNAL_SERVICE_TOKEN = process.env.INTERNAL_SERVICE_TOKEN || ''
 
 const SUPABASE_URL = process.env.SUPABASE_URL || ''
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || ''
+
+const sceneConfigCache = new Map()
+const AI_SCENES = Object.freeze({
+  TEXT: 'recipe_text_generation',
+  IMAGE: 'recipe_image_generation',
+})
 
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
@@ -116,6 +121,181 @@ function getAuthHeader(req) {
   return auth
 }
 
+async function getSceneRuntimeConfig(sceneCode) {
+  const key = String(sceneCode || '').trim()
+  if (!key) throw new Error('scene_code_missing')
+  if (!ADMIN_BACKEND_BASE_URL) throw new Error('ADMIN_BACKEND_BASE_URL missing')
+  if (!INTERNAL_SERVICE_TOKEN) throw new Error('INTERNAL_SERVICE_TOKEN missing')
+
+  const now = Date.now()
+  const cached = sceneConfigCache.get(key)
+  if (cached && cached.expiresAt > now) return cached.value
+
+  const url = `${ADMIN_BACKEND_BASE_URL.replace(/\/$/, '')}/api/internal/ai-runtime/scenes/${encodeURIComponent(key)}`
+  const resp = await fetch(url, {
+    headers: {
+      Accept: 'application/json',
+      'X-Internal-Token': INTERNAL_SERVICE_TOKEN,
+    },
+  })
+  const data = await resp.json().catch(() => ({}))
+  if (!resp.ok) {
+    const msg = data?.error?.message || data?.message || `scene_runtime_fetch_failed(${resp.status || 0})`
+    throw new Error(msg)
+  }
+
+  const runtime = data?.data ?? {}
+  sceneConfigCache.set(key, {
+    value: runtime,
+    expiresAt: now + 60_000,
+  })
+  return runtime
+}
+
+async function postEatMemeRecord(payload) {
+  if (!ADMIN_BACKEND_BASE_URL || !INTERNAL_SERVICE_TOKEN) return
+  const url = `${ADMIN_BACKEND_BASE_URL.replace(/\/$/, '')}/api/internal/eat-meme`
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'X-Internal-Token': INTERNAL_SERVICE_TOKEN,
+      },
+      body: JSON.stringify(payload || {}),
+    })
+  } catch {
+    // eat-meme logging is best-effort; never block main flow
+  }
+}
+
+async function callChatCompletionByScene(sceneCode, { systemPrompt, userPrompt, temperature }) {
+  const runtime = await getSceneRuntimeConfig(sceneCode)
+  const baseUrl = safeString(runtime?.base_url).replace(/\/$/, '')
+  const apiPath = safeString(runtime?.model?.api_path || '/chat/completions')
+  const modelCode = safeString(runtime?.model?.model_code)
+  const apiKey = safeString(runtime?.api_key)
+
+  if (!baseUrl || !modelCode || !apiKey) {
+    throw new Error('scene_runtime_invalid')
+  }
+
+  const timeoutMs = Number(runtime?.timeout_ms || 12000)
+  const timeoutSec = Math.max(3, Math.ceil(timeoutMs / 1000))
+  const resolvedTemperature = Number.isFinite(Number(temperature))
+    ? Number(temperature)
+    : Number(runtime?.temperature ?? 0.7)
+
+  const requestUrl = `${baseUrl}/${apiPath.replace(/^\//, '')}`
+  const resp = await fetch(requestUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    signal: AbortSignal.timeout(timeoutSec * 1000),
+    body: JSON.stringify({
+      model: modelCode,
+      temperature: resolvedTemperature,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+    }),
+  })
+
+  const status = resp.status || 0
+  const data = await resp.json().catch(() => ({}))
+  if (!resp.ok) {
+    const msg = data?.error?.message || data?.message || `model_request_failed(${status})`
+    throw new Error(msg)
+  }
+
+  return data
+}
+
+async function callMessagesByScene(sceneCode, { messages, temperature }) {
+  const runtime = await getSceneRuntimeConfig(sceneCode)
+  const baseUrl = safeString(runtime?.base_url).replace(/\/$/, '')
+  const apiPath = safeString(runtime?.model?.api_path || '/chat/completions')
+  const modelCode = safeString(runtime?.model?.model_code)
+  const apiKey = safeString(runtime?.api_key)
+
+  if (!baseUrl || !modelCode || !apiKey) {
+    throw new Error('scene_runtime_invalid')
+  }
+
+  const timeoutMs = Number(runtime?.timeout_ms || 18000)
+  const timeoutSec = Math.max(5, Math.ceil(timeoutMs / 1000))
+  const resolvedTemperature = Number.isFinite(Number(temperature))
+    ? Number(temperature)
+    : Number(runtime?.temperature ?? 0.3)
+
+  const requestUrl = `${baseUrl}/${apiPath.replace(/^\//, '')}`
+  const resp = await fetch(requestUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    signal: AbortSignal.timeout(timeoutSec * 1000),
+    body: JSON.stringify({
+      model: modelCode,
+      temperature: resolvedTemperature,
+      messages,
+    }),
+  })
+
+  const status = resp.status || 0
+  const data = await resp.json().catch(() => ({}))
+  if (!resp.ok) {
+    const msg = data?.error?.message || data?.message || `model_request_failed(${status})`
+    throw new Error(msg)
+  }
+
+  return data
+}
+
+async function callImageGenerationByScene(sceneCode, { prompt, size = '1024x1024' }) {
+  const runtime = await getSceneRuntimeConfig(sceneCode)
+  const baseUrl = safeString(runtime?.base_url).replace(/\/$/, '')
+  const apiPath = safeString(runtime?.model?.api_path || '/images/generations')
+  const modelCode = safeString(runtime?.model?.model_code)
+  const apiKey = safeString(runtime?.api_key)
+
+  if (!baseUrl || !modelCode || !apiKey) {
+    throw new Error('scene_runtime_invalid')
+  }
+
+  const timeoutMs = Number(runtime?.timeout_ms || 20000)
+  const timeoutSec = Math.max(5, Math.ceil(timeoutMs / 1000))
+  const requestUrl = `${baseUrl}/${apiPath.replace(/^\//, '')}`
+
+  const resp = await fetch(requestUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    signal: AbortSignal.timeout(timeoutSec * 1000),
+    body: JSON.stringify({
+      model: modelCode,
+      prompt: safeString(prompt),
+      size,
+    }),
+  })
+
+  const status = resp.status || 0
+  const data = await resp.json().catch(() => ({}))
+  if (!resp.ok) {
+    const msg = data?.error?.message || data?.message || `model_image_request_failed(${status})`
+    throw new Error(msg)
+  }
+
+  return data
+}
+
 async function fetchSupabaseRest(pathWithQuery, authHeader) {
   if (!SUPABASE_URL) {
     const e = new Error('SUPABASE_URL missing')
@@ -150,8 +330,6 @@ async function fetchSupabaseRest(pathWithQuery, authHeader) {
 }
 
 async function proxyToBigModel({ preferences, locale }) {
-  if (!BIGMODEL_API_KEY) throw new Error('BIGMODEL_API_KEY missing')
-
   const taste = safeString(preferences?.taste)
   const avoid = safeString(preferences?.avoid)
   const people = preferences?.people != null ? Number(preferences?.people) : undefined
@@ -177,28 +355,11 @@ async function proxyToBigModel({ preferences, locale }) {
     `语言 locale: ${safeString(locale) || 'zh-CN'}`,
   ].join('\n')
 
-  const resp = await fetch(`${BIGMODEL_BASE_URL.replace(/\/$/, '')}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${BIGMODEL_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: BIGMODEL_MODEL,
-      temperature: 0.7,
-      messages: [
-        { role: 'system', content: sys },
-        { role: 'user', content: user },
-      ],
-    }),
+  const data = await callChatCompletionByScene(AI_SCENES.TEXT, {
+    systemPrompt: sys,
+    userPrompt: user,
+    temperature: 0.7,
   })
-
-  const status = resp.status || 0
-  const data = await resp.json().catch(() => ({}))
-  if (!resp.ok) {
-    const msg = data?.error?.message || data?.message || `bigmodel_request_failed(${status})`
-    throw new Error(msg)
-  }
 
   const content = data?.choices?.[0]?.message?.content
   const jsonObj = tryParseJsonFromText(content)
@@ -276,8 +437,6 @@ function clampInt(n, min, max, fallback) {
 }
 
 async function proxyToSauceRecommend({ preferences, locale }) {
-  if (!BIGMODEL_API_KEY) throw new Error('BIGMODEL_API_KEY missing')
-
   const loc = safeString(locale) || 'zh-CN'
   const spiceLevel = clampInt(preferences?.spiceLevel, 1, 5, 3)
   const sweetLevel = clampInt(preferences?.sweetLevel, 1, 5, 3)
@@ -314,28 +473,11 @@ async function proxyToSauceRecommend({ preferences, locale }) {
     '要求：酱名必须是中文、简洁可读（不要带“配方/步骤”）。',
   ].join('\n')
 
-  const resp = await fetch(`${BIGMODEL_BASE_URL.replace(/\/$/, '')}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${BIGMODEL_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: BIGMODEL_MODEL,
-      temperature: 0.7,
-      messages: [
-        { role: 'system', content: sys },
-        { role: 'user', content: user },
-      ],
-    }),
+  const data = await callChatCompletionByScene(AI_SCENES.TEXT, {
+    systemPrompt: sys,
+    userPrompt: user,
+    temperature: 0.7,
   })
-
-  const status = resp.status || 0
-  const data = await resp.json().catch(() => ({}))
-  if (!resp.ok) {
-    const msg = data?.error?.message || data?.message || `bigmodel_request_failed(${status})`
-    throw new Error(msg)
-  }
 
   const content = data?.choices?.[0]?.message?.content
   const jsonObj = tryParseJsonFromText(content)
@@ -349,8 +491,6 @@ async function proxyToSauceRecommend({ preferences, locale }) {
 }
 
 async function proxyToSauceRecipe({ sauce_name, locale }) {
-  if (!BIGMODEL_API_KEY) throw new Error('BIGMODEL_API_KEY missing')
-
   const loc = safeString(locale) || 'zh-CN'
   const name = safeString(sauce_name).trim()
   if (!name) throw new Error('sauce_name missing')
@@ -379,28 +519,11 @@ async function proxyToSauceRecipe({ sauce_name, locale }) {
     '要求：steps 需要能直接用于小程序展示；ingredients 与 steps 要一致；storage 三个字段用简短中文。',
   ].join('\n')
 
-  const resp = await fetch(`${BIGMODEL_BASE_URL.replace(/\/$/, '')}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${BIGMODEL_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: BIGMODEL_MODEL,
-      temperature: 0.7,
-      messages: [
-        { role: 'system', content: sys },
-        { role: 'user', content: user },
-      ],
-    }),
+  const data = await callChatCompletionByScene(AI_SCENES.TEXT, {
+    systemPrompt: sys,
+    userPrompt: user,
+    temperature: 0.7,
   })
-
-  const status = resp.status || 0
-  const data = await resp.json().catch(() => ({}))
-  if (!resp.ok) {
-    const msg = data?.error?.message || data?.message || `bigmodel_request_failed(${status})`
-    throw new Error(msg)
-  }
 
   const content = data?.choices?.[0]?.message?.content
   const jsonObj = tryParseJsonFromText(content)
@@ -431,8 +554,6 @@ async function proxyToSauceRecipe({ sauce_name, locale }) {
 }
 
 async function proxyToFortune({ fortuneType, daily, mood, couple, number, locale }) {
-  if (!BIGMODEL_API_KEY) throw new Error('BIGMODEL_API_KEY missing')
-
   const loc = safeString(locale) || 'zh-CN'
   const ft = safeString(fortuneType)
   const allowed = ['daily', 'mood', 'couple', 'number']
@@ -509,28 +630,11 @@ async function proxyToFortune({ fortuneType, daily, mood, couple, number, locale
     ]
   }
 
-  const resp = await fetch(`${BIGMODEL_BASE_URL.replace(/\/$/, '')}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${BIGMODEL_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: BIGMODEL_MODEL,
-      temperature: 0.7,
-      messages: [
-        { role: 'system', content: sys },
-        { role: 'user', content: user.join('\n') },
-      ],
-    }),
+  const data = await callChatCompletionByScene(AI_SCENES.TEXT, {
+    systemPrompt: sys,
+    userPrompt: user.join('\n'),
+    temperature: 0.7,
   })
-
-  const status = resp.status || 0
-  const data = await resp.json().catch(() => ({}))
-  if (!resp.ok) {
-    const msg = data?.error?.message || data?.message || `bigmodel_request_failed(${status})`
-    throw new Error(msg)
-  }
 
   const content = data?.choices?.[0]?.message?.content
   const jsonObj = tryParseJsonFromText(content)
@@ -581,8 +685,6 @@ async function proxyToFortune({ fortuneType, daily, mood, couple, number, locale
 }
 
 async function proxyToTableMenu({ config, locale }) {
-  if (!BIGMODEL_API_KEY) throw new Error('BIGMODEL_API_KEY missing')
-
   const dishCount = normalizeNumber(config?.dishCount) ?? 4
   const flexibleCount = !!config?.flexibleCount
   const count = flexibleCount ? Math.max(3, Math.min(8, dishCount)) : Math.max(2, Math.min(10, dishCount))
@@ -621,28 +723,11 @@ async function proxyToTableMenu({ config, locale }) {
     '注意：tags 必须是数组，description 要简短但具体。'
   ].join('\n')
 
-  const resp = await fetch(`${BIGMODEL_BASE_URL.replace(/\/$/, '')}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${BIGMODEL_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: BIGMODEL_MODEL,
-      temperature: 0.7,
-      messages: [
-        { role: 'system', content: sys },
-        { role: 'user', content: user },
-      ],
-    }),
+  const data = await callChatCompletionByScene(AI_SCENES.TEXT, {
+    systemPrompt: sys,
+    userPrompt: user,
+    temperature: 0.7,
   })
-
-  const status = resp.status || 0
-  const data = await resp.json().catch(() => ({}))
-  if (!resp.ok) {
-    const msg = data?.error?.message || data?.message || `bigmodel_request_failed(${status})`
-    throw new Error(msg)
-  }
 
   const content = data?.choices?.[0]?.message?.content
   const jsonObj = tryParseJsonFromText(content)
@@ -667,8 +752,6 @@ async function proxyToTableMenu({ config, locale }) {
 }
 
 async function proxyToTableDishRecipe({ dish_name, dish_description, category, locale }) {
-  if (!BIGMODEL_API_KEY) throw new Error('BIGMODEL_API_KEY missing')
-
   const name = safeString(dish_name)
   const desc = safeString(dish_description)
   const cat = safeString(category)
@@ -697,28 +780,11 @@ async function proxyToTableDishRecipe({ dish_name, dish_description, category, l
     '输出内容必须是可执行的烹饪步骤；ingredients 与步骤要一致。'
   ].join('\n')
 
-  const resp = await fetch(`${BIGMODEL_BASE_URL.replace(/\/$/, '')}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${BIGMODEL_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: BIGMODEL_MODEL,
-      temperature: 0.7,
-      messages: [
-        { role: 'system', content: sys },
-        { role: 'user', content: user },
-      ],
-    }),
+  const data = await callChatCompletionByScene(AI_SCENES.TEXT, {
+    systemPrompt: sys,
+    userPrompt: user,
+    temperature: 0.7,
   })
-
-  const status = resp.status || 0
-  const data = await resp.json().catch(() => ({}))
-  if (!resp.ok) {
-    const msg = data?.error?.message || data?.message || `bigmodel_request_failed(${status})`
-    throw new Error(msg)
-  }
 
   const content = data?.choices?.[0]?.message?.content
   const jsonObj = tryParseJsonFromText(content)
@@ -736,6 +802,61 @@ async function proxyToTableDishRecipe({ dish_name, dish_description, category, l
     difficulty: safeString(jsonObj.difficulty || '').trim() || undefined,
     tips: Array.isArray(jsonObj.tips) ? jsonObj.tips.map(i => safeString(i)).filter(Boolean).slice(0, 6) : undefined,
   }
+}
+
+async function proxyToRecipeImage({ prompt, size }) {
+  const data = await callImageGenerationByScene(AI_SCENES.IMAGE, {
+    prompt,
+    size: safeString(size || '1024x1024') || '1024x1024',
+  })
+
+  const item = Array.isArray(data?.data) ? data.data[0] : null
+  const url = safeString(item?.url || item?.image_url || data?.url)
+  if (!url) {
+    throw new Error('image_url_missing')
+  }
+
+  return { url, raw: data }
+}
+
+async function proxyToRecognizeIngredients({ imageBase64 }) {
+  const base64 = safeString(imageBase64).trim()
+  if (!base64) throw new Error('image_base64_missing')
+
+  const systemPrompt = [
+    '你是食材识别助手。',
+    '请识别图片里的食材，仅返回 JSON。',
+    '格式必须为：{"ingredients":["食材1","食材2"]}',
+    '不要输出任何额外说明。',
+  ].join('\n')
+
+  const data = await callMessagesByScene(AI_SCENES.IMAGE, {
+    temperature: 0.2,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image_url',
+            image_url: { url: `data:image/jpeg;base64,${base64}` },
+          },
+          {
+            type: 'text',
+            text: '识别图片中的食材，返回 JSON。',
+          },
+        ],
+      },
+    ],
+  })
+
+  const content = data?.choices?.[0]?.message?.content
+  const jsonObj = tryParseJsonFromText(typeof content === 'string' ? content : '')
+  if (!jsonObj || typeof jsonObj !== 'object') {
+    throw new Error('ingredients_recognize_not_json')
+  }
+  const ingredients = normalizeIngredients(jsonObj.ingredients)
+  return { ingredients: ingredients.slice(0, 12), raw: data }
 }
 
 function getRoute(req) {
@@ -770,10 +891,7 @@ const server = http.createServer(async (req, res) => {
       const body = await readJsonBody(req)
       const code = body?.code
 
-      const adminBackendBaseUrl =
-        process.env.ADMIN_BACKEND_BASE_URL || process.env.LARAVEL_ADMIN_BASE_URL || ''
-
-      if (!adminBackendBaseUrl) {
+      if (!ADMIN_BACKEND_BASE_URL) {
         return json(res, 500, {
           error: { message: 'ADMIN_BACKEND_BASE_URL missing' },
         })
@@ -784,7 +902,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       try {
-        const url = `${adminBackendBaseUrl.replace(/\/$/, '')}/api/auth/wechat`
+        const url = `${ADMIN_BACKEND_BASE_URL.replace(/\/$/, '')}/api/auth/wechat`
         const resp = await fetch(url, {
           method: 'POST',
           headers: {
@@ -804,6 +922,47 @@ const server = http.createServer(async (req, res) => {
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'internal_error'
         return json(res, 500, { error: { message: msg } })
+      }
+    }
+
+    // Laravel 业务 API 透传（收藏/历史）：需 Authorization: Bearer
+    if (pathname.startsWith('/api/favorites') || pathname.startsWith('/api/histories')) {
+      if (!ADMIN_BACKEND_BASE_URL) {
+        return json(res, 500, {
+          error: { message: 'ADMIN_BACKEND_BASE_URL missing' },
+        })
+      }
+      if (!['GET', 'POST', 'DELETE'].includes(req.method)) {
+        return json(res, 405, { error: { message: 'method_not_allowed' } })
+      }
+      const uFull = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`)
+      const search = uFull.search || ''
+      const target = `${ADMIN_BACKEND_BASE_URL.replace(/\/$/, '')}${pathname}${search}`
+      const headers = {
+        Accept: 'application/json',
+      }
+      const auth = req.headers.authorization
+      if (auth) {
+        headers.Authorization = auth
+      }
+      let body
+      if (req.method === 'POST') {
+        const jsonBody = await readJsonBody(req)
+        headers['Content-Type'] = 'application/json'
+        body = JSON.stringify(jsonBody)
+      }
+      try {
+        const resp = await fetch(target, { method: req.method, headers, body })
+        const text = await resp.text()
+        res.writeHead(resp.status, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        })
+        res.end(text)
+        return
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'proxy_failed'
+        return json(res, 502, { error: { message: msg } })
       }
     }
 
@@ -886,9 +1045,90 @@ const server = http.createServer(async (req, res) => {
       const body = await readJsonBody(req)
       const preferences = body?.preferences ?? {}
       const locale = body?.locale ?? 'zh-CN'
+      try {
+        const result = await proxyToBigModel({ preferences, locale })
+        await postEatMemeRecord({
+          channel: 'android_app',
+          taste: safeString(preferences?.taste),
+          avoid: safeString(preferences?.avoid),
+          people: Number.isFinite(Number(preferences?.people)) ? Number(preferences?.people) : null,
+          result_title: safeString(result?.title),
+          result_cuisine: safeString(result?.cuisine),
+          result_ingredients: Array.isArray(result?.ingredients) ? result.ingredients : [],
+          result_content: safeString(result?.content),
+          status: 'success',
+          requested_at: new Date().toISOString(),
+        })
+        return json(res, 200, result)
+      } catch (e) {
+        await postEatMemeRecord({
+          channel: 'android_app',
+          taste: safeString(preferences?.taste),
+          avoid: safeString(preferences?.avoid),
+          people: Number.isFinite(Number(preferences?.people)) ? Number(preferences?.people) : null,
+          status: 'failed',
+          error_message: e instanceof Error ? e.message : 'generate_failed',
+          requested_at: new Date().toISOString(),
+        })
+        throw e
+      }
+    }
 
-      const result = await proxyToBigModel({ preferences, locale })
-      return json(res, 200, result)
+    if (req.method === 'GET' && pathname === '/api/eat-meme') {
+      if (!ADMIN_BACKEND_BASE_URL || !INTERNAL_SERVICE_TOKEN) {
+        return json(res, 500, { error: { message: 'eat_meme_not_configured' } })
+      }
+      const uFull = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`)
+      const search = uFull.search || ''
+      const target = `${ADMIN_BACKEND_BASE_URL.replace(/\/$/, '')}/api/internal/eat-meme${search}`
+      try {
+        const resp = await fetch(target, {
+          headers: {
+            Accept: 'application/json',
+            'X-Internal-Token': INTERNAL_SERVICE_TOKEN,
+          },
+        })
+        const text = await resp.text()
+        res.writeHead(resp.status, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        })
+        res.end(text)
+        return
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'proxy_failed'
+        return json(res, 502, { error: { message: msg } })
+      }
+    }
+
+    if (req.method === 'DELETE' && pathname.startsWith('/api/eat-meme/')) {
+      if (!ADMIN_BACKEND_BASE_URL || !INTERNAL_SERVICE_TOKEN) {
+        return json(res, 500, { error: { message: 'eat_meme_not_configured' } })
+      }
+      const id = pathname.replace('/api/eat-meme/', '').trim()
+      if (!/^\d+$/.test(id)) {
+        return json(res, 400, { error: { message: 'invalid_id' } })
+      }
+      const target = `${ADMIN_BACKEND_BASE_URL.replace(/\/$/, '')}/api/internal/eat-meme/${id}`
+      try {
+        const resp = await fetch(target, {
+          method: 'DELETE',
+          headers: {
+            Accept: 'application/json',
+            'X-Internal-Token': INTERNAL_SERVICE_TOKEN,
+          },
+        })
+        const text = await resp.text()
+        res.writeHead(resp.status, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        })
+        res.end(text)
+        return
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'proxy_failed'
+        return json(res, 502, { error: { message: msg } })
+      }
     }
 
     if (
@@ -943,6 +1183,27 @@ const server = http.createServer(async (req, res) => {
         dish_description: body?.dish_description,
         category: body?.category,
         locale: body?.locale ?? 'zh-CN',
+      })
+      return json(res, 200, result)
+    }
+
+    if (req.method === 'POST' && pathname === '/api/ai/recipe-image') {
+      const body = await readJsonBody(req)
+      const prompt = safeString(body?.prompt).trim()
+      if (!prompt) {
+        return json(res, 400, { error: { message: 'prompt_missing' } })
+      }
+      const result = await proxyToRecipeImage({
+        prompt,
+        size: body?.size,
+      })
+      return json(res, 200, result)
+    }
+
+    if (req.method === 'POST' && pathname === '/api/ai/ingredients-recognize') {
+      const body = await readJsonBody(req)
+      const result = await proxyToRecognizeIngredients({
+        imageBase64: body?.image_base64,
       })
       return json(res, 200, result)
     }
