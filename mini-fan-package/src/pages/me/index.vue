@@ -273,6 +273,7 @@ const recordTiles = [
 
 // 服务中心，按国内小程序常见“服务/支持”结构摆放
 const serviceEntries = [
+  { id: 'my_orders', title: '我的订单', subtitle: '查看下单和物流状态', icon: '📦' },
   { id: 'menu_tutorial', title: '菜谱教学', subtitle: '入门指引与模板', icon: '📘' },
   { id: 'function_square', title: '功能广场', subtitle: '浏览全部工具入口', icon: '🧭' },
   { id: 'about_us', title: '关于我们', subtitle: '饭否小程序（占位）', icon: 'ℹ️' },
@@ -423,6 +424,10 @@ function onRecordTileTap(type: ResultSourceType) {
 }
 
 function onServiceTap(id: (typeof serviceEntries)[number]['id']) {
+  if (id === 'my_orders') {
+    goMenu('/pages/mall/orders')
+    return
+  }
   if (id === 'menu_tutorial' || id === 'function_square') {
     goMenu('/pages/plaza/index')
     return

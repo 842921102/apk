@@ -42,6 +42,9 @@
         <button class="mp-btn-primary" :disabled="favoriteLoading || !isLoggedIn" @click="onToggleFavorite">
           {{ favoriteLoading ? '处理中…' : isFavorited ? '取消收藏' : '加入收藏' }}
         </button>
+        <button class="mp-btn-secondary" :disabled="!detail.image_url" @click="onPublishToInspiration">
+          发布到灵感
+        </button>
         <button class="mp-btn-ghost" :disabled="imageLoading" @click="onGenerateImage">
           {{ imageLoading ? '生成配图中…' : detail.image_url ? '重新生成配图' : '生成配图' }}
         </button>
@@ -221,6 +224,15 @@ function onPreviewImage() {
     urls: [imageUrl],
     current: imageUrl,
   })
+}
+
+function onPublishToInspiration() {
+  if (!detail.value?.image_url) {
+    uni.showToast({ title: '请先生成配图', icon: 'none' })
+    return
+  }
+  const images = encodeURIComponent(detail.value.image_url)
+  uni.navigateTo({ url: `/pages/inspiration/publish?from=ai_result&images=${images}` })
 }
 
 function buildImagePrompt(payload: ResultDetailPayload): string {

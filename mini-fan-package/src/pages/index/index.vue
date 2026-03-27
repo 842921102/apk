@@ -38,13 +38,40 @@
       <view class="home__secondary-tag">
         <text>灵感补给站</text>
       </view>
-      <text class="home__secondary-title">去功能广场逛逛</text>
-      <text class="home__secondary-desc">满汉全席、酱料大师、图鉴教学都在这里。</text>
+      <text class="home__secondary-title">去「菜单」逛逛</text>
+      <text class="home__secondary-desc">满汉全席、酱料大师、灵感入口与更多工具都在这里。</text>
       <view class="home__secondary-action">
         <button type="button" class="mp-btn-ghost home__secondary-btn" @click.stop="goPlaza">
           <text>去看看</text>
           <text class="home__secondary-go">→</text>
         </button>
+      </view>
+    </view>
+
+    <!-- 2c. 后台「自定义菜系」feature 数据（与 Admin 功能数据 / BFF 写入一致） -->
+    <view class="home__section">
+      <view class="home__section-rail">
+        <text class="home__section-rail-k">云端</text>
+        <text class="home__section-rail-h">自定义菜系 · 菜单数据</text>
+      </view>
+      <view class="mp-card home__fdc-card">
+        <text v-if="fdcLoading" class="home__fdc-muted">加载中…</text>
+        <text v-else-if="fdcError" class="home__fdc-err">{{ fdcError }}</text>
+        <view v-else-if="fdcList.length === 0" class="home__fdc-empty">
+          <text class="home__fdc-muted">
+            暂无后台记录。用户在「吃什么」生成成功时，BFF 会写入自定义菜系数据，稍后再来看。
+          </text>
+        </view>
+        <view v-else class="home__fdc-list">
+          <view v-for="row in fdcList" :key="row.id" class="home__fdc-row" @click="onFdcTap(row)">
+            <view class="home__fdc-row-main">
+              <text class="home__fdc-title">{{ row.title || '未命名' }}</text>
+              <text class="home__fdc-meta">{{ fdcCuisineLabel(row) }} · {{ formatListTime(row.created_at) }}</text>
+              <text v-if="fdcSummaryLine(row)" class="home__fdc-sum">{{ fdcSummaryLine(row) }}</text>
+            </view>
+            <text class="home__fdc-chev">→</text>
+          </view>
+        </view>
       </view>
     </view>
 
@@ -374,8 +401,10 @@ import { useAppConfig } from '@/composables/useAppConfig'
 import { useAuth } from '@/composables/useAuth'
 import { fetchHistories, getFavoritesCount, getHistoriesCount } from '@/api/biz'
 import { requestTodayEat, requestRecipeImage, requestRecognizeIngredients } from '@/api/ai'
+import { fetchFeatureDataRecordsPaged, type FeatureDataRecordItem } from '@/api/featureData'
 import { upsertLocalGalleryItem } from '@/api/gallery'
 import { favoriteContentDigest } from '@/lib/favoriteDigest'
+import { formatListTime } from '@/utils/dateFormat'
 
 const { config } = useAppConfig()
 const { isLoggedIn, syncAuthFromSupabase } = useAuth()
@@ -442,17 +471,74 @@ const quickEntries: Array<{ key: QuickEntryKey; icon: string; label: string }> =
   { key: 'today-eat', icon: '🎲', label: '吃什么' },
   { key: 'favorites', icon: '⭐', label: '收藏' },
   { key: 'histories', icon: '📜', label: '历史' },
-  { key: 'plaza', icon: '✨', label: '功能广场' },
+  { key: 'plaza', icon: '✨', label: '菜单' },
 ]
 
 /** 与 Web 首页“今日推荐”对齐：静态示例，不新增接口 */
 const todayRecommendations = ['番茄牛腩', '蒜蓉西兰花', '酸辣土豆丝'] as const
 
 const newbieSteps = [
-  '打开「吃什么」，填写口味与忌口',
-  '生成推荐后可在收藏里留存',
-  '到「功能广场」探索更多玩法',
+  '在「吃什么」填写口味与忌口，一键生成推荐',
+  '在「自定义」用食材向导，或浏览云端自定义菜系记录',
+  '到「菜单」进灵感、满汉全席等更多玩法',
 ]
+
+const fdcList = ref<FeatureDataRecordItem[]>([])
+const fdcLoading = ref(false)
+const fdcError = ref('')
+
+function fdcCuisineLabel(row: FeatureDataRecordItem): string {
+  const c = row.result_payload?.cuisine
+  return typeof c === 'string' && c.trim() ? c.trim() : '—'
+}
+
+function fdcSummaryLine(row: FeatureDataRecordItem): string {
+  const s = (row.result_summary || '').trim()
+  if (!s) return ''
+  return s.length > 96 ? `${s.slice(0, 96)}…` : s
+}
+
+function fdcIngredientsLine(row: FeatureDataRecordItem): string {
+  const ing = row.result_payload?.ingredients
+  if (!Array.isArray(ing) || !ing.length) return ''
+  return ing.map((x) => String(x)).filter(Boolean).join('、')
+}
+
+function onFdcTap(row: FeatureDataRecordItem) {
+  const title = row.title?.trim() || '自定义菜系记录'
+  const lines: string[] = []
+  const sum = (row.result_summary || '').trim()
+  if (sum) lines.push(sum)
+  const ingLine = fdcIngredientsLine(row)
+  if (ingLine) lines.push(`食材：${ingLine}`)
+  const body = lines.length ? lines.join('\n\n') : '暂无摘要'
+  uni.showModal({
+    title,
+    content: body.length > 1800 ? `${body.slice(0, 1800)}…` : body,
+    showCancel: false,
+    confirmText: '关闭',
+  })
+}
+
+async function loadFeatureDataCuisine() {
+  fdcLoading.value = true
+  fdcError.value = ''
+  try {
+    const { items } = await fetchFeatureDataRecordsPaged({
+      featureType: 'custom_cuisine',
+      status: 'success',
+      page: 1,
+      perPage: 20,
+    })
+    fdcList.value = items
+  } catch (e: unknown) {
+    const err = e as Error
+    fdcList.value = []
+    fdcError.value = err.message || '暂时无法加载云端菜系数据'
+  } finally {
+    fdcLoading.value = false
+  }
+}
 
 function goEat() {
   uni.switchTab({ url: '/pages/today-eat/index' })
@@ -716,7 +802,7 @@ async function generateWizardImage() {
 }
 
 onShow(async () => {
-  await refreshDashboard()
+  await Promise.all([refreshDashboard(), loadFeatureDataCuisine()])
 })
 
 async function refreshDashboard() {
@@ -1625,5 +1711,77 @@ async function refreshDashboard() {
   width: 100%;
   border-radius: 12rpx;
   border: 1rpx solid $mp-border;
+}
+
+.home__fdc-card {
+  padding: 24rpx 22rpx;
+}
+
+.home__fdc-muted {
+  font-size: 26rpx;
+  color: $mp-text-muted;
+  line-height: 1.45;
+}
+
+.home__fdc-err {
+  font-size: 26rpx;
+  color: #c43434;
+  line-height: 1.45;
+}
+
+.home__fdc-empty {
+  padding: 8rpx 4rpx;
+}
+
+.home__fdc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.home__fdc-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16rpx;
+  padding: 18rpx 0;
+  border-top: 1rpx solid $mp-border;
+}
+
+.home__fdc-row:first-child {
+  border-top: none;
+  padding-top: 4rpx;
+}
+
+.home__fdc-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.home__fdc-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: $mp-text-primary;
+}
+
+.home__fdc-meta {
+  font-size: 22rpx;
+  color: $mp-text-muted;
+}
+
+.home__fdc-sum {
+  font-size: 24rpx;
+  color: $mp-text-primary;
+  line-height: 1.45;
+}
+
+.home__fdc-chev {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #7a57d1;
+  flex-shrink: 0;
 }
 </style>

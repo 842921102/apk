@@ -20,7 +20,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 
-type TabKey = 'home' | 'eat' | 'plaza' | 'me'
+type TabKey = 'eat' | 'custom' | 'plaza' | 'circle' | 'me'
 
 type TabItem = {
   key: TabKey
@@ -32,13 +32,6 @@ type TabItem = {
 
 const tabs: TabItem[] = [
   {
-    key: 'home',
-    label: '首页',
-    pagePath: '/pages/index/index',
-    iconPath: '/static/tabbar/home.png',
-    selectedIconPath: '/static/tabbar/home-active.png',
-  },
-  {
     key: 'eat',
     label: '吃什么',
     pagePath: '/pages/today-eat/index',
@@ -46,11 +39,25 @@ const tabs: TabItem[] = [
     selectedIconPath: '/static/tabbar/eat-active.png',
   },
   {
+    key: 'custom',
+    label: '自定义',
+    pagePath: '/pages/index/index',
+    iconPath: '/static/tabbar/home.png',
+    selectedIconPath: '/static/tabbar/home-active.png',
+  },
+  {
     key: 'plaza',
     label: '菜单',
     pagePath: '/pages/plaza/index',
     iconPath: '/static/tabbar/plaza.png',
     selectedIconPath: '/static/tabbar/plaza-active.png',
+  },
+  {
+    key: 'circle',
+    label: '灵感',
+    pagePath: '/pages/inspiration/index',
+    iconPath: '/static/tabbar/circle.png',
+    selectedIconPath: '/static/tabbar/circle-active.png',
   },
   {
     key: 'me',
@@ -62,7 +69,6 @@ const tabs: TabItem[] = [
 ]
 
 function getCurrentRoute(): string {
-  // uniapp: getCurrentPages 在运行时可用
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   // @ts-ignore
   const pages = (typeof getCurrentPages === 'function' ? getCurrentPages() : []) as any[]
@@ -78,21 +84,21 @@ function getCurrentRoute(): string {
 
 const currentRoute = ref('')
 
-// 非 tab 页面：根据“功能归属”决定哪个 tab 高亮
 const activeKey = computed<TabKey>(() => {
   const r = currentRoute.value
-  if (!r) return 'home'
-
-  if (
-    r === '/pages/index/index' ||
-    r.startsWith('/pages/index/')
-  )
-    return 'home'
+  if (!r) return 'eat'
 
   if (r === '/pages/today-eat/index' || r.startsWith('/pages/today-eat/')) return 'eat'
 
+  if (r === '/pages/index/index' || r.startsWith('/pages/index/')) return 'custom'
+
+  if (r === '/pages/plaza/index') return 'plaza'
+
+  if (r === '/pages/inspiration/index' || r.startsWith('/pages/inspiration/')) return 'circle'
+
+  if (r === '/pages/me/index') return 'me'
+
   const plazaGroup = [
-    '/pages/plaza/index',
     '/pages/table-menu/index',
     '/pages/fortune-cooking/index',
     '/pages/sauce-design/index',
@@ -100,10 +106,9 @@ const activeKey = computed<TabKey>(() => {
   ]
   if (plazaGroup.includes(r)) return 'plaza'
 
-  const meGroup = ['/pages/me/index', '/pages/favorites/index', '/pages/histories/index']
+  const meGroup = ['/pages/favorites/index', '/pages/histories/index']
   if (meGroup.includes(r)) return 'me'
 
-  // 默认归属到菜单
   return 'plaza'
 })
 
@@ -153,7 +158,7 @@ function onTap(key: TabKey) {
 
 .wte-ico-tabbar__label {
   margin-top: 4rpx;
-  font-size: 20rpx;
+  font-size: 18rpx;
   font-weight: 600;
   color: #8e95a3;
 }
@@ -162,4 +167,3 @@ function onTap(key: TabKey) {
   color: #7a57d1;
 }
 </style>
-

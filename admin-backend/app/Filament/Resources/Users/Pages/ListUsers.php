@@ -14,6 +14,7 @@ class ListUsers extends ListRecords
     {
         return [
             CreateAction::make()
+                ->label('新建用户')
                 ->visible(fn (): bool => UserResource::canCreate()),
         ];
     }

@@ -390,7 +390,7 @@ function onClearTap() {
 }
 
 function goHome() {
-  uni.switchTab({ url: '/pages/index/index' })
+  uni.switchTab({ url: '/pages/today-eat/index' })
 }
 </script>
 

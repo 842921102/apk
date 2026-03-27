@@ -14,7 +14,7 @@ class EditAiModelConfig extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            DeleteAction::make()->label('删除'),
         ];
     }
 
@@ -38,4 +38,3 @@ class EditAiModelConfig extends EditRecord
         ]);
     }
 }
-

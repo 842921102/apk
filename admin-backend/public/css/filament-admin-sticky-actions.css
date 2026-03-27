@@ -1,0 +1,26 @@
+/* 固定表格最后一列（操作列），横向滚动时保持可见 */
+.fi-ta-content .fi-ta-row .fi-ta-cell:last-of-type {
+    position: sticky;
+    right: 0;
+    z-index: 20;
+    background: rgb(255 255 255);
+    box-shadow: -8px 0 12px -10px rgba(0, 0, 0, 0.12);
+}
+
+.dark .fi-ta-content .fi-ta-row .fi-ta-cell:last-of-type {
+    background: rgb(17 24 39);
+    box-shadow: -8px 0 12px -10px rgba(0, 0, 0, 0.45);
+}
+
+.fi-ta-header .fi-ta-cell:last-of-type {
+    position: sticky;
+    right: 0;
+    z-index: 30;
+    background: rgb(249 250 251);
+    box-shadow: -8px 0 12px -10px rgba(0, 0, 0, 0.1);
+}
+
+.dark .fi-ta-header .fi-ta-cell:last-of-type {
+    background: rgb(17 24 39);
+    box-shadow: -8px 0 12px -10px rgba(0, 0, 0, 0.45);
+}

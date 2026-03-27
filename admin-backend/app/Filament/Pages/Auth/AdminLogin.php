@@ -31,7 +31,7 @@ class AdminLogin extends Login
             return parent::getSubheading();
         }
 
-        return '请使用已开通后台权限的账号登录（viewer / operator / super_admin）。';
+        return '请使用已开通后台权限的账号登录（查看员 / 运营员 / 超级管理员）。';
     }
 
     protected function getEmailFormComponent(): Component

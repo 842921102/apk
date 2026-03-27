@@ -34,23 +34,23 @@ class UserForm
                     ->required()
                     ->maxLength(255)
                     ->disabled(fn (?string $state): bool => filled($state) && is_string($state) && str_contains($state, '@wechat.local'))
-                    ->helperText('微信用户的合成邮箱以 @wechat.local 结尾时不可修改，避免破坏与 openid 的映射。'),
+                    ->helperText('微信用户的合成邮箱以 @wechat.local 结尾时不可修改，避免破坏与微信开放标识的映射关系。'),
                 TextInput::make('phone')
                     ->label('手机号')
                     ->tel()
                     ->maxLength(32)
                     ->placeholder('可选'),
                 TextInput::make('avatar_url')
-                    ->label('头像 URL')
+                    ->label('头像地址')
                     ->url()
                     ->maxLength(2048)
                     ->placeholder('可选：服务端存储的公开头像地址'),
                 TextInput::make('wechat_openid')
-                    ->label('微信 OpenID')
+                    ->label('微信开放标识')
                     ->disabled()
                     ->dehydrated(false),
                 TextInput::make('wechat_unionid')
-                    ->label('微信 UnionID')
+                    ->label('微信联合标识')
                     ->disabled()
                     ->dehydrated(false),
                 Select::make('role')
@@ -82,7 +82,7 @@ class UserForm
                         : null),
                 Toggle::make('is_active')
                     ->label('账号启用')
-                    ->helperText('禁用后可在业务层拒绝登录（需在接口中校验 is_active；微信登录接口建议后续接入校验）。')
+                    ->helperText('禁用后可在业务层拒绝登录（需在接口中校验账号启用状态；微信登录接口建议后续接入校验）。')
                     ->default(true)
                     ->disabled(function (?Model $record): bool {
                         $actor = auth()->user();

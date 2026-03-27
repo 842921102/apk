@@ -1,21 +1,28 @@
 {
   "pages": [
     {
-      "path": "pages/index/index",
-      "style": {
-        "navigationBarTitleText": "首页"
-      }
-    },
-    {
       "path": "pages/today-eat/index",
       "style": {
         "navigationBarTitleText": "吃什么"
       }
     },
     {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "自定义"
+      }
+    },
+    {
       "path": "pages/plaza/index",
       "style": {
-        "navigationBarTitleText": "功能广场"
+        "navigationBarTitleText": "菜单"
+      }
+    },
+    {
+      "path": "pages/inspiration/index",
+      "style": {
+        "navigationBarTitleText": "灵感",
+        "enablePullDownRefresh": true
       }
     },
     {
@@ -80,6 +87,60 @@
       "style": {
         "navigationBarTitleText": "个人资料"
       }
+    },
+    {
+      "path": "pages/inspiration/publish",
+      "style": {
+        "navigationBarTitleText": "发布灵感"
+      }
+    },
+    {
+      "path": "pages/inspiration/detail",
+      "style": {
+        "navigationBarTitleText": "灵感详情"
+      }
+    },
+    {
+      "path": "pages/circle/publish",
+      "style": {
+        "navigationBarTitleText": "发帖"
+      }
+    },
+    {
+      "path": "pages/circle/detail",
+      "style": {
+        "navigationBarTitleText": "帖子详情"
+      }
+    },
+    {
+      "path": "pages/circle/my-posts",
+      "style": {
+        "navigationBarTitleText": "我的发布"
+      }
+    },
+    {
+      "path": "pages/mall/product-detail",
+      "style": {
+        "navigationBarTitleText": "商品详情"
+      }
+    },
+    {
+      "path": "pages/mall/order-create",
+      "style": {
+        "navigationBarTitleText": "确认下单"
+      }
+    },
+    {
+      "path": "pages/mall/orders",
+      "style": {
+        "navigationBarTitleText": "我的订单"
+      }
+    },
+    {
+      "path": "pages/mall/order-detail",
+      "style": {
+        "navigationBarTitleText": "订单详情"
+      }
     }
   ],
   "globalStyle": {
@@ -96,22 +157,28 @@
     "backgroundColor": "#FDFDFE",
     "list": [
       {
-        "pagePath": "pages/index/index",
-        "text": "首页",
-        "iconPath": "static/tabbar/home.png",
-        "selectedIconPath": "static/tabbar/home-active.png"
-      },
-      {
         "pagePath": "pages/today-eat/index",
         "text": "吃什么",
         "iconPath": "static/tabbar/eat.png",
         "selectedIconPath": "static/tabbar/eat-active.png"
       },
       {
+        "pagePath": "pages/index/index",
+        "text": "自定义",
+        "iconPath": "static/tabbar/home.png",
+        "selectedIconPath": "static/tabbar/home-active.png"
+      },
+      {
         "pagePath": "pages/plaza/index",
         "text": "菜单",
         "iconPath": "static/tabbar/plaza.png",
         "selectedIconPath": "static/tabbar/plaza-active.png"
+      },
+      {
+        "pagePath": "pages/inspiration/index",
+        "text": "灵感",
+        "iconPath": "static/tabbar/circle.png",
+        "selectedIconPath": "static/tabbar/circle-active.png"
       },
       {
         "pagePath": "pages/me/index",

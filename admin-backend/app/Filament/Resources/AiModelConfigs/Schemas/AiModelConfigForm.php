@@ -6,8 +6,8 @@ use App\Models\AiModel;
 use App\Models\AiProvider;
 use App\Support\AiScene;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 
@@ -34,23 +34,23 @@ class AiModelConfigForm
                 ->required()
                 ->native(false),
             TextInput::make('api_key')
-                ->label('API Key')
+                ->label('接口密钥')
                 ->password()
                 ->revealable()
-                ->helperText('编辑时留空表示不替换原 API Key。')
+                ->helperText('编辑时留空表示不替换原接口密钥。')
                 ->maxLength(2048),
             TextInput::make('base_url_override')
-                ->label('Base URL 覆盖')
+                ->label('基础地址覆盖')
                 ->maxLength(512)
-                ->placeholder('可空；为空时使用供应商 base_url'),
+                ->placeholder('可空；为空时使用供应商基础地址'),
             TextInput::make('temperature')
-                ->label('temperature')
+                ->label('温度参数')
                 ->numeric()
                 ->minValue(0)
                 ->maxValue(2)
                 ->step(0.01),
             TextInput::make('timeout_ms')
-                ->label('timeout_ms')
+                ->label('超时时间（毫秒）')
                 ->numeric()
                 ->minValue(1000)
                 ->maxValue(120000)
@@ -68,4 +68,3 @@ class AiModelConfigForm
         ]);
     }
 }
-

@@ -13,7 +13,7 @@ class EatMemeRecordInfolist
         return $schema->components([
             Section::make('基础')
                 ->schema([
-                    TextEntry::make('id')->label('ID'),
+                    TextEntry::make('id')->label('编号')->copyable(),
                     TextEntry::make('channel')->label('渠道'),
                     TextEntry::make('status')->label('状态')->badge(),
                     TextEntry::make('result_title')->label('推荐标题')->placeholder('—'),
@@ -22,16 +22,17 @@ class EatMemeRecordInfolist
                     TextEntry::make('avoid')->label('忌口')->placeholder('—'),
                     TextEntry::make('people')->label('人数')->placeholder('—'),
                     TextEntry::make('error_message')->label('错误信息')->placeholder('—'),
-                    TextEntry::make('source_ip')->label('来源 IP')->placeholder('—'),
+                    TextEntry::make('source_ip')->label('来源地址')->placeholder('—')->copyable(),
                     TextEntry::make('requested_at')->label('请求时间')->dateTime()->placeholder('—'),
                     TextEntry::make('created_at')->label('创建时间')->dateTime(),
                 ])->columns(2),
             Section::make('内容')
                 ->schema([
-                    TextEntry::make('result_ingredients')->label('食材(JSON)')->placeholder('—'),
-                    TextEntry::make('result_content')->label('推荐正文')->placeholder('—'),
-                ]),
+                    TextEntry::make('result_ingredients')->label('食材（结构化数据）')->placeholder('—')->columnSpanFull(),
+                    TextEntry::make('result_content')->label('推荐正文')->placeholder('—')->columnSpanFull(),
+                ])
+                ->columns(1)
+                ->collapsible(),
         ]);
     }
 }
-

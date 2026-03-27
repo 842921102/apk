@@ -943,8 +943,13 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // Laravel 业务 API 透传（收藏/历史）：需 Authorization: Bearer
-    if (pathname.startsWith('/api/favorites') || pathname.startsWith('/api/histories')) {
+    // Laravel 业务 API 透传（收藏/历史/灵感）：需 Authorization: Bearer（未登录接口可不带）
+    if (
+      pathname.startsWith('/api/favorites') ||
+      pathname.startsWith('/api/histories') ||
+      pathname.startsWith('/api/circle') ||
+      pathname.startsWith('/api/inspiration')
+    ) {
       if (!ADMIN_BACKEND_BASE_URL) {
         return json(res, 500, {
           error: { message: 'ADMIN_BACKEND_BASE_URL missing' },
@@ -1138,6 +1143,33 @@ const server = http.createServer(async (req, res) => {
       const uFull = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`)
       const search = uFull.search || ''
       const target = `${ADMIN_BACKEND_BASE_URL.replace(/\/$/, '')}/api/internal/eat-meme${search}`
+      try {
+        const resp = await fetch(target, {
+          headers: {
+            Accept: 'application/json',
+            'X-Internal-Token': INTERNAL_SERVICE_TOKEN,
+          },
+        })
+        const text = await resp.text()
+        res.writeHead(resp.status, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        })
+        res.end(text)
+        return
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'proxy_failed'
+        return json(res, 502, { error: { message: msg } })
+      }
+    }
+
+    if (req.method === 'GET' && pathname === '/api/feature-data') {
+      if (!ADMIN_BACKEND_BASE_URL || !INTERNAL_SERVICE_TOKEN) {
+        return json(res, 500, { error: { message: 'feature_data_not_configured' } })
+      }
+      const uFull = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`)
+      const search = uFull.search || ''
+      const target = `${ADMIN_BACKEND_BASE_URL.replace(/\/$/, '')}/api/internal/feature-data${search}`
       try {
         const resp = await fetch(target, {
           headers: {

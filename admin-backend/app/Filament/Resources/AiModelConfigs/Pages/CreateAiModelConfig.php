@@ -15,7 +15,7 @@ class CreateAiModelConfig extends CreateRecord
     {
         if (empty($data['api_key'])) {
             throw ValidationException::withMessages([
-                'api_key' => '请填写 API Key。',
+                'api_key' => '请填写接口密钥。',
             ]);
         }
 
@@ -34,4 +34,3 @@ class CreateAiModelConfig extends CreateRecord
         ]);
     }
 }
-

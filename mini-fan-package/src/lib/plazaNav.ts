@@ -1,8 +1,9 @@
 /** TabBar 页面路径 → switchTab，其余 navigateTo */
 const TAB_ROUTES = new Set([
-  '/pages/index/index',
   '/pages/today-eat/index',
+  '/pages/index/index',
   '/pages/plaza/index',
+  '/pages/inspiration/index',
   '/pages/me/index',
 ])
 
@@ -21,6 +22,12 @@ const KNOWN_PAGE_ROUTES = new Set([
   '/pages/gallery/index',
   '/pages/result-detail/index',
   '/pages/profile/index',
+  '/pages/inspiration/index',
+  '/pages/inspiration/publish',
+  '/pages/inspiration/detail',
+  '/pages/circle/index',
+  '/pages/circle/publish',
+  '/pages/circle/detail',
 ])
 
 export function plazaNavTypeForRoute(route: string): 'switchTab' | 'navigateTo' {

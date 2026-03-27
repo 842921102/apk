@@ -2,13 +2,11 @@
 
 namespace App\Filament\Resources\Histories\Tables;
 
-use App\Filament\Resources\Histories\RecipeHistoryResource;
 use App\Models\RecipeHistory;
 use App\Support\AdminActionLogger;
 use App\Support\FavoriteSourceType;
-use Filament\Actions\Action;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
@@ -22,9 +20,6 @@ use Illuminate\Database\Eloquent\Builder;
 
 final class RecipeHistoriesTable
 {
-    /**
-     * @param  Table  $table
-     */
     public static function configure(Table $table): Table
     {
         $sourceLabels = [
@@ -40,11 +35,14 @@ final class RecipeHistoriesTable
             ->defaultSort('id', 'desc')
             ->columns([
                 TextColumn::make('id')
-                    ->label('ID')
-                    ->sortable(),
+                    ->label('编号')
+                    ->sortable()
+                    ->copyable(),
                 TextColumn::make('title')
                     ->label('标题')
                     ->searchable()
+                    ->limit(36)
+                    ->tooltip(fn (?string $state): ?string => $state)
                     ->wrap(),
                 TextColumn::make('source_type')
                     ->label('来源类型')
@@ -54,7 +52,9 @@ final class RecipeHistoriesTable
                 TextColumn::make('user.name')
                     ->label('用户')
                     ->description(fn (RecipeHistory $record): string => (string) $record->user?->email)
-                    ->searchable(),
+                    ->searchable()
+                    ->limit(16)
+                    ->tooltip(fn (?string $state): ?string => $state),
                 TextColumn::make('cuisine')
                     ->label('菜系')
                     ->placeholder('—')
@@ -82,9 +82,9 @@ final class RecipeHistoriesTable
                     ->label('来源类型')
                     ->options($sourceLabels),
                 Filter::make('user_id')
-                    ->label('用户 ID')
+                    ->label('用户编号')
                     ->schema([
-                        TextInput::make('id')->numeric()->label('精确 ID'),
+                        TextInput::make('id')->numeric()->label('精确编号'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
@@ -113,8 +113,10 @@ final class RecipeHistoriesTable
             ], layout: FiltersLayout::AboveContentCollapsible)
             ->recordActions([
                 ViewAction::make()
+                    ->label('查看')
                     ->modalWidth('5xl'),
                 DeleteAction::make()
+                    ->label('删除')
                     ->before(function (RecipeHistory $record): void {
                         AdminActionLogger::record('history.deleted', $record, [
                             'owner_user_id' => $record->user_id,
@@ -131,4 +133,3 @@ final class RecipeHistoriesTable
             ]);
     }
 }
-

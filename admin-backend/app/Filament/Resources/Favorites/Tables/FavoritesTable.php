@@ -35,11 +35,14 @@ class FavoritesTable
             ->defaultSort('id', 'desc')
             ->columns([
                 TextColumn::make('id')
-                    ->label('ID')
-                    ->sortable(),
+                    ->label('编号')
+                    ->sortable()
+                    ->copyable(),
                 TextColumn::make('title')
                     ->label('标题')
                     ->searchable()
+                    ->limit(36)
+                    ->tooltip(fn (?string $state): ?string => $state)
                     ->wrap(),
                 TextColumn::make('source_type')
                     ->label('来源')
@@ -49,7 +52,9 @@ class FavoritesTable
                 TextColumn::make('user.name')
                     ->label('用户')
                     ->description(fn (Favorite $record): string => (string) $record->user?->email)
-                    ->searchable(),
+                    ->searchable()
+                    ->limit(16)
+                    ->tooltip(fn (?string $state): ?string => $state),
                 TextColumn::make('cuisine')
                     ->label('菜系')
                     ->placeholder('—')
@@ -77,9 +82,9 @@ class FavoritesTable
                     ->label('来源类型')
                     ->options($sourceLabels),
                 Filter::make('user_id')
-                    ->label('用户 ID')
+                    ->label('用户编号')
                     ->schema([
-                        TextInput::make('id')->numeric()->label('精确 ID'),
+                        TextInput::make('id')->numeric()->label('精确编号'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
@@ -108,8 +113,10 @@ class FavoritesTable
             ], layout: FiltersLayout::AboveContentCollapsible)
             ->recordActions([
                 ViewAction::make()
+                    ->label('查看')
                     ->modalWidth('5xl'),
                 DeleteAction::make()
+                    ->label('删除')
                     ->before(function (Favorite $record): void {
                         AdminActionLogger::record('favorite.deleted', $record, [
                             'owner_user_id' => $record->user_id,

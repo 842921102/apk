@@ -26,14 +26,14 @@ class AiModelConfigsTable
             ->deferFilters(false)
             ->defaultSort('id', 'desc')
             ->columns([
-                TextColumn::make('id')->label('ID')->sortable(),
+                TextColumn::make('id')->label('编号')->sortable()->copyable(),
                 TextColumn::make('scene_code')
                     ->label('场景')
                     ->formatStateUsing(fn (?string $state): string => AiScene::options()[(string) $state] ?? (string) $state)
                     ->badge(),
                 TextColumn::make('provider.provider_name')->label('供应商')->searchable(),
                 TextColumn::make('model.model_name')->label('模型')->searchable(),
-                TextColumn::make('key_masked')->label('API Key')->placeholder('未配置'),
+                TextColumn::make('key_masked')->label('接口密钥')->placeholder('未配置'),
                 TextColumn::make('is_enabled')
                     ->label('启用')
                     ->formatStateUsing(fn (?bool $state): string => $state ? '是' : '否')
@@ -50,8 +50,8 @@ class AiModelConfigsTable
                     ->options(AiScene::options()),
             ], layout: FiltersLayout::AboveContentCollapsible)
             ->recordActions([
-                ViewAction::make()->modalWidth('5xl'),
-                EditAction::make(),
+                ViewAction::make()->label('查看')->modalWidth('5xl'),
+                EditAction::make()->label('编辑'),
                 Action::make('testConnection')
                     ->label('连接测试')
                     ->icon('heroicon-o-signal')
@@ -71,7 +71,7 @@ class AiModelConfigsTable
                             ->status($result['status'] === 'success' ? 'success' : 'danger')
                             ->send();
                     }),
-                DeleteAction::make(),
+                DeleteAction::make()->label('删除'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
@@ -80,4 +80,3 @@ class AiModelConfigsTable
             ]);
     }
 }
-

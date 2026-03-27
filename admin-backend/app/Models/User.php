@@ -37,6 +37,21 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(RecipeHistory::class);
     }
 
+    public function circlePosts(): HasMany
+    {
+        return $this->hasMany(CirclePost::class);
+    }
+
+    public function circleComments(): HasMany
+    {
+        return $this->hasMany(CircleComment::class);
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
     protected function role(): Attribute
     {
         return Attribute::make(
@@ -57,5 +72,4 @@ class User extends Authenticatable implements FilamentUser
             'last_login_at' => 'datetime',
         ];
     }
-
 }

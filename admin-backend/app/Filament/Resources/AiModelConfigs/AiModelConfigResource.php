@@ -21,7 +21,7 @@ class AiModelConfigResource extends Resource
 {
     protected static ?string $model = AiModelConfig::class;
 
-    protected static string|UnitEnum|null $navigationGroup = '系统配置';
+    protected static string|UnitEnum|null $navigationGroup = '系统管理';
 
     protected static ?string $navigationLabel = '大模型配置';
 

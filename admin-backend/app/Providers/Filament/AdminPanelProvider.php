@@ -38,10 +38,16 @@ class AdminPanelProvider extends PanelProvider
                     ->label('用户管理')
                     ->collapsed(),
                 NavigationGroup::make()
+                    ->label('内容管理')
+                    ->collapsed(),
+                NavigationGroup::make()
+                    ->label('商城管理')
+                    ->collapsed(),
+                NavigationGroup::make()
                     ->label('数据管理')
                     ->collapsed(),
                 NavigationGroup::make()
-                    ->label('系统配置')
+                    ->label('系统管理')
                     ->collapsed(),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')

@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AiModelConfigController;
+use App\Http\Controllers\Admin\BusinessConfigController;
 use App\Http\Controllers\Auth\WechatAuthController;
 
 Route::get('/', function () {
@@ -20,4 +21,11 @@ Route::middleware(['web', 'auth'])->prefix('admin-api/ai-model-configs')->group(
     Route::get('/{sceneCode}/options', [AiModelConfigController::class, 'options']);
     Route::put('/{sceneCode}', [AiModelConfigController::class, 'save']);
     Route::post('/{sceneCode}/test', [AiModelConfigController::class, 'test']);
+});
+
+Route::middleware(['web', 'auth'])->prefix('admin-api/business-configs')->group(function (): void {
+    Route::get('/tencent_cos', [BusinessConfigController::class, 'getTencentCos']);
+    Route::put('/tencent_cos', [BusinessConfigController::class, 'updateTencentCos']);
+    Route::post('/tencent_cos/test-connection', [BusinessConfigController::class, 'testTencentCosConnection']);
+    Route::post('/tencent_cos/test-upload', [BusinessConfigController::class, 'testTencentCosUpload']);
 });

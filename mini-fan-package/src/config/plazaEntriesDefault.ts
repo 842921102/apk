@@ -3,21 +3,12 @@ import type { PlazaEntryConfig } from '@/types/plazaConfig'
 /** 本地默认广场入口（远端按 key 覆盖；sort_order 控制顺序） */
 export const PLAZA_ENTRIES_DEFAULT: PlazaEntryConfig[] = [
   {
-    key: 'today-eat',
-    title: '吃什么',
-    subtitle: '填写偏好，AI 推荐菜谱',
-    route: '/pages/today-eat/index',
-    enabled: true,
-    sort_order: 10,
-    coming_soon: false,
-  },
-  {
     key: 'favorites',
     title: '收藏',
     subtitle: '查看已保存的菜谱',
     route: '/pages/favorites/index',
     enabled: true,
-    sort_order: 20,
+    sort_order: 10,
     coming_soon: false,
   },
   {
@@ -26,7 +17,7 @@ export const PLAZA_ENTRIES_DEFAULT: PlazaEntryConfig[] = [
     subtitle: '最近生成记录',
     route: '/pages/histories/index',
     enabled: true,
-    sort_order: 30,
+    sort_order: 20,
     coming_soon: false,
   },
   {
@@ -35,7 +26,7 @@ export const PLAZA_ENTRIES_DEFAULT: PlazaEntryConfig[] = [
     subtitle: '登录与账号',
     route: '/pages/me/index',
     enabled: true,
-    sort_order: 40,
+    sort_order: 30,
     coming_soon: false,
   },
   {
@@ -44,7 +35,7 @@ export const PLAZA_ENTRIES_DEFAULT: PlazaEntryConfig[] = [
     subtitle: '满汉全席',
     route: '/pages/table-menu/index',
     enabled: true,
-    sort_order: 50,
+    sort_order: 40,
     coming_soon: false,
   },
   {
@@ -53,7 +44,7 @@ export const PLAZA_ENTRIES_DEFAULT: PlazaEntryConfig[] = [
     subtitle: '运势·心情·数字·缘分',
     route: '/pages/fortune-cooking/index',
     enabled: true,
-    sort_order: 60,
+    sort_order: 50,
     coming_soon: false,
   },
   {
@@ -62,7 +53,7 @@ export const PLAZA_ENTRIES_DEFAULT: PlazaEntryConfig[] = [
     subtitle: '推荐与配方',
     route: '/pages/sauce-design/index',
     enabled: true,
-    sort_order: 70,
+    sort_order: 60,
     coming_soon: false,
   },
   {
@@ -71,7 +62,7 @@ export const PLAZA_ENTRIES_DEFAULT: PlazaEntryConfig[] = [
     subtitle: '封神图鉴',
     route: '/pages/gallery/index',
     enabled: true,
-    sort_order: 80,
+    sort_order: 70,
     coming_soon: false,
   },
 ]

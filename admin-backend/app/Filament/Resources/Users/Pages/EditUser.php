@@ -16,6 +16,7 @@ class EditUser extends EditRecord
     {
         return [
             DeleteAction::make()
+                ->label('删除')
                 ->visible(fn (): bool => UserResource::canDelete($this->getRecord()))
                 ->before(function (): void {
                     $record = $this->getRecord();

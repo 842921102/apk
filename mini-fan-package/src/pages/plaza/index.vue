@@ -10,6 +10,21 @@
       </view>
     </view>
 
+    <!-- 灵感：菜单 Tab 固定主入口（与下方可配置网格区分） -->
+    <view class="plaza__circle-wrap">
+      <view class="mp-card plaza__circle-card" @click="goInspiration">
+        <view class="plaza__circle-top">
+          <text class="plaza__circle-emoji">💬</text>
+          <view class="plaza__circle-titles">
+            <text class="plaza__circle-k">图片流</text>
+            <text class="plaza__circle-title">灵感</text>
+            <text class="plaza__circle-sub">浏览 AI 美食图与实拍内容（底部 Tab 也可进入）</text>
+          </view>
+          <text class="plaza__circle-arrow">→</text>
+        </view>
+      </view>
+    </view>
+
     <!-- 列表区：功能入口 / 全部工具 -->
     <view class="plaza__section">
       <view class="plaza__section-head">
@@ -124,6 +139,10 @@ const holdCount = computed(() =>
   visibleEntries.value.filter((e) => isPlaceholder(e)).length,
 )
 
+function goInspiration() {
+  uni.switchTab({ url: '/pages/inspiration/index' })
+}
+
 function onEntryTap(item: PlazaEntryConfig) {
   if (isPlaceholder(item)) {
     uni.showToast({ title: '小程序版开发中', icon: 'none' })
@@ -151,6 +170,62 @@ function onEntryTap(item: PlazaEntryConfig) {
 
 .plaza__hero-inner {
   text-align: center;
+}
+
+.plaza__circle-wrap {
+  padding: 0 32rpx 8rpx;
+}
+
+.plaza__circle-card {
+  padding: 28rpx 28rpx 26rpx;
+  border-radius: 20rpx;
+  border: 1rpx solid rgba(122, 87, 209, 0.22);
+  background: linear-gradient(135deg, rgba(122, 87, 209, 0.1) 0%, rgba(253, 253, 254, 1) 52%, rgba(253, 253, 254, 1) 100%);
+}
+
+.plaza__circle-top {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.plaza__circle-emoji {
+  font-size: 52rpx;
+  line-height: 1;
+}
+
+.plaza__circle-titles {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.plaza__circle-k {
+  font-size: 20rpx;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #7a57d1;
+}
+
+.plaza__circle-title {
+  font-size: 34rpx;
+  font-weight: 800;
+  color: $mp-text-primary;
+}
+
+.plaza__circle-sub {
+  font-size: 24rpx;
+  color: $mp-text-muted;
+  line-height: 1.4;
+}
+
+.plaza__circle-arrow {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #7a57d1;
 }
 
 .plaza__hero-title {

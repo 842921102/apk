@@ -3,9 +3,8 @@
 namespace App\Filament\Resources\FeatureDataRecords\Schemas;
 
 use App\Models\FeatureDataRecord;
-use Filament\Infolists\Components\KeyValueEntry;
-use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 class FeatureDataRecordInfolist
@@ -113,13 +112,13 @@ class FeatureDataRecordInfolist
     private static function baseSection(): Section
     {
         return Section::make('基础信息')->schema([
-            TextEntry::make('id')->label('ID'),
+            TextEntry::make('id')->label('编号')->copyable(),
             TextEntry::make('feature_type')->label('功能类型')->badge(),
             TextEntry::make('sub_type')->label('动作类型')->placeholder('—'),
             TextEntry::make('status')->label('状态')->badge(),
             TextEntry::make('title')->label('标题')->placeholder('—'),
             TextEntry::make('channel')->label('渠道')->placeholder('—'),
-            TextEntry::make('user_id')->label('用户ID')->placeholder('—'),
+            TextEntry::make('user_id')->label('用户编号')->placeholder('—')->copyable(),
             TextEntry::make('created_at')->label('创建时间')->dateTime(),
         ])->columns(2);
     }
@@ -127,10 +126,32 @@ class FeatureDataRecordInfolist
     private static function rawSection(): Section
     {
         return Section::make('原始请求与结果')->schema([
-            KeyValueEntry::make('input_payload')->label('请求参数')->columnSpanFull(),
-            KeyValueEntry::make('result_payload')->label('结果数据')->columnSpanFull(),
+            TextEntry::make('input_payload')
+                ->label('请求参数')
+                ->formatStateUsing(fn ($state): string => self::jsonEncodePayload($state))
+                ->columnSpanFull(),
+            TextEntry::make('result_payload')
+                ->label('结果数据')
+                ->formatStateUsing(fn ($state): string => self::jsonEncodePayload($state))
+                ->columnSpanFull(),
             TextEntry::make('error_message')->label('错误信息')->placeholder('—')->columnSpanFull(),
-        ]);
+        ])->collapsible();
+    }
+
+    /**
+     * KeyValueEntry 仅适合「键 => 标量」结构；嵌套数组会触发 htmlspecialchars 类型错误。
+     */
+    private static function jsonEncodePayload(mixed $state): string
+    {
+        if ($state === null) {
+            return '—';
+        }
+        if (is_string($state)) {
+            return $state;
+        }
+
+        $enc = json_encode($state, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
+        return $enc !== false ? $enc : '—';
     }
 }
-

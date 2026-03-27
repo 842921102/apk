@@ -16,14 +16,23 @@
         <text class="btn-wx-text">微信一键登录</text>
       </button>
 
-      <text v-if="!apiReady" class="warn">请先在项目中配置 VITE_API_BASE_URL（指向 BFF；真机勿用 localhost，见下方说明）。</text>
-      <template v-else>
-        <text class="hint">当前 BFF：{{ apiBaseUrlDisplay }}</text>
-        <text class="hint">登录需要 BFF 已配置 ADMIN_BACKEND_BASE_URL，且 Laravel 已配置 WECHAT_APP_ID / WECHAT_APP_SECRET。</text>
-        <text v-if="apiUsesLoopback" class="warn loopback-hint">
-          真机无法访问本机的 localhost。请把 .env 里的 VITE_API_BASE_URL 改成电脑的局域网地址（示例 http://192.168.1.12:8787，与手机同一 Wi‑Fi），重新编译；并在微信开发者工具「详情 → 本地设置」勾选「不校验合法域名…」。
+      <text v-if="!apiReady" class="warn">未检测到 BFF 地址，请先配置 `VITE_API_BASE_URL`。</text>
+
+      <view v-else-if="apiUsesLoopback" class="warn-card">
+        <text class="warn-card-title">当前为 localhost，真机不可访问</text>
+        <text class="warn-card-sub">请改成电脑局域网 IP（例如 `http://192.168.1.12:8800`）后重新编译。</text>
+      </view>
+
+      <view class="helper">
+        <text class="helper-title" @click="showTechDetail = !showTechDetail">
+          {{ showTechDetail ? '收起连接信息' : '展开连接信息' }}
         </text>
-      </template>
+        <view v-if="showTechDetail" class="helper-content">
+          <text class="hint">当前 BFF：{{ apiBaseUrlDisplay }}</text>
+          <text class="hint">需确保 BFF 已配置 `ADMIN_BACKEND_BASE_URL`。</text>
+          <text class="hint">Laravel 需配置 `WECHAT_APP_ID` 与 `WECHAT_APP_SECRET`。</text>
+        </view>
+      </view>
     </view>
 
     <view class="footer">
@@ -47,6 +56,7 @@ const { setToken, setCurrentUser } = useAuth()
 const wxLoading = ref(false)
 const redirectPath = ref('')
 const isWxDevtools = ref(false)
+const showTechDetail = ref(false)
 
 const apiReady = computed(() => Boolean(API_BASE_URL.trim()))
 const apiBaseUrlDisplay = computed(() => API_BASE_URL.trim() || '(未配置)')
@@ -123,9 +133,10 @@ async function onWeChatLogin() {
 }
 
 const TAB_PATHS = [
-  '/pages/index/index',
   '/pages/today-eat/index',
+  '/pages/index/index',
   '/pages/plaza/index',
+  '/pages/inspiration/index',
   '/pages/me/index',
 ]
 
@@ -221,15 +232,51 @@ function goBack() {
   line-height: 1.5;
   color: #b45309;
 }
+
+.warn-card {
+  margin-top: 22rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 14rpx;
+  background: #fff7ed;
+  border: 1rpx solid #fed7aa;
+}
+
+.warn-card-title {
+  display: block;
+  font-size: 24rpx;
+  color: #b45309;
+  font-weight: 700;
+}
+
+.warn-card-sub {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: #9a3412;
+}
+
 .hint {
   display: block;
-  margin-top: 24rpx;
+  margin-top: 8rpx;
   font-size: 24rpx;
   line-height: 1.5;
   color: #9ca3af;
 }
-.loopback-hint {
-  margin-top: 16rpx;
+
+.helper {
+  margin-top: 18rpx;
+}
+
+.helper-title {
+  font-size: 24rpx;
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.helper-content {
+  margin-top: 8rpx;
+  padding-top: 6rpx;
 }
 
 .footer {

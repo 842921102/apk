@@ -37,9 +37,10 @@ class UsersTable
             ->defaultSort('id', 'desc')
             ->columns([
                 TextColumn::make('id')
-                    ->label('ID')
+                    ->label('编号')
                     ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    ->copyable(),
                 ImageColumn::make('avatar_url')
                     ->label('头像')
                     ->circular()
@@ -51,6 +52,8 @@ class UsersTable
                     ->label('昵称 / 姓名')
                     ->description(fn (User $record): string => str_contains((string) $record->email, '@wechat.local') ? '微信登录' : '后台账号')
                     ->searchable()
+                    ->limit(18)
+                    ->tooltip(fn (?string $state): ?string => $state)
                     ->wrap(),
                 TextColumn::make('phone')
                     ->label('手机号')
@@ -60,14 +63,16 @@ class UsersTable
                 TextColumn::make('email')
                     ->label('邮箱')
                     ->searchable()
+                    ->limit(24)
+                    ->tooltip(fn (?string $state): ?string => $state)
                     ->toggleable(),
                 TextColumn::make('wechat_openid')
-                    ->label('OpenID')
+                    ->label('开放标识')
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->limit(10)
                     ->tooltip(fn (?string $state): ?string => $state),
                 TextColumn::make('wechat_unionid')
-                    ->label('UnionID')
+                    ->label('联合标识')
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->placeholder('—')
                     ->limit(10)
@@ -76,6 +81,12 @@ class UsersTable
                     ->label('角色')
                     ->formatStateUsing(fn (?string $state): string => AppRole::labelCn((string) $state))
                     ->badge()
+                    ->color(fn (?string $state): string => match ((string) $state) {
+                        'super_admin' => 'danger',
+                        'operator' => 'warning',
+                        'viewer' => 'info',
+                        default => 'gray',
+                    })
                     ->sortable(),
                 IconColumn::make('is_active')
                     ->label('状态')
@@ -106,11 +117,11 @@ class UsersTable
             ])
             ->filters([
                 Filter::make('user_id')
-                    ->label('用户 ID')
+                    ->label('用户编号')
                     ->schema([
                         TextInput::make('id')
                             ->numeric()
-                            ->label('精确 ID'),
+                            ->label('精确编号'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
@@ -164,9 +175,11 @@ class UsersTable
             ], layout: FiltersLayout::AboveContentCollapsible)
             ->recordActions([
                 ViewAction::make()
+                    ->label('查看')
                     ->slideOver()
                     ->modalWidth('6xl'),
                 EditAction::make()
+                    ->label('编辑')
                     ->visible(fn (User $record): bool => auth()->user()?->can('update', $record) ?? false),
                 Action::make('toggleActive')
                     ->label(fn (User $record): string => $record->is_active ? '禁用' : '启用')
@@ -191,6 +204,7 @@ class UsersTable
                         ]);
                     }),
                 DeleteAction::make()
+                    ->label('删除')
                     ->visible(fn (User $record): bool => auth()->user()?->can('delete', $record) ?? false),
             ])
             ->toolbarActions([

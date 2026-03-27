@@ -17,7 +17,7 @@ class UserInfolist
             ->components([
                 Section::make('基础资料')
                     ->schema([
-                        TextEntry::make('id')->label('用户 ID'),
+                        TextEntry::make('id')->label('用户编号')->copyable(),
                         ImageEntry::make('avatar_url')
                             ->label('头像')
                             ->circular()
@@ -26,13 +26,14 @@ class UserInfolist
                             ->label('昵称 / 姓名')
                             ->helperText('微信登录用户默认可能为「微信用户」，可在管理端修正展示名；小程序内自定义头像昵称若未同步接口则仅本字段可见。'),
                         TextEntry::make('avatar_url')
-                            ->label('头像 URL')
-                            ->placeholder('未在服务端存储（小程序 chooseAvatar 多为本地临时路径，未回传时可空）'),
+                            ->label('头像地址')
+                            ->placeholder('未在服务端存储（小程序选择头像多为本地临时路径，未回传时可空）'),
                         TextEntry::make('phone')
                             ->label('手机号')
                             ->placeholder('—'),
                         TextEntry::make('email')
-                            ->label('邮箱（账号标识）'),
+                            ->label('邮箱（账号标识）')
+                            ->copyable(),
                         TextEntry::make('role')
                             ->label('角色')
                             ->formatStateUsing(fn (?string $state): string => AppRole::labelCn((string) $state))
@@ -56,12 +57,12 @@ class UserInfolist
                             ->state('微信登录')
                             ->badge()
                             ->color('info'),
-                        TextEntry::make('wechat_openid')->label('OpenID')->copyable(),
-                        TextEntry::make('wechat_unionid')->label('UnionID')->copyable()->placeholder('—'),
+                        TextEntry::make('wechat_openid')->label('开放标识')->copyable(),
+                        TextEntry::make('wechat_unionid')->label('联合标识')->copyable()->placeholder('—'),
                     ])
                     ->columns(2),
                 Section::make('业务数据概览')
-                    ->description('收藏已写入本库 `favorites` 表；历史记录已写入本库 `recipe_histories` 表。')
+                    ->description('收藏与历史记录均已写入本系统数据库。')
                     ->schema([
                         TextEntry::make('favorites_count')
                             ->label('收藏数量')
