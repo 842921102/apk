@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\InternalEatMemeController;
 use App\Http\Controllers\Api\InternalAiRuntimeController;
+use App\Http\Controllers\Api\InternalFeatureDataController;
 use App\Http\Controllers\Auth\WechatAuthController;
 use App\Http\Middleware\AuthenticateLaravelAccessToken;
 use Illuminate\Support\Facades\Route;
@@ -13,6 +14,8 @@ Route::get('/internal/ai-runtime/scenes/{sceneCode}', [InternalAiRuntimeControll
 Route::get('/internal/eat-meme', [InternalEatMemeController::class, 'index']);
 Route::post('/internal/eat-meme', [InternalEatMemeController::class, 'store']);
 Route::delete('/internal/eat-meme/{eatMeme}', [InternalEatMemeController::class, 'destroy']);
+Route::get('/internal/feature-data', [InternalFeatureDataController::class, 'index']);
+Route::post('/internal/feature-data', [InternalFeatureDataController::class, 'store']);
 
 Route::middleware([AuthenticateLaravelAccessToken::class])->group(function (): void {
     Route::get('/favorites/check', [FavoriteController::class, 'check']);

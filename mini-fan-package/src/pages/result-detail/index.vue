@@ -59,7 +59,7 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useAuth } from '@/composables/useAuth'
 import { useAppMessages } from '@/composables/useAppMessages'
 import { formatListTime } from '@/utils/dateFormat'
-import { consumeResultDetailByKey, sourceLabel, sourcePagePath, type ResultDetailPayload } from '@/lib/resultDetail'
+import { getResultDetailByKey, sourceLabel, sourcePagePath, type ResultDetailPayload } from '@/lib/resultDetail'
 import { isFavoriteRecipe, toggleFavoriteRecipe } from '@/api/biz'
 import { requestRecipeImage } from '@/api/ai'
 import { upsertLocalGalleryItem } from '@/api/gallery'
@@ -69,6 +69,7 @@ const msg = useAppMessages()
 const { isLoggedIn, syncAuthFromSupabase } = useAuth()
 
 const detail = ref<ResultDetailPayload | null>(null)
+const detailKey = ref('')
 const isFavorited = ref(false)
 const favoriteLoading = ref(false)
 const imageLoading = ref(false)
@@ -102,7 +103,8 @@ const extraPayloadText = computed(() => {
 
 onLoad((query) => {
   const key = typeof query?.key === 'string' ? decodeURIComponent(query.key) : ''
-  detail.value = key ? consumeResultDetailByKey(key) : null
+  detailKey.value = key
+  detail.value = key ? getResultDetailByKey(key) : null
 })
 
 onShow(async () => {
@@ -128,7 +130,10 @@ async function refreshFavoriteState() {
 async function onToggleFavorite() {
   if (!detail.value) return
   if (!isLoggedIn.value) {
-    const redirect = encodeURIComponent('/pages/result-detail/index')
+    const target = detailKey.value
+      ? `/pages/result-detail/index?key=${encodeURIComponent(detailKey.value)}`
+      : '/pages/result-detail/index'
+    const redirect = encodeURIComponent(target)
     uni.navigateTo({ url: `/pages/login/index?redirect=${redirect}` })
     return
   }

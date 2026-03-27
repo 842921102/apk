@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">饭否</string>
-    <string name="title_activity_main">饭否</string>
-    <string name="package_name">top.lzt.fan</string>
-    <string name="custom_url_scheme">top.lzt.fan</string>
-</resources>

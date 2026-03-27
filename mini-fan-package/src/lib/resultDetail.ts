@@ -93,10 +93,9 @@ export function openResultDetail(payload: ResultDetailPayload) {
   })
 }
 
-export function consumeResultDetailByKey(key: string): ResultDetailPayload | null {
+export function getResultDetailByKey(key: string): ResultDetailPayload | null {
   try {
     const data = uni.getStorageSync(key) as ResultDetailPayload | null
-    uni.removeStorageSync(key)
     return data ?? null
   } catch {
     return null
@@ -108,7 +107,7 @@ export function sourceLabel(sourceType: ResultSourceType): string {
     case 'today_eat':
       return '吃什么'
     case 'table_design':
-      return '满汉全席'
+      return '一桌好菜'
     case 'fortune_cooking':
       return '玄学厨房'
     case 'sauce_design':

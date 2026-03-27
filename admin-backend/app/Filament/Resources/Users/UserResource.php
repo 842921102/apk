@@ -11,6 +11,7 @@ use App\Filament\Resources\Users\Tables\UsersTable;
 use App\Models\User;
 use BackedEnum;
 use Filament\Resources\Resource;
+use UnitEnum;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -20,7 +21,9 @@ class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static ?string $navigationLabel = '用户管理';
+    protected static ?string $navigationLabel = '用户列表';
+
+    protected static string|UnitEnum|null $navigationGroup = '用户管理';
 
     protected static ?string $modelLabel = '用户';
 

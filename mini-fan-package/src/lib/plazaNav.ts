@@ -19,6 +19,8 @@ const KNOWN_PAGE_ROUTES = new Set([
   '/pages/fortune-cooking/index',
   '/pages/sauce-design/index',
   '/pages/gallery/index',
+  '/pages/result-detail/index',
+  '/pages/profile/index',
 ])
 
 export function plazaNavTypeForRoute(route: string): 'switchTab' | 'navigateTo' {

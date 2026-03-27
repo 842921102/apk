@@ -170,6 +170,24 @@ async function postEatMemeRecord(payload) {
   }
 }
 
+async function postFeatureDataRecord(payload) {
+  if (!ADMIN_BACKEND_BASE_URL || !INTERNAL_SERVICE_TOKEN) return
+  const url = `${ADMIN_BACKEND_BASE_URL.replace(/\/$/, '')}/api/internal/feature-data`
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'X-Internal-Token': INTERNAL_SERVICE_TOKEN,
+      },
+      body: JSON.stringify(payload || {}),
+    })
+  } catch {
+    // feature logging is best-effort; never block main flow
+  }
+}
+
 async function callChatCompletionByScene(sceneCode, { systemPrompt, userPrompt, temperature }) {
   const runtime = await getSceneRuntimeConfig(sceneCode)
   const baseUrl = safeString(runtime?.base_url).replace(/\/$/, '')
@@ -1026,6 +1044,16 @@ const server = http.createServer(async (req, res) => {
           })
           .filter((x) => x != null)
 
+        await postFeatureDataRecord({
+          feature_type: 'gallery',
+          sub_type: 'list',
+          status: 'success',
+          title: '图鉴列表',
+          input_payload: { limit: 50 },
+          result_summary: `items:${items.length}`,
+          requested_at: new Date().toISOString(),
+        })
+
         return json(res, 200, { items })
       } catch (e) {
         const status =
@@ -1036,6 +1064,14 @@ const server = http.createServer(async (req, res) => {
         if (status === 401) {
           return json(res, 401, { error: { message: 'unauthorized' } })
         }
+        await postFeatureDataRecord({
+          feature_type: 'gallery',
+          sub_type: 'list',
+          status: 'failed',
+          title: '图鉴列表',
+          error_message: e instanceof Error ? e.message : 'gallery_list_failed',
+          requested_at: new Date().toISOString(),
+        })
         const msg = e instanceof Error ? e.message : 'internal_error'
         return json(res, 500, { error: { message: msg } })
       }
@@ -1059,6 +1095,19 @@ const server = http.createServer(async (req, res) => {
           status: 'success',
           requested_at: new Date().toISOString(),
         })
+        await postFeatureDataRecord({
+          feature_type: 'custom_cuisine',
+          sub_type: 'generate',
+          status: 'success',
+          title: safeString(result?.title),
+          input_payload: { preferences, locale },
+          result_summary: safeString(result?.content).slice(0, 200),
+          result_payload: {
+            cuisine: safeString(result?.cuisine),
+            ingredients: normalizeIngredients(result?.ingredients),
+          },
+          requested_at: new Date().toISOString(),
+        })
         return json(res, 200, result)
       } catch (e) {
         await postEatMemeRecord({
@@ -1067,6 +1116,14 @@ const server = http.createServer(async (req, res) => {
           avoid: safeString(preferences?.avoid),
           people: Number.isFinite(Number(preferences?.people)) ? Number(preferences?.people) : null,
           status: 'failed',
+          error_message: e instanceof Error ? e.message : 'generate_failed',
+          requested_at: new Date().toISOString(),
+        })
+        await postFeatureDataRecord({
+          feature_type: 'custom_cuisine',
+          sub_type: 'generate',
+          status: 'failed',
+          input_payload: { preferences, locale },
           error_message: e instanceof Error ? e.message : 'generate_failed',
           requested_at: new Date().toISOString(),
         })
@@ -1148,43 +1205,151 @@ const server = http.createServer(async (req, res) => {
         locale,
       }
 
-      const result = await proxyToFortune(payload)
-      return json(res, 200, result)
+      try {
+        const result = await proxyToFortune(payload)
+        await postFeatureDataRecord({
+          feature_type: 'fortune_cooking',
+          sub_type: safeString(fortuneType) || 'generate',
+          status: 'success',
+          title: safeString(result?.title),
+          input_payload: payload,
+          result_summary: safeString(result?.content).slice(0, 200),
+          requested_at: new Date().toISOString(),
+        })
+        return json(res, 200, result)
+      } catch (e) {
+        await postFeatureDataRecord({
+          feature_type: 'fortune_cooking',
+          sub_type: safeString(fortuneType) || 'generate',
+          status: 'failed',
+          input_payload: payload,
+          error_message: e instanceof Error ? e.message : 'fortune_failed',
+          requested_at: new Date().toISOString(),
+        })
+        throw e
+      }
     }
 
     if (req.method === 'POST' && pathname === '/api/ai/sauce-recommend') {
       const body = await readJsonBody(req)
       const preferences = body?.preferences ?? body?.pref ?? {}
       const locale = body?.locale ?? 'zh-CN'
-      const result = await proxyToSauceRecommend({ preferences, locale })
-      return json(res, 200, result)
+      try {
+        const result = await proxyToSauceRecommend({ preferences, locale })
+        await postFeatureDataRecord({
+          feature_type: 'sauce_design',
+          sub_type: 'recommend',
+          status: 'success',
+          title: safeString(result?.title),
+          input_payload: { preferences, locale },
+          result_summary: safeString(result?.content).slice(0, 200),
+          requested_at: new Date().toISOString(),
+        })
+        return json(res, 200, result)
+      } catch (e) {
+        await postFeatureDataRecord({
+          feature_type: 'sauce_design',
+          sub_type: 'recommend',
+          status: 'failed',
+          input_payload: { preferences, locale },
+          error_message: e instanceof Error ? e.message : 'sauce_recommend_failed',
+          requested_at: new Date().toISOString(),
+        })
+        throw e
+      }
     }
 
     if (req.method === 'POST' && pathname === '/api/ai/sauce-recipe') {
       const body = await readJsonBody(req)
       const sauce_name = body?.sauce_name ?? body?.sauceName
       const locale = body?.locale ?? 'zh-CN'
-      const result = await proxyToSauceRecipe({ sauce_name, locale })
-      return json(res, 200, result)
+      try {
+        const result = await proxyToSauceRecipe({ sauce_name, locale })
+        await postFeatureDataRecord({
+          feature_type: 'sauce_design',
+          sub_type: 'recipe',
+          status: 'success',
+          title: safeString(sauce_name),
+          input_payload: { sauce_name, locale },
+          result_summary: safeString(result?.content).slice(0, 200),
+          requested_at: new Date().toISOString(),
+        })
+        return json(res, 200, result)
+      } catch (e) {
+        await postFeatureDataRecord({
+          feature_type: 'sauce_design',
+          sub_type: 'recipe',
+          status: 'failed',
+          title: safeString(sauce_name),
+          input_payload: { sauce_name, locale },
+          error_message: e instanceof Error ? e.message : 'sauce_recipe_failed',
+          requested_at: new Date().toISOString(),
+        })
+        throw e
+      }
     }
 
     if (req.method === 'POST' && pathname === '/api/ai/table-menu') {
       const body = await readJsonBody(req)
       const config = body?.config ?? {}
       const locale = body?.locale ?? 'zh-CN'
-      const result = await proxyToTableMenu({ config, locale })
-      return json(res, 200, result)
+      try {
+        const result = await proxyToTableMenu({ config, locale })
+        await postFeatureDataRecord({
+          feature_type: 'table_menu',
+          sub_type: 'generate',
+          status: 'success',
+          title: safeString(result?.title),
+          input_payload: { config, locale },
+          result_summary: safeString(result?.content).slice(0, 200),
+          requested_at: new Date().toISOString(),
+        })
+        return json(res, 200, result)
+      } catch (e) {
+        await postFeatureDataRecord({
+          feature_type: 'table_menu',
+          sub_type: 'generate',
+          status: 'failed',
+          input_payload: { config, locale },
+          error_message: e instanceof Error ? e.message : 'table_menu_failed',
+          requested_at: new Date().toISOString(),
+        })
+        throw e
+      }
     }
 
     if (req.method === 'POST' && pathname === '/api/ai/table-dish-recipe') {
       const body = await readJsonBody(req)
-      const result = await proxyToTableDishRecipe({
+      const payload = {
         dish_name: body?.dish_name,
         dish_description: body?.dish_description,
         category: body?.category,
         locale: body?.locale ?? 'zh-CN',
-      })
-      return json(res, 200, result)
+      }
+      try {
+        const result = await proxyToTableDishRecipe(payload)
+        await postFeatureDataRecord({
+          feature_type: 'table_menu',
+          sub_type: 'dish_recipe',
+          status: 'success',
+          title: safeString(payload.dish_name),
+          input_payload: payload,
+          result_summary: safeString(result?.content).slice(0, 200),
+          requested_at: new Date().toISOString(),
+        })
+        return json(res, 200, result)
+      } catch (e) {
+        await postFeatureDataRecord({
+          feature_type: 'table_menu',
+          sub_type: 'dish_recipe',
+          status: 'failed',
+          title: safeString(payload.dish_name),
+          input_payload: payload,
+          error_message: e instanceof Error ? e.message : 'table_dish_recipe_failed',
+          requested_at: new Date().toISOString(),
+        })
+        throw e
+      }
     }
 
     if (req.method === 'POST' && pathname === '/api/ai/recipe-image') {

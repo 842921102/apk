@@ -12,12 +12,15 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use UnitEnum;
 
 class RecipeHistoryResource extends Resource
 {
     protected static ?string $model = RecipeHistory::class;
 
     protected static ?string $navigationLabel = '历史管理';
+
+    protected static string|UnitEnum|null $navigationGroup = '用户管理';
 
     protected static ?string $modelLabel = '历史';
 

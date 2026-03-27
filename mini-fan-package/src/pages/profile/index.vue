@@ -26,9 +26,14 @@
           <text class="profile__item-value">已登录</text>
         </view>
 
+        <view class="profile__item">
+          <text class="profile__item-label">昵称（本地显示）</text>
+          <input v-model="nicknameDraft" class="profile__input" maxlength="20" placeholder="请输入昵称" />
+        </view>
+
         <view class="profile__actions">
-          <button class="mp-btn-primary" @click="onEditProfile">
-            编辑资料（占位）
+          <button class="mp-btn-primary" @click="onSaveProfile">
+            保存资料
           </button>
           <button class="mp-btn-ghost" @click="onBack">
             返回
@@ -46,15 +51,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useAuth } from '@/composables/useAuth'
-import { useAppMessages } from '@/composables/useAppMessages'
 import { useAppConfig } from '@/composables/useAppConfig'
 
-const msg = useAppMessages()
 const { config } = useAppConfig()
 
-const { currentUser, isLoggedIn, syncAuthFromSupabase } = useAuth()
+const { currentUser, isLoggedIn, setCurrentUser, syncAuthFromSupabase } = useAuth()
+const nicknameDraft = ref('')
 
 syncAuthFromSupabase()
 
@@ -77,6 +81,10 @@ const shortId = computed(() => {
   return `${id.slice(0, 6)}…${id.slice(-4)}`
 })
 
+watch(displayPrimary, (v) => {
+  if (!nicknameDraft.value) nicknameDraft.value = v === '用户' ? '' : v
+}, { immediate: true })
+
 function goLogin() {
   uni.navigateTo({ url: '/pages/login/index?redirect=/pages/profile/index' })
 }
@@ -85,8 +93,14 @@ function onBack() {
   uni.navigateBack()
 }
 
-function onEditProfile() {
-  msg.toastLoadFailed('编辑资料功能暂未接入（占位）')
+function onSaveProfile() {
+  if (!currentUser.value) return
+  const nextName = nicknameDraft.value.trim()
+  setCurrentUser({
+    ...currentUser.value,
+    nickname: nextName || undefined,
+  })
+  uni.showToast({ title: '已保存', icon: 'success' })
 }
 </script>
 
@@ -190,6 +204,17 @@ function onEditProfile() {
   display: flex;
   flex-direction: column;
   gap: 14rpx;
+}
+
+.profile__input {
+  margin-top: 8rpx;
+  height: 80rpx;
+  border-radius: 14rpx;
+  border: 1rpx solid $mp-border;
+  background: #fff;
+  padding: 0 18rpx;
+  font-size: 26rpx;
+  color: $mp-text-primary;
 }
 
 .profile__guest-sub {

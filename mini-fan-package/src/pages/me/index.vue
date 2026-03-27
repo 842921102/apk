@@ -240,8 +240,6 @@ import { isSupabaseConfigured } from '@/lib/supabase'
 import { API_BASE_URL } from '@/constants'
 import { useAppConfig } from '@/composables/useAppConfig'
 import {
-  LOGGED_STATS_FAVORITES,
-  LOGGED_STATS_HISTORIES,
   LOGOUT_BUTTON,
   LOGOUT_CONFIRM_TITLE,
   LOGOUT_CONFIRM_CONTENT,
@@ -259,34 +257,11 @@ const {
   logout,
 } = useAuth()
 
-const statsFavoritesLabel = LOGGED_STATS_FAVORITES
-const statsHistoriesLabel = LOGGED_STATS_HISTORIES
 const logoutButtonLabel = LOGOUT_BUTTON
 const appVersion = '1.0.0'
 
 const memberLabel = ref('普通用户')
 const memberSubtitle = ref('收藏与历史已接入云端，支持回看与再次使用（会员功能占位）')
-
-const featureEntries = [
-  { id: 'today_eat', title: '吃什么', icon: '🍽️', path: '/pages/today-eat/index' },
-  { id: 'table_design', title: '一桌好菜', icon: '🥘', path: '/pages/table-menu/index' },
-  { id: 'fortune_cooking', title: '玄学厨房', icon: '🔮', path: '/pages/fortune-cooking/index' },
-  { id: 'sauce_design', title: '酱料大师', icon: '🧑‍🍳', path: '/pages/sauce-design/index' },
-  { id: 'plaza', title: '功能广场', icon: '🧭', path: '/pages/plaza/index' },
-  { id: 'favorites', title: '我的收藏', icon: '⭐', path: '/pages/favorites/index' },
-  { id: 'histories', title: '我的历史', icon: '📜', path: '/pages/histories/index' },
-  { id: 'settings', title: '设置', icon: '⚙️', path: '' },
-  { id: 'about', title: '关于我们', icon: 'ℹ️', path: '' },
-  { id: 'feedback', title: '意见反馈', icon: '💬', path: '' },
-  { id: 'member_center', title: '会员中心', icon: '🎫', path: '' },
-] as const
-
-const supportEntries = [
-  { id: 'help_center', title: '帮助中心', subtitle: '使用指引与常见问题', icon: '📘' },
-  { id: 'user_agreement', title: '用户协议', subtitle: '占位内容', icon: '📄' },
-  { id: 'privacy_policy', title: '隐私政策', subtitle: '占位内容', icon: '🔒' },
-  { id: 'contact_customer', title: '联系客服', subtitle: '占位内容', icon: '🧑‍💻' },
-] as const
 
 // 记录区：从最近历史里按 source_type 聚合一条用于快速回看
 const recordTiles = [
@@ -482,42 +457,6 @@ function onSupportSettingsTap(id: (typeof supportSettingsEntries)[number]['id'])
   }
   if (id === 'settings') return onSettingsTap()
   if (id === 'feedback') return onFeedbackTap()
-}
-
-function onFeatureTap(id: (typeof featureEntries)[number]['id']) {
-  const entry = featureEntries.find((e) => e.id === id)
-  if (!entry) return
-  if (entry.path) {
-    goMenu(entry.path)
-    return
-  }
-  if (id === 'settings') return onSettingsTap()
-  if (id === 'about') {
-    uni.showModal({
-      title: '关于我们',
-      content: '饭否小程序（体验版）\n主功能：生成、收藏、历史、回看。\n',
-      showCancel: false,
-    })
-    return
-  }
-  if (id === 'feedback') return onFeedbackTap()
-  if (id === 'member_center') return onMemberCenterTap()
-  if (id === 'histories') return goMenu('/pages/histories/index')
-  if (id === 'favorites') return goMenu('/pages/favorites/index')
-}
-
-function onSupportTap(id: (typeof supportEntries)[number]['id']) {
-  const titleMap: Record<string, string> = {
-    help_center: '帮助中心',
-    user_agreement: '用户协议',
-    privacy_policy: '隐私政策',
-    contact_customer: '联系客服',
-  }
-  uni.showModal({
-    title: titleMap[id] ?? '服务与支持',
-    content: '占位内容：后续可接入页面或富文本展示。',
-    showCancel: false,
-  })
 }
 
 function openHistoryDetail(h: HistoryRow) {
