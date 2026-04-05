@@ -20,7 +20,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 
-type TabKey = 'eat' | 'custom' | 'plaza' | 'circle' | 'me'
+type TabKey = 'home' | 'inspire' | 'me'
 
 type TabItem = {
   key: TabKey
@@ -32,39 +32,25 @@ type TabItem = {
 
 const tabs: TabItem[] = [
   {
-    key: 'eat',
-    label: '吃什么',
+    key: 'home',
+    label: '首页',
     pagePath: '/pages/today-eat/index',
-    iconPath: '/static/tabbar/eat.png',
-    selectedIconPath: '/static/tabbar/eat-active.png',
+    iconPath: '/static/tabbar/tab-home.png',
+    selectedIconPath: '/static/tabbar/tab-home-active.png',
   },
   {
-    key: 'custom',
-    label: '自定义',
-    pagePath: '/pages/index/index',
-    iconPath: '/static/tabbar/home.png',
-    selectedIconPath: '/static/tabbar/home-active.png',
-  },
-  {
-    key: 'plaza',
-    label: '菜单',
-    pagePath: '/pages/plaza/index',
-    iconPath: '/static/tabbar/plaza.png',
-    selectedIconPath: '/static/tabbar/plaza-active.png',
-  },
-  {
-    key: 'circle',
+    key: 'inspire',
     label: '灵感',
     pagePath: '/pages/inspiration/index',
-    iconPath: '/static/tabbar/circle.png',
-    selectedIconPath: '/static/tabbar/circle-active.png',
+    iconPath: '/static/tabbar/tab-inspire.png',
+    selectedIconPath: '/static/tabbar/tab-inspire-active.png',
   },
   {
     key: 'me',
     label: '我的',
     pagePath: '/pages/me/index',
-    iconPath: '/static/tabbar/me.png',
-    selectedIconPath: '/static/tabbar/me-active.png',
+    iconPath: '/static/tabbar/tab-me.png',
+    selectedIconPath: '/static/tabbar/tab-me-active.png',
   },
 ]
 
@@ -74,42 +60,35 @@ function getCurrentRoute(): string {
   const pages = (typeof getCurrentPages === 'function' ? getCurrentPages() : []) as any[]
 
   const cur = pages?.[pages.length - 1]
-  return (
-    cur?.route ||
-    cur?.$page?.route ||
-    cur?.path ||
-    ''
-  )
+  return cur?.route || cur?.$page?.route || cur?.path || ''
 }
 
 const currentRoute = ref('')
 
 const activeKey = computed<TabKey>(() => {
   const r = currentRoute.value
-  if (!r) return 'eat'
+  if (!r) return 'home'
 
-  if (r === '/pages/today-eat/index' || r.startsWith('/pages/today-eat/')) return 'eat'
+  if (r === '/pages/today-eat/index' || r.startsWith('/pages/today-eat/')) return 'home'
 
-  if (r === '/pages/index/index' || r.startsWith('/pages/index/')) return 'custom'
-
-  if (r === '/pages/plaza/index') return 'plaza'
-
-  if (r === '/pages/inspiration/index' || r.startsWith('/pages/inspiration/')) return 'circle'
+  if (r === '/pages/inspiration/index' || r.startsWith('/pages/inspiration/')) return 'inspire'
 
   if (r === '/pages/me/index') return 'me'
-
-  const plazaGroup = [
-    '/pages/table-menu/index',
-    '/pages/fortune-cooking/index',
-    '/pages/sauce-design/index',
-    '/pages/gallery/index',
-  ]
-  if (plazaGroup.includes(r)) return 'plaza'
 
   const meGroup = ['/pages/favorites/index', '/pages/histories/index']
   if (meGroup.includes(r)) return 'me'
 
-  return 'plaza'
+  const fromHome = [
+    '/pages/table-menu/index',
+    '/pages/fortune-cooking/index',
+    '/pages/sauce-design/index',
+    '/pages/gallery/index',
+    '/pages/index/index',
+    '/pages/plaza/index',
+  ]
+  if (fromHome.includes(r) || r.startsWith('/pages/index/')) return 'home'
+
+  return 'home'
 })
 
 function refreshRoute() {
@@ -152,18 +131,18 @@ function onTap(key: TabKey) {
 }
 
 .wte-ico-tabbar__icon {
-  width: 44rpx;
-  height: 44rpx;
+  width: 48rpx;
+  height: 48rpx;
 }
 
 .wte-ico-tabbar__label {
   margin-top: 4rpx;
-  font-size: 18rpx;
+  font-size: 20rpx;
   font-weight: 600;
   color: #8e95a3;
 }
 
 .wte-ico-tabbar__item--on .wte-ico-tabbar__label {
-  color: #7a57d1;
+  color: #7b57e4;
 }
 </style>

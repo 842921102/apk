@@ -3,7 +3,9 @@
     {
       "path": "pages/today-eat/index",
       "style": {
-        "navigationBarTitleText": "吃什么"
+        "navigationBarTitleText": "",
+        "navigationStyle": "custom",
+        "navigationBarTextStyle": "white"
       }
     },
     {
@@ -144,6 +146,12 @@
       }
     },
     {
+      "path": "pages/me/personal-info",
+      "style": {
+        "navigationBarTitleText": "个人信息"
+      }
+    },
+    {
       "path": "pages/me/recommendation-preferences",
       "style": {
         "navigationBarTitleText": "推荐偏好"
@@ -200,7 +208,8 @@
     {
       "path": "pages/mall/orders",
       "style": {
-        "navigationBarTitleText": "我的订单"
+        "navigationBarTitleText": "我的订单",
+        "enablePullDownRefresh": true
       }
     },
     {
@@ -225,39 +234,27 @@
   "tabBar": {
     "custom": false,
     "color": "#8E95A3",
-    "selectedColor": "#7A57D1",
+    "selectedColor": "#7B57E4",
     "borderStyle": "black",
     "backgroundColor": "#FDFDFE",
     "list": [
       {
         "pagePath": "pages/today-eat/index",
-        "text": "吃什么",
-        "iconPath": "static/tabbar/eat.png",
-        "selectedIconPath": "static/tabbar/eat-active.png"
-      },
-      {
-        "pagePath": "pages/index/index",
-        "text": "自定义",
-        "iconPath": "static/tabbar/home.png",
-        "selectedIconPath": "static/tabbar/home-active.png"
-      },
-      {
-        "pagePath": "pages/plaza/index",
-        "text": "菜单",
-        "iconPath": "static/tabbar/plaza.png",
-        "selectedIconPath": "static/tabbar/plaza-active.png"
+        "text": "首页",
+        "iconPath": "static/tabbar/tab-home.png",
+        "selectedIconPath": "static/tabbar/tab-home-active.png"
       },
       {
         "pagePath": "pages/inspiration/index",
         "text": "灵感",
-        "iconPath": "static/tabbar/circle.png",
-        "selectedIconPath": "static/tabbar/circle-active.png"
+        "iconPath": "static/tabbar/tab-inspire.png",
+        "selectedIconPath": "static/tabbar/tab-inspire-active.png"
       },
       {
         "pagePath": "pages/me/index",
         "text": "我的",
-        "iconPath": "static/tabbar/me.png",
-        "selectedIconPath": "static/tabbar/me-active.png"
+        "iconPath": "static/tabbar/tab-me.png",
+        "selectedIconPath": "static/tabbar/tab-me-active.png"
       }
     ]
   }

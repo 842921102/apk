@@ -3,8 +3,13 @@ import 'url-polyfill'
 
 import { createSSRApp } from 'vue'
 import App from './App.vue'
+import { defaultShareAppMessage, defaultShareTimeline } from '@/lib/globalShare'
 
 export function createApp() {
   const app = createSSRApp(App)
+  app.mixin({
+    onShareAppMessage: defaultShareAppMessage,
+    onShareTimeline: defaultShareTimeline,
+  })
   return { app }
 }

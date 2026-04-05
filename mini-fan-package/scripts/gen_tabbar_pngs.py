@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate WeChat tabBar PNGs (81x81) — stdlib only. Matches App colors #8E95A3 / #7A57D1."""
+"""Generate WeChat tabBar PNGs (81x81) — 3 tabs: 首页 / 灵感 / 我的。主题色 #7B57E4。"""
 from __future__ import annotations
 
 import struct
@@ -8,7 +8,7 @@ from pathlib import Path
 
 W = H = 81
 INACTIVE = (142, 149, 163, 255)
-ACTIVE = (122, 87, 209, 255)
+ACTIVE = (123, 87, 228, 255)
 TRANSPARENT = (0, 0, 0, 0)
 
 
@@ -31,7 +31,6 @@ def fill_rect(buf: bytearray, x0: int, y0: int, x1: int, y1: int, rgba: tuple) -
 
 
 def thick_seg(buf: bytearray, x0: int, y0: int, x1: int, y1: int, rgba: tuple, th: int = 2) -> None:
-    """Integer Bresenham + square brush."""
     dx = abs(x1 - x0)
     dy = -abs(y1 - y0)
     sx = 1 if x0 < x1 else -1
@@ -53,32 +52,38 @@ def thick_seg(buf: bytearray, x0: int, y0: int, x1: int, y1: int, rgba: tuple, t
             y += sy
 
 
-def icon_home(buf: bytearray, color: tuple) -> None:
+def icon_tab_home(buf: bytearray, color: tuple) -> None:
+    """小房子轮廓（首页 Tab）"""
     buf_clear(buf, TRANSPARENT)
-    thick_seg(buf, 40, 22, 22, 40, color, 2)
-    thick_seg(buf, 40, 22, 58, 40, color, 2)
-    thick_seg(buf, 22, 40, 58, 40, color, 2)
-    fill_rect(buf, 28, 40, 52, 58, color)
-    fill_rect(buf, 36, 48, 44, 58, TRANSPARENT)
+    # 尖顶
+    for y in range(14, 34):
+        half = 3 + int((y - 14) * 1.05)
+        for x in range(40 - half, 40 + half + 1):
+            px(buf, x, y, color)
+    # 房身
+    fill_rect(buf, 26, 32, 54, 64, color)
+    # 门洞（透出透明）
+    for y in range(44, 64):
+        for x in range(35, 45):
+            px(buf, x, y, TRANSPARENT)
 
 
-def icon_zap(buf: bytearray, color: tuple) -> None:
+def icon_tab_inspire(buf: bytearray, color: tuple) -> None:
+    """灯泡轮廓（灵感）"""
     buf_clear(buf, TRANSPARENT)
-    pts = [(46, 20), (32, 42), (44, 42), (34, 64), (52, 36), (42, 36), (50, 20)]
-    for i in range(len(pts) - 1):
-        thick_seg(buf, pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], color, 2)
+    cx, cy, r = 40, 30, 12
+    for y in range(H):
+        for x in range(W):
+            d = ((x - cx) ** 2 + (y - cy) ** 2) ** 0.5
+            if 9 <= d <= r + 1:
+                px(buf, x, y, color)
+    fill_rect(buf, 34, 38, 46, 48, color)
+    fill_rect(buf, 32, 48, 48, 54, color)
+    fill_rect(buf, 36, 54, 44, 58, color)
 
 
-def icon_grid(buf: bytearray, color: tuple) -> None:
-    buf_clear(buf, TRANSPARENT)
-    # 2×2 cells (aligns with Web “layoutGrid” metaphor)
-    fill_rect(buf, 12, 12, 36, 36, color)
-    fill_rect(buf, 44, 12, 68, 36, color)
-    fill_rect(buf, 12, 44, 36, 68, color)
-    fill_rect(buf, 44, 44, 68, 68, color)
-
-
-def icon_user(buf: bytearray, color: tuple) -> None:
+def icon_tab_me(buf: bytearray, color: tuple) -> None:
+    """用户头像轮廓"""
     buf_clear(buf, TRANSPARENT)
     cx, cy, r = 40, 30, 9
     for y in range(H):
@@ -109,13 +114,13 @@ def write_png(path: Path, buf: bytearray) -> None:
 
 
 def main() -> None:
+    # uni-app Vite 只打包 src/static，根目录 static/ 不会进 mp-weixin 产物
     out = Path(__file__).resolve().parent.parent / "src" / "static" / "tabbar"
     out.mkdir(parents=True, exist_ok=True)
     icons = [
-        ("home", icon_home),
-        ("eat", icon_zap),
-        ("plaza", icon_grid),
-        ("me", icon_user),
+        ("tab-home", icon_tab_home),
+        ("tab-inspire", icon_tab_inspire),
+        ("tab-me", icon_tab_me),
     ]
     for name, draw in icons:
         for suffix, col in (("", INACTIVE), ("-active", ACTIVE)):

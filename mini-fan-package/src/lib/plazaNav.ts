@@ -1,8 +1,6 @@
 /** TabBar 页面路径 → switchTab，其余 navigateTo */
 const TAB_ROUTES = new Set([
   '/pages/today-eat/index',
-  '/pages/index/index',
-  '/pages/plaza/index',
   '/pages/inspiration/index',
   '/pages/me/index',
 ])
