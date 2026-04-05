@@ -4,10 +4,13 @@ namespace App\Filament\Resources\Users\Schemas;
 
 use App\Models\User;
 use App\Support\AppRole;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Model;
 
@@ -109,6 +112,78 @@ class UserForm
                     ->minLength(8)
                     ->maxLength(255)
                     ->dehydrated(fn (?string $state): bool => filled($state)),
+                Section::make('饮食与推荐档案')
+                    ->description('对应 user_profiles：性别仅为资料项；「特殊时期」能力由单独开关控制，不与性别绑定。')
+                    ->relationship('profile')
+                    ->visibleOn('edit')
+                    ->schema([
+                        DatePicker::make('birthday')
+                            ->label('生日')
+                            ->native(false),
+                        Select::make('gender')
+                            ->label('性别（基础资料）')
+                            ->options([
+                                'unknown' => '未设置',
+                                'male' => '男',
+                                'female' => '女',
+                                'undisclosed' => '不愿透露',
+                            ])
+                            ->native(false),
+                        TextInput::make('height_cm')
+                            ->label('身高（cm）')
+                            ->numeric()
+                            ->minValue(50)
+                            ->maxValue(260),
+                        TextInput::make('weight_kg')
+                            ->label('体重（kg）')
+                            ->numeric()
+                            ->step(0.1),
+                        TextInput::make('target_weight_kg')
+                            ->label('目标体重（kg）')
+                            ->numeric()
+                            ->step(0.1),
+                        TagsInput::make('flavor_preferences')
+                            ->label('口味偏好')
+                            ->placeholder('回车添加标签'),
+                        TagsInput::make('taboo_ingredients')
+                            ->label('忌口食材'),
+                        TagsInput::make('dislike_ingredients')
+                            ->label('不喜欢食材'),
+                        TagsInput::make('allergy_ingredients')
+                            ->label('过敏食材'),
+                        TagsInput::make('diet_preferences')
+                            ->label('饮食类型偏好'),
+                        TagsInput::make('diet_goal')
+                            ->label('饮食目标（问卷多选）'),
+                        TagsInput::make('lifestyle_tags')
+                            ->label('生活习惯标签'),
+                        TextInput::make('cooking_frequency')
+                            ->label('做饭频率（often/sometimes/rarely/takeout）')
+                            ->maxLength(32),
+                        TextInput::make('family_size')
+                            ->label('用餐场景（single/couple/family3/family5）')
+                            ->maxLength(32),
+                        TextInput::make('health_goal')
+                            ->label('饮食 / 健康目标')
+                            ->maxLength(255),
+                        TextInput::make('recommendation_style')
+                            ->label('推荐风格')
+                            ->maxLength(64)
+                            ->placeholder('如：清淡优先'),
+                        Toggle::make('destiny_mode_enabled')
+                            ->label('食命推荐'),
+                        Toggle::make('period_feature_enabled')
+                            ->label('特殊时期贴心推荐（用户已授权）'),
+                        Toggle::make('accepts_product_recommendation')
+                            ->label('接受商品推荐'),
+                        TextInput::make('onboarding_version')
+                            ->label('问卷版本号')
+                            ->numeric(),
+                        DateTimePicker::make('onboarding_completed_at')
+                            ->label('完成首次引导时间')
+                            ->seconds(false),
+                    ])
+                    ->columns(2),
             ]);
     }
 }

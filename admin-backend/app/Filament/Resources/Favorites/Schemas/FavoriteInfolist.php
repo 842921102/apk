@@ -67,6 +67,7 @@ class FavoriteInfolist
                     FavoriteSourceType::FortuneCooking => '玄学厨房',
                     FavoriteSourceType::SauceDesign => '酱料大师',
                     FavoriteSourceType::Gallery => '图鉴',
+                    FavoriteSourceType::RecommendationRecord => '推荐历史',
                 };
             }
         }

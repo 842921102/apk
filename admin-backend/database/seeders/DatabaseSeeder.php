@@ -12,5 +12,9 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(BootstrapSuperAdminSeeder::class);
+        $this->call(InspirationDemoSeeder::class);
+        $this->call(WechatPayConfigSeeder::class);
+        $this->call(DishRecipeDemoSeeder::class);
+        $this->call(RecommendationConfigSeeder::class);
     }
 }

@@ -22,7 +22,7 @@ class BootstrapSuperAdminSeeder extends Seeder
             return;
         }
 
-        User::query()->updateOrCreate(
+        $user = User::query()->updateOrCreate(
             ['email' => $email],
             [
                 'name' => env('ADMIN_BOOTSTRAP_NAME', '超级管理员'),
@@ -31,6 +31,7 @@ class BootstrapSuperAdminSeeder extends Seeder
                 'email_verified_at' => now(),
             ],
         );
+        $user->ensureProfile();
 
         $this->command?->info('超级管理员已就绪，邮箱：'.$email);
     }

@@ -1,6 +1,6 @@
 import { ref, computed, type ComputedRef, type Ref } from 'vue'
 import type { AuthCurrentUser } from '@/types/auth'
-import { STORAGE_ACCESS_TOKEN, STORAGE_CURRENT_USER } from '@/constants'
+import { API_BASE_URL, STORAGE_ACCESS_TOKEN, STORAGE_CURRENT_USER } from '@/constants'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 
 const accessToken = ref('')
@@ -136,6 +136,46 @@ export function setCurrentUser(user: AuthCurrentUser | null) {
   }
 }
 
+/** 在已登录时合并更新本地用户摘要（如完成引导后清除 needsOnboarding） */
+export function patchCurrentUser(partial: Partial<AuthCurrentUser>) {
+  const cur = currentUser.value
+  if (!cur) return
+  setCurrentUser({ ...cur, ...partial })
+}
+
+/**
+ * 冷启动/前台恢复时：若持有 Laravel 微信 token，则拉取 `/api/me/profile` 同步
+ * `needsOnboarding`、`periodFeatureEnabled`，避免用户长期未重新登录时本地摘要过期。
+ * 使用动态 import，避免 useAuth ↔ api/me ↔ http 循环依赖。
+ */
+export async function syncLaravelMeSummaryIfNeeded(): Promise<void> {
+  hydrateFromStorageToState()
+  const token = accessToken.value
+  if (!token?.startsWith(LARAVEL_ACCESS_TOKEN_PREFIX)) {
+    return
+  }
+  if (!currentUser.value?.id) {
+    return
+  }
+  if (!API_BASE_URL.trim()) {
+    return
+  }
+  try {
+    const { fetchMeProfile } = await import('@/api/me')
+    const res = await fetchMeProfile()
+    patchCurrentUser({
+      needsOnboarding: res.needs_onboarding === true,
+      periodFeatureEnabled: Boolean(res.profile?.period_feature_enabled),
+    })
+    if (res.needs_onboarding === false) {
+      const { markLocalOnboardingCompleted } = await import('@/composables/useOnboardingFlow')
+      markLocalOnboardingCompleted()
+    }
+  } catch {
+    /* 离线、401、未部署接口等：不打断启动 */
+  }
+}
+
 export async function logout() {
   if (isSupabaseConfigured()) {
     try {
@@ -164,11 +204,13 @@ export function useAuth() {
     clearToken,
     getCurrentUser,
     setCurrentUser,
+    patchCurrentUser,
     setSupabaseSession,
     logout,
     syncAuthFromSupabase,
     hydrateFromStorage,
     readTokenFromStorage: hydrateFromStorage,
+    syncLaravelMeSummaryIfNeeded,
   }
 }
 

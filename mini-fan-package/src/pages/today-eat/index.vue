@@ -21,45 +21,13 @@
         <text class="te__hero-icon-emoji">🎲</text>
       </view>
       <text class="te__panel-title">生成今日推荐</text>
-      <text class="te__panel-desc">口味、忌口、人数均为选填；可直接点下方按钮尝试生成。</text>
+      <text class="te__panel-desc">点下方按钮，用标签选今日状态与口味忌口；无需打字，也可跳过直接生成。</text>
 
-      <view class="te__section-label">
-        <text class="te__section-label-k">偏好</text>
-        <text class="te__section-label-h">本次用餐条件</text>
-      </view>
-      <view class="te__fieldset">
-        <view class="te__field">
-          <view class="te__label-row">
-            <text class="te__label">口味偏好</text>
-            <text class="te__label-opt">选填</text>
-          </view>
-          <input v-model="taste" class="te__input" placeholder="如：清淡、微辣" />
-        </view>
-        <view class="te__field">
-          <view class="te__label-row">
-            <text class="te__label">忌口 / 不吃</text>
-            <text class="te__label-opt">选填</text>
-          </view>
-          <input v-model="avoid" class="te__input" placeholder="不想吃的食材" />
-        </view>
-        <view class="te__field te__field--last">
-          <view class="te__label-row">
-            <text class="te__label">用餐人数</text>
-            <text class="te__label-opt">选填</text>
-          </view>
-          <input v-model="peopleStr" class="te__input" type="number" placeholder="可选，默认不限" />
-        </view>
+      <view class="te__status-hint te__status-hint--muted">
+        <text class="te__status-hint-txt">弹窗里点选即可，不会弹出键盘。</text>
       </view>
 
-      <view v-if="prefsEmpty" class="te__prefs-status te__prefs-status--empty">
-        <text class="te__prefs-status-title">尚未填写任何偏好</text>
-        <text class="te__prefs-status-desc">可直接生成通用推荐；填写后结果会更贴合你的口味</text>
-      </view>
-      <view v-else class="te__prefs-status">
-        <text class="te__prefs-status-ok">已填写 {{ prefFilledCount }} 项条件，将一并提交生成</text>
-      </view>
-
-      <button class="mp-btn-primary te__submit te__submit--hero" @click="onGenerate">
+      <button class="mp-btn-primary te__submit te__submit--hero" @click="openTodayStatusSheet">
         <text class="te__submit-txt">立即生成推荐</text>
         <text class="te__submit-go">→</text>
       </button>
@@ -168,11 +136,119 @@
         <text class="te__again-go">→</text>
       </button>
     </scroll-view>
+
+    <view v-if="statusSheetOpen" class="te__sheet-mask" @click="onStatusMaskTap">
+      <view class="te__sheet" @click.stop>
+        <view class="te__sheet-head">
+          <text class="te__sheet-title">今日状态</text>
+          <text class="te__sheet-sub">标签描述今天的你；口味与忌口点选即可（多选）。登录后写入今日状态并参与推荐。</text>
+        </view>
+
+        <scroll-view scroll-y class="te__sheet-scroll" :show-scrollbar="false">
+          <view class="te__sheet-block">
+            <text class="te__sheet-k">心情</text>
+            <view class="te__chip-row">
+              <view
+                v-for="opt in DAILY_MOOD_OPTIONS"
+                :key="opt.value"
+                class="te__chip"
+                :class="{ 'te__chip--on': sheetMood === opt.value }"
+                @click="toggleSheetMood(opt.value)"
+              >
+                <text>{{ opt.label }}</text>
+              </view>
+            </view>
+          </view>
+          <view class="te__sheet-block">
+            <text class="te__sheet-k">想吃的方向</text>
+            <view class="te__chip-row">
+              <view
+                v-for="opt in DAILY_WANT_OPTIONS"
+                :key="opt.value"
+                class="te__chip"
+                :class="{ 'te__chip--on': sheetWant === opt.value }"
+                @click="toggleSheetWant(opt.value)"
+              >
+                <text>{{ opt.label }}</text>
+              </view>
+            </view>
+          </view>
+          <view class="te__sheet-block">
+            <text class="te__sheet-k">身体感受</text>
+            <view class="te__chip-row">
+              <view
+                v-for="opt in DAILY_BODY_OPTIONS"
+                :key="opt.value"
+                class="te__chip"
+                :class="{ 'te__chip--on': sheetBody === opt.value }"
+                @click="toggleSheetBody(opt.value)"
+              >
+                <text>{{ opt.label }}</text>
+              </view>
+            </view>
+          </view>
+          <view v-if="periodFeatureEnabled" class="te__sheet-block">
+            <text class="te__sheet-k">特殊时期</text>
+            <view class="te__chip-row">
+              <view
+                v-for="opt in DAILY_PERIOD_OPTIONS"
+                :key="opt.value"
+                class="te__chip"
+                :class="{ 'te__chip--on': sheetPeriod === opt.value }"
+                @click="toggleSheetPeriod(opt.value)"
+              >
+                <text>{{ opt.label }}</text>
+              </view>
+            </view>
+          </view>
+
+          <view class="te__sheet-block">
+            <text class="te__sheet-k">口味偏好</text>
+            <text class="te__sheet-multi-hint">可多选</text>
+            <view class="te__chip-row">
+              <view
+                v-for="opt in MEAL_FLAVOR_TAG_OPTIONS"
+                :key="opt.value"
+                class="te__chip"
+                :class="{ 'te__chip--on': sheetFlavorTags.includes(opt.value) }"
+                @click="toggleSheetFlavorTag(opt.value)"
+              >
+                <text>{{ opt.label }}</text>
+              </view>
+            </view>
+          </view>
+          <view class="te__sheet-block te__sheet-block--last">
+            <text class="te__sheet-k">忌口 / 不吃</text>
+            <text class="te__sheet-multi-hint">可多选；选「暂无」会清空其它项</text>
+            <view class="te__chip-row">
+              <view
+                v-for="opt in MEAL_TABOO_TAG_OPTIONS"
+                :key="opt.value"
+                class="te__chip"
+                :class="{ 'te__chip--on': sheetTabooTags.includes(opt.value) }"
+                @click="toggleSheetTabooTag(opt.value)"
+              >
+                <text>{{ opt.label }}</text>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+
+        <view class="te__sheet-foot">
+          <button class="mp-btn-ghost te__sheet-foot-btn" @click="onSkipTodayStatus">
+            <text>跳过，直接推荐</text>
+          </button>
+          <button class="mp-btn-primary te__sheet-foot-btn" @click="onConfirmTodayStatus">
+            <text>开始推荐</text>
+          </button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { requestTodayEat } from '@/api/ai'
 import { HttpError } from '@/api/http'
@@ -190,6 +266,23 @@ import {
 import { fetchEatMemeRecords, deleteEatMemeRecord, type EatMemeRecordItem } from '@/api/eatMeme'
 import { favoriteContentDigest } from '@/lib/favoriteDigest'
 import type { TodayEatResult } from '@/types/ai'
+import { fetchMeProfile, fetchMeDailyToday, putMeDailyToday } from '@/api/me'
+import {
+  DAILY_BODY_OPTIONS,
+  DAILY_MOOD_OPTIONS,
+  DAILY_PERIOD_OPTIONS,
+  DAILY_WANT_OPTIONS,
+  normalizeBodyFromApi,
+  normalizeMoodFromApi,
+  normalizePeriodFromApi,
+  normalizeWantFromApi,
+} from '@/constants/dailyStatus'
+import {
+  MEAL_FLAVOR_TAG_OPTIONS,
+  MEAL_TABOO_TAG_OPTIONS,
+  normalizeFlavorTagsFromApi,
+  normalizeTabooTagsFromApi,
+} from '@/constants/mealPreferenceTags'
 
 type Phase = 'idle' | 'loading' | 'success' | 'error'
 
@@ -198,9 +291,8 @@ const msg = useAppMessages()
 const { syncAuthFromSupabase, isLoggedIn } = useAuth()
 
 const phase = ref<Phase>('idle')
-const taste = ref('')
-const avoid = ref('')
-const peopleStr = ref('')
+/** 防止连点重复请求 */
+const generateInFlight = ref(false)
 const result = ref<TodayEatResult | null>(null)
 const errorMessage = ref('')
 const needLogin = ref(false)
@@ -210,35 +302,203 @@ const isFavorited = ref(false)
 const recentRecords = ref<EatMemeRecordItem[]>([])
 const recentLoading = ref(false)
 
+const periodFeatureEnabled = ref(false)
+const dailyMood = ref('')
+const dailyWant = ref('')
+const dailyBody = ref('')
+const dailyPeriod = ref('')
+const dailyFlavorTags = ref<string[]>([])
+const dailyTabooTags = ref<string[]>([])
+
+const statusSheetOpen = ref(false)
+const sheetMood = ref('')
+const sheetWant = ref('')
+const sheetBody = ref('')
+const sheetPeriod = ref('')
+const sheetFlavorTags = ref<string[]>([])
+const sheetTabooTags = ref<string[]>([])
+
+function syncSheetFromDaily() {
+  sheetMood.value = dailyMood.value
+  sheetWant.value = dailyWant.value
+  sheetBody.value = dailyBody.value
+  sheetPeriod.value = dailyPeriod.value || 'none'
+  sheetFlavorTags.value = [...dailyFlavorTags.value]
+  sheetTabooTags.value = [...dailyTabooTags.value]
+}
+
+function toggleSheetFlavorTag(v: string) {
+  const i = sheetFlavorTags.value.indexOf(v)
+  if (i >= 0) {
+    sheetFlavorTags.value = sheetFlavorTags.value.filter((x) => x !== v)
+  } else {
+    sheetFlavorTags.value = [...sheetFlavorTags.value, v]
+  }
+}
+
+function toggleSheetTabooTag(v: string) {
+  if (v === 'none') {
+    sheetTabooTags.value = ['none']
+    return
+  }
+  let next = sheetTabooTags.value.filter((x) => x !== 'none')
+  const i = next.indexOf(v)
+  if (i >= 0) {
+    next = next.filter((x) => x !== v)
+  } else {
+    next = [...next, v]
+  }
+  sheetTabooTags.value = next
+}
+
+function applySheetToDaily() {
+  dailyMood.value = sheetMood.value
+  dailyWant.value = sheetWant.value
+  dailyBody.value = sheetBody.value
+  dailyPeriod.value = periodFeatureEnabled.value ? sheetPeriod.value || 'none' : ''
+  dailyFlavorTags.value = [...sheetFlavorTags.value]
+  dailyTabooTags.value = [...sheetTabooTags.value]
+}
+
+function flavorTagsToPreferenceTaste(tags: string[]): string | undefined {
+  if (!tags.length) return undefined
+  const labels = tags
+    .map((k) => MEAL_FLAVOR_TAG_OPTIONS.find((o) => o.value === k)?.label)
+    .filter((x): x is string => Boolean(x))
+  return labels.length ? labels.join('、') : undefined
+}
+
+function tabooTagsToPreferenceAvoid(tags: string[]): string | undefined {
+  if (!tags.length || tags.includes('none')) return undefined
+  const labels = tags
+    .filter((k) => k !== 'none')
+    .map((k) => MEAL_TABOO_TAG_OPTIONS.find((o) => o.value === k)?.label)
+    .filter((x): x is string => Boolean(x))
+  return labels.length ? labels.join('、') : undefined
+}
+
+watch(periodFeatureEnabled, (ok) => {
+  if (!ok) {
+    dailyPeriod.value = ''
+    sheetPeriod.value = 'none'
+  }
+})
+
+function toggleSheetMood(v: string) {
+  sheetMood.value = sheetMood.value === v ? '' : v
+}
+
+function toggleSheetWant(v: string) {
+  sheetWant.value = sheetWant.value === v ? '' : v
+}
+
+function toggleSheetBody(v: string) {
+  sheetBody.value = sheetBody.value === v ? '' : v
+}
+
+function toggleSheetPeriod(v: string) {
+  sheetPeriod.value = sheetPeriod.value === v ? 'none' : v
+}
+
+function openTodayStatusSheet() {
+  syncSheetFromDaily()
+  statusSheetOpen.value = true
+}
+
+function onStatusMaskTap() {
+  statusSheetOpen.value = false
+}
+
+function onSkipTodayStatus() {
+  applySheetToDaily()
+  statusSheetOpen.value = false
+  void runGenerate(false)
+}
+
+function onConfirmTodayStatus() {
+  applySheetToDaily()
+  statusSheetOpen.value = false
+  void runGenerate(true)
+}
+
 const ingredientsText = computed(() => {
   const ing = result.value?.ingredients
   if (!ing?.length) return '—'
   return ing.join('、')
 })
 
-const prefsEmpty = computed(() => {
-  return !taste.value.trim() && !avoid.value.trim() && !peopleStr.value.trim()
-})
-
-const prefFilledCount = computed(() => {
-  let n = 0
-  if (taste.value.trim()) n++
-  if (avoid.value.trim()) n++
-  if (peopleStr.value.trim()) n++
-  return n
-})
+async function hydrateMeContext() {
+  await syncAuthFromSupabase()
+  if (!isLoggedIn.value) {
+    periodFeatureEnabled.value = false
+    return
+  }
+  try {
+    const res = await fetchMeProfile()
+    periodFeatureEnabled.value = Boolean(res.profile.period_feature_enabled)
+    const t = res.today_status
+    if (t) {
+      dailyMood.value = normalizeMoodFromApi(t.mood)
+      dailyWant.value = normalizeWantFromApi(t.wanted_food_style)
+      dailyBody.value = normalizeBodyFromApi(t.body_state)
+      dailyPeriod.value = periodFeatureEnabled.value
+        ? normalizePeriodFromApi(t.period_status)
+        : ''
+      dailyFlavorTags.value = normalizeFlavorTagsFromApi(t.flavor_tags)
+      dailyTabooTags.value = normalizeTabooTagsFromApi(t.taboo_tags)
+    } else {
+      dailyFlavorTags.value = []
+      dailyTabooTags.value = []
+    }
+  } catch {
+    /* 未登录或网络失败时忽略 */
+  }
+}
 
 onShow(() => {
-  void syncAuthFromSupabase()
+  void hydrateMeContext()
   void loadRecentRecords()
 })
 
-function buildPeople(): number | undefined {
-  const n = parseInt(peopleStr.value.trim(), 10)
-  return Number.isFinite(n) && n > 0 ? n : undefined
+function buildPreferences() {
+  return {
+    taste: flavorTagsToPreferenceTaste(dailyFlavorTags.value),
+    avoid: tabooTagsToPreferenceAvoid(dailyTabooTags.value),
+  }
 }
 
-async function onGenerate() {
+async function getContextTagsForGenerate(saveDaily: boolean): Promise<string[] | undefined> {
+  if (!isLoggedIn.value) return undefined
+  if (saveDaily) {
+    try {
+      const dailyRes = await putMeDailyToday({
+        mood: dailyMood.value || null,
+        wanted_food_style: dailyWant.value || null,
+        body_state: dailyBody.value || null,
+        flavor_tags: dailyFlavorTags.value.length ? dailyFlavorTags.value : null,
+        taboo_tags: dailyTabooTags.value.length ? dailyTabooTags.value : null,
+        period_status: periodFeatureEnabled.value ? dailyPeriod.value || 'none' : 'none',
+      })
+      return dailyRes.recommendation_context_tags
+    } catch (e) {
+      console.warn('[today-eat] daily status / context tags skipped:', e)
+      return undefined
+    }
+  }
+  try {
+    const d = await fetchMeDailyToday()
+    return d.recommendation_context_tags
+  } catch (e) {
+    console.warn('[today-eat] fetch daily context tags skipped:', e)
+    return undefined
+  }
+}
+
+async function runGenerate(saveDaily: boolean) {
+  if (generateInFlight.value || phase.value === 'loading') {
+    return
+  }
+  generateInFlight.value = true
   needLogin.value = false
   historyNote.value = ''
   favoriteLoading.value = false
@@ -248,16 +508,14 @@ async function onGenerate() {
 
   await syncAuthFromSupabase()
 
-  const preferences = {
-    taste: taste.value.trim() || undefined,
-    avoid: avoid.value.trim() || undefined,
-    people: buildPeople(),
-  }
+  const preferences = buildPreferences()
+  const contextTags = await getContextTagsForGenerate(saveDaily)
 
   try {
     const data = await requestTodayEat({
       preferences,
       locale: 'zh-CN',
+      context_tags: contextTags,
     })
 
     if (!data || typeof data.content !== 'string' || !data.title) {
@@ -288,6 +546,8 @@ async function onGenerate() {
     }
     phase.value = 'error'
     result.value = null
+  } finally {
+    generateInFlight.value = false
   }
 }
 
@@ -388,6 +648,7 @@ function resetIdle() {
   historyNote.value = ''
   favoriteLoading.value = false
   isFavorited.value = false
+  statusSheetOpen.value = false
 }
 
 function goLogin() {
@@ -528,78 +789,6 @@ async function onDeleteRecord(id: number) {
   padding: 0 8rpx;
 }
 
-.te__section-label {
-  margin-top: 32rpx;
-  margin-bottom: 16rpx;
-  padding-left: 4rpx;
-}
-
-.te__section-label-k {
-  font-size: 20rpx;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  color: $mp-text-muted;
-  text-transform: uppercase;
-}
-
-.te__section-label-h {
-  display: block;
-  margin-top: 6rpx;
-  font-size: 28rpx;
-  font-weight: 700;
-  color: $mp-text-primary;
-}
-
-.te__fieldset {
-  padding: 28rpx 24rpx;
-  border-radius: 20rpx;
-  background: #f5f6f8;
-  border: 1rpx solid $mp-border;
-}
-
-.te__field {
-  display: flex;
-  flex-direction: column;
-}
-
-.te__field + .te__field {
-  margin-top: 24rpx;
-}
-
-.te__label-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16rpx;
-}
-
-.te__label {
-  font-size: 26rpx;
-  font-weight: 600;
-  color: #374151;
-}
-
-.te__label-opt {
-  flex-shrink: 0;
-  font-size: 22rpx;
-  font-weight: 600;
-  color: $mp-text-muted;
-  padding: 4rpx 12rpx;
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.85);
-  border: 1rpx solid $mp-border;
-}
-
-.te__input {
-  margin-top: 12rpx;
-  padding: 22rpx 24rpx;
-  font-size: 28rpx;
-  border-radius: 16rpx;
-  border: 1rpx solid $mp-border;
-  background: #fff;
-}
-
 .te__submit--hero {
   margin-top: 40rpx;
   display: flex !important;
@@ -622,39 +811,6 @@ async function onDeleteRecord(id: number) {
   font-weight: 800;
 }
 
-.te__prefs-status {
-  margin-top: 24rpx;
-  padding: 20rpx 22rpx;
-  border-radius: 16rpx;
-  background: #fff;
-  border: 1rpx solid #e8ddf5;
-}
-
-.te__prefs-status--empty {
-  background: rgba(243, 236, 255, 0.35);
-}
-
-.te__prefs-status-title {
-  display: block;
-  font-size: 26rpx;
-  font-weight: 700;
-  color: $mp-accent;
-}
-
-.te__prefs-status-desc {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  line-height: 1.45;
-  color: $mp-text-secondary;
-}
-
-.te__prefs-status-ok {
-  font-size: 24rpx;
-  line-height: 1.45;
-  color: $mp-text-secondary;
-}
-
 .te__idle-foot {
   display: block;
   margin-top: 20rpx;
@@ -662,6 +818,139 @@ async function onDeleteRecord(id: number) {
   font-size: 22rpx;
   line-height: 1.45;
   color: $mp-text-muted;
+}
+
+.te__status-hint {
+  margin-top: 24rpx;
+  padding: 18rpx 22rpx;
+  border-radius: 16rpx;
+  background: rgba(243, 236, 255, 0.5);
+  border: 1rpx solid rgba(122, 87, 209, 0.2);
+}
+
+.te__status-hint--muted {
+  background: #f5f6f8;
+  border-color: $mp-border;
+}
+
+.te__status-hint-txt {
+  font-size: 24rpx;
+  line-height: 1.45;
+  color: $mp-text-secondary;
+}
+
+.te__sheet-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 500;
+  background: rgba(17, 24, 39, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.te__sheet {
+  width: 100%;
+  max-height: 82vh;
+  border-radius: 28rpx 28rpx 0 0;
+  background: #fff;
+  box-shadow: 0 -8rpx 40rpx rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.te__sheet-head {
+  padding: 28rpx 28rpx 12rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+}
+
+.te__sheet-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 800;
+  color: $mp-text-primary;
+}
+
+.te__sheet-sub {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: $mp-text-secondary;
+}
+
+.te__sheet-scroll {
+  flex: 1;
+  min-height: 200rpx;
+  max-height: 56vh;
+  padding: 8rpx 28rpx 16rpx;
+  box-sizing: border-box;
+}
+
+.te__sheet-block {
+  margin-top: 20rpx;
+}
+
+.te__sheet-block--last {
+  margin-bottom: 12rpx;
+}
+
+.te__sheet-k {
+  display: block;
+  font-size: 22rpx;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: $mp-text-muted;
+  margin-bottom: 14rpx;
+}
+
+.te__chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+}
+
+.te__chip {
+  padding: 14rpx 22rpx;
+  border-radius: 999rpx;
+  background: #f3f4f6;
+  border: 1rpx solid #e5e7eb;
+  font-size: 26rpx;
+  color: #4b5563;
+}
+
+.te__chip--on {
+  background: $mp-accent-soft;
+  border-color: $mp-ring-accent;
+  color: $mp-accent;
+  font-weight: 700;
+}
+
+.te__sheet-multi-hint {
+  display: block;
+  margin: -6rpx 0 14rpx;
+  font-size: 22rpx;
+  line-height: 1.45;
+  color: $mp-text-muted;
+}
+
+.te__sheet-foot {
+  display: flex;
+  flex-direction: row;
+  gap: 16rpx;
+  padding: 20rpx 28rpx calc(24rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid #f3f4f6;
+  background: #fff;
+}
+
+.te__sheet-foot-btn {
+  flex: 1;
+  margin: 0;
 }
 
 .te__fav-row {

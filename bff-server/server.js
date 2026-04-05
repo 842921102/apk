@@ -80,6 +80,15 @@ function safeString(v) {
   return typeof v === 'string' ? v : String(v)
 }
 
+/** base_url + api_path；若 base 已含 path（误填完整端点），避免重复拼接导致 404 */
+function buildModelRequestUrl(baseUrl, apiPath) {
+  const base = safeString(baseUrl).replace(/\/$/, '')
+  const path = safeString(apiPath).replace(/^\//, '')
+  if (!path) return base
+  const suffix = `/${path}`
+  return base.endsWith(suffix) ? base : `${base}${suffix}`
+}
+
 function tryParseJsonFromText(text) {
   if (!text || typeof text !== 'string') return null
   const s = text.trim()
@@ -205,7 +214,7 @@ async function callChatCompletionByScene(sceneCode, { systemPrompt, userPrompt, 
     ? Number(temperature)
     : Number(runtime?.temperature ?? 0.7)
 
-  const requestUrl = `${baseUrl}/${apiPath.replace(/^\//, '')}`
+  const requestUrl = buildModelRequestUrl(baseUrl, apiPath)
   const resp = await fetch(requestUrl, {
     method: 'POST',
     headers: {
@@ -250,7 +259,7 @@ async function callMessagesByScene(sceneCode, { messages, temperature }) {
     ? Number(temperature)
     : Number(runtime?.temperature ?? 0.3)
 
-  const requestUrl = `${baseUrl}/${apiPath.replace(/^\//, '')}`
+  const requestUrl = buildModelRequestUrl(baseUrl, apiPath)
   const resp = await fetch(requestUrl, {
     method: 'POST',
     headers: {
@@ -288,7 +297,7 @@ async function callImageGenerationByScene(sceneCode, { prompt, size = '1024x1024
 
   const timeoutMs = Number(runtime?.timeout_ms || 20000)
   const timeoutSec = Math.max(5, Math.ceil(timeoutMs / 1000))
-  const requestUrl = `${baseUrl}/${apiPath.replace(/^\//, '')}`
+  const requestUrl = buildModelRequestUrl(baseUrl, apiPath)
 
   const resp = await fetch(requestUrl, {
     method: 'POST',
@@ -347,11 +356,21 @@ async function fetchSupabaseRest(pathWithQuery, authHeader) {
   return data
 }
 
-async function proxyToBigModel({ preferences, locale }) {
+async function proxyToBigModel({ preferences, locale, contextTags }) {
   const taste = safeString(preferences?.taste)
   const avoid = safeString(preferences?.avoid)
   const people = preferences?.people != null ? Number(preferences?.people) : undefined
   const peopleText = Number.isFinite(people) && people > 0 ? String(people) : '不限'
+  const tags = Array.isArray(contextTags)
+    ? contextTags.map(safeString).filter(Boolean).slice(0, 48)
+    : []
+  const tagBlock =
+    tags.length > 0
+      ? [
+          '【推荐上下文】以下为系统生成的推荐上下文标签（来自用户授权与当日自填，与性别无硬编码关联）。请据此微调味型、易消化程度与食材；输出 JSON 中不要复述标签名，也不要输出任何生理或医疗诊断表述。',
+          tags.join('、'),
+        ].join('\n')
+      : ''
 
   const sys = [
     '你是“饭否”小程序的晚餐生成器。',
@@ -368,10 +387,13 @@ async function proxyToBigModel({ preferences, locale }) {
     `- 口味偏好 taste: ${taste || '无'}`,
     `- 忌口 avoid: ${avoid || '无'}`,
     `- 用餐人数 people: ${peopleText}`,
+    tagBlock,
     ``,
     `请生成一份适合“今天晚餐”的菜谱，并确保 ingredients 与 content 相互一致。`,
     `语言 locale: ${safeString(locale) || 'zh-CN'}`,
-  ].join('\n')
+  ]
+    .filter((line) => line !== '')
+    .join('\n')
 
   const data = await callChatCompletionByScene(AI_SCENES.TEXT, {
     systemPrompt: sys,
@@ -400,6 +422,135 @@ async function proxyToBigModel({ preferences, locale }) {
     content: recipeContent,
     history_saved: false,
   }
+}
+
+function normalizeLegacyTodayEatResult(raw, contextTags) {
+  const tags = Array.isArray(contextTags)
+    ? contextTags.map(safeString).filter(Boolean).slice(0, 8)
+    : []
+  if (raw && typeof raw === 'object' && safeString(raw.recommended_dish)) {
+    return raw
+  }
+  const title = safeString(raw?.title)
+  const content = safeString(raw?.content)
+  if (!title || !content) {
+    return raw
+  }
+  return {
+    recommended_dish: title,
+    tags: tags.length ? tags : ['今日推荐'],
+    reason_text:
+      '结合你本次的口味与上下文标签，为你搭配了这道晚餐方案，可直接参考食材与步骤。',
+    destiny_text: '好好吃饭，就是今日的小确幸。',
+    alternatives: [],
+    title,
+    cuisine: raw?.cuisine || undefined,
+    ingredients: Array.isArray(raw?.ingredients) ? raw.ingredients : [],
+    content,
+    history_saved: Boolean(raw?.history_saved),
+  }
+}
+
+async function proxyTodayEatViaLaravel(authHeader, body) {
+  if (!ADMIN_BACKEND_BASE_URL) {
+    throw new Error('ADMIN_BACKEND_BASE_URL missing')
+  }
+  const target = `${ADMIN_BACKEND_BASE_URL.replace(/\/$/, '')}/api/me/today-eat`
+  const resp = await fetch(target, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Authorization: authHeader,
+    },
+    body: JSON.stringify(body ?? {}),
+    signal: AbortSignal.timeout(120000),
+  })
+  const text = await resp.text()
+  let data = null
+  try {
+    data = text ? JSON.parse(text) : null
+  } catch {
+    data = null
+  }
+  if (!resp.ok) {
+    const msg =
+      (data && data.message) ||
+      (data && data.error && data.error.message) ||
+      `laravel_today_eat_${resp.status || 0}`
+    const e = new Error(typeof msg === 'string' ? msg : 'laravel_today_eat_failed')
+    e.statusCode = resp.status || 502
+    throw e
+  }
+  return data
+}
+
+async function proxyTodayEatRerollViaLaravel(authHeader, body) {
+  if (!ADMIN_BACKEND_BASE_URL) {
+    throw new Error('ADMIN_BACKEND_BASE_URL missing')
+  }
+  const target = `${ADMIN_BACKEND_BASE_URL.replace(/\/$/, '')}/api/me/today-eat/reroll`
+  const resp = await fetch(target, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Authorization: authHeader,
+    },
+    body: JSON.stringify(body ?? {}),
+    signal: AbortSignal.timeout(120000),
+  })
+  const text = await resp.text()
+  let data = null
+  try {
+    data = text ? JSON.parse(text) : null
+  } catch {
+    data = null
+  }
+  if (!resp.ok) {
+    const msg =
+      (data && data.message) ||
+      (data && data.error && data.error.message) ||
+      `laravel_today_eat_reroll_${resp.status || 0}`
+    const e = new Error(typeof msg === 'string' ? msg : 'laravel_today_eat_reroll_failed')
+    e.statusCode = resp.status || 502
+    throw e
+  }
+  return data
+}
+
+async function proxyTodayEatSelectAlternativeViaLaravel(authHeader, body) {
+  if (!ADMIN_BACKEND_BASE_URL) {
+    throw new Error('ADMIN_BACKEND_BASE_URL missing')
+  }
+  const target = `${ADMIN_BACKEND_BASE_URL.replace(/\/$/, '')}/api/me/today-eat/select-alternative`
+  const resp = await fetch(target, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Authorization: authHeader,
+    },
+    body: JSON.stringify(body ?? {}),
+    signal: AbortSignal.timeout(120000),
+  })
+  const text = await resp.text()
+  let data = null
+  try {
+    data = text ? JSON.parse(text) : null
+  } catch {
+    data = null
+  }
+  if (!resp.ok) {
+    const msg =
+      (data && data.message) ||
+      (data && data.error && data.error.message) ||
+      `laravel_today_eat_select_alt_${resp.status || 0}`
+    const e = new Error(typeof msg === 'string' ? msg : 'laravel_today_eat_select_alt_failed')
+    e.statusCode = resp.status || 502
+    throw e
+  }
+  return data
 }
 
 function normalizeDishTags(x) {
@@ -848,7 +999,7 @@ async function proxyToRecognizeIngredients({ imageBase64 }) {
     '不要输出任何额外说明。',
   ].join('\n')
 
-  const data = await callMessagesByScene(AI_SCENES.IMAGE, {
+  const data = await callMessagesByScene(AI_SCENES.TEXT, {
     temperature: 0.2,
     messages: [
       { role: 'system', content: systemPrompt },
@@ -887,6 +1038,55 @@ function getRoute(req) {
   return { pathname }
 }
 
+/** 供 /health/deps 与本地排障：从 BFF 进程视角探测 Laravel 是否可达 */
+async function probeAdminBackend() {
+  if (!safeString(ADMIN_BACKEND_BASE_URL)) {
+    return {
+      configured: false,
+      error: 'ADMIN_BACKEND_BASE_URL missing',
+    }
+  }
+  const base = ADMIN_BACKEND_BASE_URL.replace(/\/$/, '')
+  const upUrl = `${base}/up`
+  try {
+    const ac = new AbortController()
+    const t = setTimeout(() => ac.abort(), 4000)
+    let resp
+    try {
+      resp = await fetch(upUrl, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        signal: ac.signal,
+      })
+    } finally {
+      clearTimeout(t)
+    }
+    return {
+      configured: true,
+      laravel_base_url: base,
+      up_probe_url: upUrl,
+      up_http_status: resp.status,
+      up_ok: resp.ok,
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'probe_failed'
+    return {
+      configured: true,
+      laravel_base_url: base,
+      up_probe_url: upUrl,
+      up_http_status: null,
+      up_ok: false,
+      error: msg,
+    }
+  }
+}
+
+function isLikelyUpstreamNetworkError(message) {
+  return /ECONNREFUSED|ENOTFOUND|ETIMEDOUT|fetch failed|network|UND_ERR_CONNECT|aborted|timeout/i.test(
+    message,
+  )
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     if (!req.url) return json(res, 404, { error: { message: 'not_found' } })
@@ -895,6 +1095,12 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'GET' && pathname === '/health') {
       return json(res, 200, { ok: true })
+    }
+
+    // 排障：GET http://<本机IP>:PORT/health/deps —— 看 BFF 能否访问 Laravel /up（与微信登录同源）
+    if (req.method === 'GET' && pathname === '/health/deps') {
+      const admin = await probeAdminBackend()
+      return json(res, 200, { ok: true, bff: true, admin_backend: admin })
     }
 
     // 小程序运营配置（空对象即用前端 defaultConfig；见 mini-fan-package src/api/config.ts）
@@ -921,25 +1127,164 @@ const server = http.createServer(async (req, res) => {
 
       try {
         const url = `${ADMIN_BACKEND_BASE_URL.replace(/\/$/, '')}/api/auth/wechat`
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-          body: JSON.stringify({ code }),
-        })
+        const ac = new AbortController()
+        const loginTimer = setTimeout(() => ac.abort(), 25_000)
+        let resp
+        try {
+          resp = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+            },
+            body: JSON.stringify({ code }),
+            signal: ac.signal,
+          })
+        } finally {
+          clearTimeout(loginTimer)
+        }
 
-        const data = await resp.json().catch(() => ({}))
+        const rawText = await resp.text()
+        let data
+        try {
+          data = rawText ? JSON.parse(rawText) : {}
+        } catch {
+          data = {
+            error: {
+              message: 'laravel_non_json_response',
+              detail: rawText.replace(/\s+/g, ' ').slice(0, 400),
+            },
+          }
+        }
 
         if (!resp.ok) {
+          const emptyPayload =
+            data == null ||
+            (typeof data === 'object' &&
+              !Array.isArray(data) &&
+              Object.keys(data).length === 0)
+          if (emptyPayload) {
+            let targetHint = url
+            try {
+              const u = new URL(url)
+              targetHint = `${u.hostname}${u.port ? `:${u.port}` : ''}`
+            } catch {
+              /* keep url */
+            }
+            console.error(
+              '[bff] /api/auth/wechat upstream not ok, empty body',
+              'status=',
+              resp.status,
+              'bytes=',
+              rawText.length,
+              'target=',
+              targetHint,
+            )
+            data = {
+              error: {
+                message: 'laravel_upstream_empty_or_unreadable',
+                detail: `http_status=${resp.status} body_len=${rawText.length} laravel_host=${targetHint} 请检查 ADMIN_BACKEND_BASE_URL 对应服务是否已启动、PHP-FPM/Nginx 是否正常`,
+              },
+            }
+          }
           return json(res, resp.status || 500, data)
         }
 
         return json(res, 200, data)
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'internal_error'
-        return json(res, 500, { error: { message: msg } })
+        console.error('[bff] /api/auth/wechat fetch error', msg)
+        const upstream = isLikelyUpstreamNetworkError(msg)
+        return json(res, upstream ? 502 : 500, {
+          error: {
+            message: upstream ? 'laravel_unreachable' : 'bff_auth_error',
+            detail: msg,
+            hint:
+              '在本机启动 admin-backend（如 cd admin-backend && php artisan serve），并核对 bff-server/.env 的 ADMIN_BACKEND_BASE_URL 与端口一致；BFF 若在 Docker 内勿用 127.0.0.1，改用 host.docker.internal。排障可访问 GET /health/deps',
+          },
+        })
+      }
+    }
+
+    // 小程序「我的」资料与每日状态：透传 Laravel /api/me/*
+    if (pathname.startsWith('/api/me')) {
+      if (!ADMIN_BACKEND_BASE_URL) {
+        return json(res, 500, {
+          error: { message: 'ADMIN_BACKEND_BASE_URL missing' },
+        })
+      }
+      if (!['GET', 'PUT', 'PATCH', 'POST'].includes(req.method)) {
+        return json(res, 405, { error: { message: 'method_not_allowed' } })
+      }
+      const uFull = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`)
+      const search = uFull.search || ''
+      const target = `${ADMIN_BACKEND_BASE_URL.replace(/\/$/, '')}${pathname}${search}`
+      const headers = {
+        Accept: 'application/json',
+      }
+      const auth = req.headers.authorization
+      if (auth) {
+        headers.Authorization = auth
+      }
+      let body
+      if (req.method === 'PUT' || req.method === 'PATCH' || req.method === 'POST') {
+        const jsonBody = await readJsonBody(req)
+        headers['Content-Type'] = 'application/json'
+        body = JSON.stringify(jsonBody ?? {})
+      }
+      try {
+        const resp = await fetch(target, { method: req.method, headers, body })
+        const text = await resp.text()
+        res.writeHead(resp.status, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        })
+        res.end(text)
+        return
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'proxy_failed'
+        return json(res, 502, { error: { message: msg } })
+      }
+    }
+
+    // 用户画像 REST：透传 Laravel /api/user/*（含 POST 问卷落库）
+    if (pathname.startsWith('/api/user')) {
+      if (!ADMIN_BACKEND_BASE_URL) {
+        return json(res, 500, {
+          error: { message: 'ADMIN_BACKEND_BASE_URL missing' },
+        })
+      }
+      if (!['GET', 'POST', 'PUT', 'PATCH'].includes(req.method)) {
+        return json(res, 405, { error: { message: 'method_not_allowed' } })
+      }
+      const uFull = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`)
+      const search = uFull.search || ''
+      const target = `${ADMIN_BACKEND_BASE_URL.replace(/\/$/, '')}${pathname}${search}`
+      const headers = {
+        Accept: 'application/json',
+      }
+      const auth = req.headers.authorization
+      if (auth) {
+        headers.Authorization = auth
+      }
+      let body
+      if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+        const jsonBody = await readJsonBody(req)
+        headers['Content-Type'] = 'application/json'
+        body = JSON.stringify(jsonBody ?? {})
+      }
+      try {
+        const resp = await fetch(target, { method: req.method, headers, body })
+        const text = await resp.text()
+        res.writeHead(resp.status, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        })
+        res.end(text)
+        return
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'proxy_failed'
+        return json(res, 502, { error: { message: msg } })
       }
     }
 
@@ -1086,14 +1431,39 @@ const server = http.createServer(async (req, res) => {
       const body = await readJsonBody(req)
       const preferences = body?.preferences ?? {}
       const locale = body?.locale ?? 'zh-CN'
+      const contextTagsRaw = Array.isArray(body?.context_tags)
+        ? body.context_tags
+        : Array.isArray(body?.contextTags)
+          ? body.contextTags
+          : []
+      const contextTags = contextTagsRaw.map(safeString).filter(Boolean).slice(0, 48)
       try {
-        const result = await proxyToBigModel({ preferences, locale })
+        const auth = getAuthHeader(req)
+        let result
+        if (auth && ADMIN_BACKEND_BASE_URL) {
+          try {
+            result = await proxyTodayEatViaLaravel(auth, {
+              preferences,
+              locale,
+              context_tags: contextTags,
+            })
+          } catch (laravelErr) {
+            console.warn('[bff today-eat] Laravel recommend failed, fallback to legacy bigmodel', laravelErr)
+            result = await proxyToBigModel({ preferences, locale, contextTags })
+            result = normalizeLegacyTodayEatResult(result, contextTags)
+          }
+        } else {
+          result = await proxyToBigModel({ preferences, locale, contextTags })
+          result = normalizeLegacyTodayEatResult(result, contextTags)
+        }
+
+        const dishTitle = safeString(result?.title || result?.recommended_dish)
         await postEatMemeRecord({
           channel: 'android_app',
           taste: safeString(preferences?.taste),
           avoid: safeString(preferences?.avoid),
           people: Number.isFinite(Number(preferences?.people)) ? Number(preferences?.people) : null,
-          result_title: safeString(result?.title),
+          result_title: dishTitle,
           result_cuisine: safeString(result?.cuisine),
           result_ingredients: Array.isArray(result?.ingredients) ? result.ingredients : [],
           result_content: safeString(result?.content),
@@ -1104,12 +1474,14 @@ const server = http.createServer(async (req, res) => {
           feature_type: 'custom_cuisine',
           sub_type: 'generate',
           status: 'success',
-          title: safeString(result?.title),
-          input_payload: { preferences, locale },
-          result_summary: safeString(result?.content).slice(0, 200),
+          title: dishTitle,
+          input_payload: { preferences, locale, context_tags: contextTags },
+          result_summary: safeString(result?.reason_text || result?.content).slice(0, 200),
           result_payload: {
             cuisine: safeString(result?.cuisine),
             ingredients: normalizeIngredients(result?.ingredients),
+            tags: Array.isArray(result?.tags) ? result.tags : [],
+            alternatives: Array.isArray(result?.alternatives) ? result.alternatives : [],
           },
           requested_at: new Date().toISOString(),
         })
@@ -1128,11 +1500,184 @@ const server = http.createServer(async (req, res) => {
           feature_type: 'custom_cuisine',
           sub_type: 'generate',
           status: 'failed',
-          input_payload: { preferences, locale },
+          input_payload: { preferences, locale, context_tags: contextTags },
           error_message: e instanceof Error ? e.message : 'generate_failed',
           requested_at: new Date().toISOString(),
         })
-        throw e
+        console.warn('[bff today-eat] Laravel + legacy 均失败，返回静态兜底 JSON', e)
+        const fallback = {
+          recommended_dish: '番茄鸡蛋面',
+          tags: contextTags.length ? contextTags.slice(0, 8) : ['家常', '快手'],
+          reason_text:
+            '网络或小模型暂时不可用，先给你一份稳妥的家常方案顶一顶；食材常见，步骤短，适合今晚快速落桌。',
+          destiny_text: '先吃饱，我们再慢慢变好。',
+          alternatives: ['清蒸鲈鱼', '冬瓜排骨汤', '白灼菜心'],
+          title: '番茄鸡蛋面',
+          cuisine: '家常菜',
+          ingredients: ['番茄', '鸡蛋', '面条', '葱'],
+          content:
+            '1）番茄切块，鸡蛋打散；热锅少油先炒蛋盛起。\n2）再少油炒番茄出汁，回锅鸡蛋，盐糖调味。\n3）另煮面条，沥干后与浇头拌匀即可。',
+          history_saved: false,
+          recommendation_fallback: true,
+        }
+        return json(res, 200, fallback)
+      }
+    }
+
+    if (req.method === 'POST' && pathname === '/api/ai/today-eat/reroll') {
+      const body = await readJsonBody(req)
+      const preferences = body?.preferences ?? {}
+      const locale = body?.locale ?? 'zh-CN'
+      const recommendationSessionId = safeString(body?.recommendation_session_id)
+      if (!recommendationSessionId) {
+        return json(res, 400, { error: { message: 'recommendation_session_id_required' } })
+      }
+      const auth = getAuthHeader(req)
+      if (!auth || !ADMIN_BACKEND_BASE_URL) {
+        return json(res, 401, { error: { message: 'reroll_requires_auth' } })
+      }
+      try {
+        const result = await proxyTodayEatRerollViaLaravel(auth, {
+          recommendation_session_id: recommendationSessionId,
+          preferences,
+          locale,
+        })
+        const dishTitle = safeString(result?.title || result?.recommended_dish)
+        await postEatMemeRecord({
+          channel: 'android_app',
+          taste: safeString(preferences?.taste),
+          avoid: safeString(preferences?.avoid),
+          people: Number.isFinite(Number(preferences?.people)) ? Number(preferences?.people) : null,
+          result_title: dishTitle,
+          result_cuisine: safeString(result?.cuisine),
+          result_ingredients: Array.isArray(result?.ingredients) ? result.ingredients : [],
+          result_content: safeString(result?.content),
+          status: 'success',
+          requested_at: new Date().toISOString(),
+        })
+        await postFeatureDataRecord({
+          feature_type: 'custom_cuisine',
+          sub_type: 'reroll',
+          status: 'success',
+          title: dishTitle,
+          input_payload: { preferences, locale, recommendation_session_id: recommendationSessionId },
+          result_summary: safeString(result?.reason_text || result?.content).slice(0, 200),
+          result_payload: {
+            cuisine: safeString(result?.cuisine),
+            ingredients: normalizeIngredients(result?.ingredients),
+            tags: Array.isArray(result?.tags) ? result.tags : [],
+            alternatives: Array.isArray(result?.alternatives) ? result.alternatives : [],
+          },
+          requested_at: new Date().toISOString(),
+        })
+        return json(res, 200, result)
+      } catch (e) {
+        await postEatMemeRecord({
+          channel: 'android_app',
+          taste: safeString(preferences?.taste),
+          avoid: safeString(preferences?.avoid),
+          people: Number.isFinite(Number(preferences?.people)) ? Number(preferences?.people) : null,
+          status: 'failed',
+          error_message: e instanceof Error ? e.message : 'reroll_failed',
+          requested_at: new Date().toISOString(),
+        })
+        await postFeatureDataRecord({
+          feature_type: 'custom_cuisine',
+          sub_type: 'reroll',
+          status: 'failed',
+          input_payload: { preferences, locale, recommendation_session_id: recommendationSessionId },
+          error_message: e instanceof Error ? e.message : 'reroll_failed',
+          requested_at: new Date().toISOString(),
+        })
+        const msg = e instanceof Error ? e.message : 'reroll_failed'
+        const code = e && typeof e.statusCode === 'number' ? e.statusCode : 502
+        return json(res, code >= 400 && code < 600 ? code : 502, { error: { message: msg } })
+      }
+    }
+
+    if (req.method === 'POST' && pathname === '/api/ai/today-eat/select-alternative') {
+      const body = await readJsonBody(req)
+      const preferences = body?.preferences ?? {}
+      const locale = body?.locale ?? 'zh-CN'
+      const recommendationSessionId = safeString(body?.recommendation_session_id)
+      const selectedDish = safeString(body?.selected_dish)
+      if (!recommendationSessionId) {
+        return json(res, 400, { error: { message: 'recommendation_session_id_required' } })
+      }
+      if (!selectedDish) {
+        return json(res, 400, { error: { message: 'selected_dish_required' } })
+      }
+      const auth = getAuthHeader(req)
+      if (!auth || !ADMIN_BACKEND_BASE_URL) {
+        return json(res, 401, { error: { message: 'select_alternative_requires_auth' } })
+      }
+      try {
+        const result = await proxyTodayEatSelectAlternativeViaLaravel(auth, {
+          recommendation_session_id: recommendationSessionId,
+          selected_dish: selectedDish,
+          preferences,
+          locale,
+        })
+        const dishTitle = safeString(result?.title || result?.recommended_dish)
+        await postEatMemeRecord({
+          channel: 'android_app',
+          taste: safeString(preferences?.taste),
+          avoid: safeString(preferences?.avoid),
+          people: Number.isFinite(Number(preferences?.people)) ? Number(preferences?.people) : null,
+          result_title: dishTitle,
+          result_cuisine: safeString(result?.cuisine),
+          result_ingredients: Array.isArray(result?.ingredients) ? result.ingredients : [],
+          result_content: safeString(result?.content),
+          status: 'success',
+          requested_at: new Date().toISOString(),
+        })
+        await postFeatureDataRecord({
+          feature_type: 'custom_cuisine',
+          sub_type: 'alternative_selected',
+          status: 'success',
+          title: dishTitle,
+          input_payload: {
+            preferences,
+            locale,
+            recommendation_session_id: recommendationSessionId,
+            selected_dish: selectedDish,
+          },
+          result_summary: safeString(result?.reason_text || result?.content).slice(0, 200),
+          result_payload: {
+            cuisine: safeString(result?.cuisine),
+            ingredients: normalizeIngredients(result?.ingredients),
+            tags: Array.isArray(result?.tags) ? result.tags : [],
+            alternatives: Array.isArray(result?.alternatives) ? result.alternatives : [],
+          },
+          requested_at: new Date().toISOString(),
+        })
+        return json(res, 200, result)
+      } catch (e) {
+        await postEatMemeRecord({
+          channel: 'android_app',
+          taste: safeString(preferences?.taste),
+          avoid: safeString(preferences?.avoid),
+          people: Number.isFinite(Number(preferences?.people)) ? Number(preferences?.people) : null,
+          status: 'failed',
+          error_message: e instanceof Error ? e.message : 'select_alternative_failed',
+          requested_at: new Date().toISOString(),
+        })
+        await postFeatureDataRecord({
+          feature_type: 'custom_cuisine',
+          sub_type: 'alternative_selected',
+          status: 'failed',
+          input_payload: {
+            preferences,
+            locale,
+            recommendation_session_id: recommendationSessionId,
+            selected_dish: selectedDish,
+          },
+          error_message: e instanceof Error ? e.message : 'select_alternative_failed',
+          requested_at: new Date().toISOString(),
+        })
+        const msg = e instanceof Error ? e.message : 'select_alternative_failed'
+        const code = e && typeof e.statusCode === 'number' ? e.statusCode : 502
+        return json(res, code >= 400 && code < 600 ? code : 502, { error: { message: msg } })
       }
     }
 

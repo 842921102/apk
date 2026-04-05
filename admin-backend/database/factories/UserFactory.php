@@ -17,6 +17,14 @@ class UserFactory extends Factory
      */
     protected static ?string $password;
 
+    #[\Override]
+    public function configure(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            $user->ensureProfile();
+        });
+    }
+
     /**
      * Define the model's default state.
      *

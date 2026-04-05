@@ -6,13 +6,53 @@ import type { TodayEatRequestBody, TodayEatResult } from '@/types/ai'
  * BFF 实现：POST /api/ai/today-eat
  */
 export async function requestTodayEat(body: TodayEatRequestBody): Promise<TodayEatResult> {
+  const payload: Record<string, unknown> = {
+    preferences: body.preferences,
+    locale: body.locale ?? 'zh-CN',
+  }
+  if (body.context_tags?.length) {
+    payload.context_tags = body.context_tags
+  }
   return request<TodayEatResult>({
     url: '/api/ai/today-eat',
     method: 'POST',
+    data: payload,
+  })
+}
+
+/** 同一会话内换一道（需首轮返回的 recommendation_session_id，且已登录走 Laravel） */
+export async function requestTodayEatReroll(body: {
+  recommendation_session_id: string
+  preferences: TodayEatRequestBody['preferences']
+  locale?: string
+}): Promise<TodayEatResult> {
+  return request<TodayEatResult>({
+    url: '/api/ai/today-eat/reroll',
+    method: 'POST',
     data: {
+      recommendation_session_id: body.recommendation_session_id,
       preferences: body.preferences,
       locale: body.locale ?? 'zh-CN',
-    } as Record<string, unknown>,
+    },
+  })
+}
+
+/** 用户点选备选菜作为今日主菜（重新生成完整解释与备选列表） */
+export async function requestTodayEatSelectAlternative(body: {
+  recommendation_session_id: string
+  selected_dish: string
+  preferences: TodayEatRequestBody['preferences']
+  locale?: string
+}): Promise<TodayEatResult> {
+  return request<TodayEatResult>({
+    url: '/api/ai/today-eat/select-alternative',
+    method: 'POST',
+    data: {
+      recommendation_session_id: body.recommendation_session_id,
+      selected_dish: body.selected_dish,
+      preferences: body.preferences,
+      locale: body.locale ?? 'zh-CN',
+    },
   })
 }
 

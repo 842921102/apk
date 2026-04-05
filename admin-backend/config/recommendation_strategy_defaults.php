@@ -1,0 +1,118 @@
+<?php
+
+/**
+ * 推荐策略默认配置（与 recommendation_configs 合并；DB 覆盖优先）。
+ * 所有可调权重集中于此，业务代码通过 RecommendationConfigService 读取。
+ */
+return [
+    'tag_weights' => [
+        'flavor_pref_hit' => 12.0,
+        'diet_goal_hit' => 10.0,
+        'daily_wanted' => 8.0,
+        'daily_body_warm' => 6.0,
+        'daily_mood_light' => 5.0,
+    ],
+    'feedback_apply_weights' => [
+        'boost_flavor' => 9.0,
+        'pen_flavor' => -14.0,
+        'boost_cuisine' => 8.0,
+        'pen_cuisine' => -12.0,
+        'pen_ingredient' => -10.0,
+        'pen_same_dish_name' => -50.0,
+        'temp_pen_cold' => -10.0,
+        'temp_pen_warm' => -6.0,
+    ],
+    'recent_similarity' => [
+        'ingredient_overlap_penalty' => -18.0,
+        'overlap_min_count' => 2,
+        'same_cuisine_penalty' => -6.0,
+        'same_dish_penalty' => -40.0,
+    ],
+    'learned_weights' => [
+        'dish_abs_threshold' => 0.4,
+        'cuisine_abs_threshold' => 0.35,
+        'flavor_mult' => 0.85,
+        'flavor_abs_threshold' => 0.35,
+        'health_abs_threshold' => 0.35,
+        'complexity_abs_threshold' => 0.35,
+        'scene_abs_threshold' => 0.35,
+        'not_today_followup_abs_threshold' => 0.35,
+        'scale_mult' => 0.3,
+        'scale_cap' => 24.0,
+        'not_today_mult_first_day' => 1.0,
+        'not_today_mult_decay_per_day' => 0.22,
+        'not_today_mult_floor' => 0.12,
+    ],
+    'diversity_guard' => [
+        'cuisine_pull_threshold' => 5.5,
+        'same_cuisine_streak_min' => 2,
+        'penalty_base' => 4.0,
+        'penalty_pull_mult' => 0.32,
+        'penalty_streak_mult' => 2.2,
+        'penalty_cap' => 18.0,
+    ],
+    'cooking_scene' => [
+        'freq_rare_heavy_penalty' => -15.0,
+        'freq_daily_quick_bonus' => 4.0,
+        'family_mismatch_solo_penalty' => -8.0,
+        'small_family_portions_penalty' => -5.0,
+    ],
+    'favorites_overlap' => [
+        'min_keyword_hits' => 2,
+        'bonus' => 8.0,
+    ],
+    'diversity_control' => [
+        'near_dup_last_main_penalty' => 85.0,
+        'near_locked_main_penalty' => 90.0,
+        'recent_cuisine_echo_penalty' => 12.0,
+        'similarity_threshold_percent' => 48.0,
+        'primary_pick' => 5,
+        'alternative_pool' => 18,
+        'primary_max_per_cuisine' => 2,
+        'alternative_max_per_cuisine' => 5,
+        'cuisine_trail_max' => 8,
+        'alternative_only_pool_max' => 20,
+        'recent_rows_lookback_days' => 14,
+        'recent_rows_limit' => 40,
+    ],
+    'reroll_strategy' => [
+        'pivot_order' => ['warming', 'light', 'home_comfort', 'quick', 'high_protein'],
+        'pivot_specs' => [
+            'warming' => ['label_cn' => '暖胃型', 'hint_cn' => '热汤、炖煮、暖身为主，少生冷'],
+            'light' => ['label_cn' => '清爽型', 'hint_cn' => '少油少腻、清淡适口、肠胃负担小'],
+            'home_comfort' => ['label_cn' => '家常治愈型', 'hint_cn' => '熟悉家常菜感、安抚胃口、好下饭'],
+            'quick' => ['label_cn' => '快手型', 'hint_cn' => '步骤少、耗时短、适合工作日快节奏'],
+            'high_protein' => ['label_cn' => '高蛋白型', 'hint_cn' => '鱼禽蛋豆等优质蛋白更突出'],
+        ],
+    ],
+    'feature_switches' => [
+        'enable_taboo_filter' => true,
+        'enable_flavor_preference' => true,
+        'enable_diet_goal' => true,
+        'enable_daily_status' => true,
+        'enable_recent_similar' => true,
+        'enable_feedback_scoring' => true,
+        'enable_favorites_overlap' => true,
+        'enable_learned_signals' => true,
+        'enable_learned_diversity_guard' => true,
+        'enable_cooking_frequency' => true,
+        'enable_family_scene' => true,
+    ],
+    'user_preference_signal_decay' => [
+        'weight_min' => -150.0,
+        'weight_max' => 150.0,
+        'decay_cap_days' => 120.0,
+        'decay_floor' => 0.08,
+        'fetch_limit' => 400,
+        'effective_abs_floor' => 0.2,
+    ],
+    'feedback_signal_builder' => [
+        'lookback_days' => 30,
+        'fetch_limit' => 120,
+        'want_ingredient_slice' => 6,
+    ],
+    'scoring_core' => [
+        'base_score' => 100.0,
+        'exclude_score' => -1_000_000.0,
+    ],
+];

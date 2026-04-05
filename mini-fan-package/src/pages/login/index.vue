@@ -20,7 +20,7 @@
 
       <view v-else-if="apiUsesLoopback" class="warn-card">
         <text class="warn-card-title">当前为 localhost，真机不可访问</text>
-        <text class="warn-card-sub">请改成电脑局域网 IP（例如 `http://192.168.1.12:8800`）后重新编译。</text>
+        <text class="warn-card-sub">请改成电脑局域网 IP（例如 `http://192.168.0.108:8800`）后重新编译。</text>
       </view>
 
       <view class="helper">
@@ -50,6 +50,7 @@ import { useAuth } from '@/composables/useAuth'
 import { requestWeChatLoginCode } from '@/services/auth/wechatLoginSkeleton'
 import { loginWithWechatCode } from '@/api/auth'
 import { HttpError } from '@/api/http'
+import { shouldAutoOpenOnboardingForCurrentSession } from '@/composables/useOnboardingFlow'
 
 const { setToken, setCurrentUser } = useAuth()
 
@@ -85,10 +86,10 @@ onLoad((options) => {
 
 function toastFromError(e: unknown): string {
   if (e instanceof HttpError) {
-    return e.message.slice(0, 48)
+    return e.message.slice(0, 240)
   }
   if (e instanceof Error) {
-    return e.message.slice(0, 48)
+    return e.message.slice(0, 240)
   }
   return '登录失败'
 }
@@ -112,15 +113,29 @@ async function onWeChatLogin() {
     const result = await loginWithWechatCode(code)
 
     const accessToken = (result.access_token ?? result.accessToken) as string | undefined
-    const wxUser = result.user as { id?: string; nickname?: string } | undefined
+    const wxUser = result.user as Record<string, unknown> | undefined
 
     if (accessToken) {
       setToken(accessToken)
-      if (wxUser?.id) {
-        setCurrentUser({ id: String(wxUser.id), nickname: wxUser.nickname })
+      if (wxUser?.id != null) {
+        setCurrentUser({
+          id: String(wxUser.id),
+          nickname: typeof wxUser.nickname === 'string' ? wxUser.nickname : undefined,
+          needsOnboarding: wxUser.needs_onboarding === true,
+          periodFeatureEnabled: wxUser.period_feature_enabled === true,
+        })
       }
       uni.showToast({ title: '登录成功', icon: 'success' })
-      setTimeout(() => navigateAfterLogin(), 400)
+      setTimeout(() => {
+        if (shouldAutoOpenOnboardingForCurrentSession()) {
+          const r = redirectPath.value.trim()
+            ? encodeURIComponent(redirectPath.value)
+            : encodeURIComponent('/pages/today-eat/index')
+          uni.redirectTo({ url: `/pages/onboarding/index?redirect=${r}` })
+          return
+        }
+        navigateAfterLogin()
+      }, 400)
     } else {
       uni.showToast({ title: '服务端未返回 token', icon: 'none' })
     }

@@ -14,6 +14,8 @@ export interface FavoriteRow {
   ingredients?: string[]
   recipe_content: string
   image_url?: string | null
+  /** 来自 extra_payload.tags（菜谱收藏等） */
+  tags?: string[]
   created_at?: string
 }
 

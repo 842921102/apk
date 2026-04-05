@@ -34,7 +34,16 @@ function mapApiToFavoriteRow(it: FavoriteApiItem): FavoriteRow {
     it.extra_payload && typeof it.extra_payload === 'object'
       ? (it.extra_payload as Record<string, unknown>)
       : {}
-  const imageUrl = typeof extra.image_url === 'string' ? extra.image_url : null
+  const imageUrl =
+    typeof extra.cover_image === 'string'
+      ? extra.cover_image
+      : typeof extra.image_url === 'string'
+        ? extra.image_url
+        : null
+
+  const tagList = Array.isArray(extra.tags)
+    ? extra.tags.filter((x): x is string => typeof x === 'string' && x.trim())
+    : []
 
   return {
     id: it.id,
@@ -46,6 +55,7 @@ function mapApiToFavoriteRow(it: FavoriteApiItem): FavoriteRow {
     ingredients: it.ingredients ?? undefined,
     recipe_content: it.recipe_content,
     image_url: imageUrl,
+    tags: tagList.length ? tagList : undefined,
     created_at: it.created_at ?? undefined,
   }
 }
@@ -53,6 +63,13 @@ function mapApiToFavoriteRow(it: FavoriteApiItem): FavoriteRow {
 export async function fetchFavorites(): Promise<FavoriteRow[]> {
   assertLaravelFavoriteSession()
   const { data, meta } = await apiListFavorites({ per_page: 100, page: 1 })
+  void meta
+  return data.map(mapApiToFavoriteRow)
+}
+
+export async function fetchRecipeFavorites(): Promise<FavoriteRow[]> {
+  assertLaravelFavoriteSession()
+  const { data, meta } = await apiListFavorites({ per_page: 100, page: 1, source_type: 'recipe' })
   void meta
   return data.map(mapApiToFavoriteRow)
 }
@@ -65,6 +82,12 @@ export async function deleteFavoriteById(id: number): Promise<void> {
 export async function getFavoritesCount(): Promise<number> {
   assertLaravelFavoriteSession()
   const { meta } = await apiListFavorites({ per_page: 1, page: 1 })
+  return meta.pagination.total
+}
+
+export async function getRecipeFavoritesCount(): Promise<number> {
+  assertLaravelFavoriteSession()
+  const { meta } = await apiListFavorites({ per_page: 1, page: 1, source_type: 'recipe' })
   return meta.pagination.total
 }
 
@@ -86,7 +109,7 @@ export async function toggleFavoriteRecipe(payload: {
   title: string
   cuisine?: string | null
   ingredients?: string[]
-  recipe_content: string
+  recipe_content?: string
   image_url?: string | null
   extra_payload?: Record<string, unknown> | null
 }): Promise<{ favorited: boolean; id?: number }> {
@@ -95,6 +118,7 @@ export async function toggleFavoriteRecipe(payload: {
   const extra = { ...payload.extra_payload }
   if (payload.image_url) {
     extra.image_url = payload.image_url
+    extra.cover_image = payload.image_url
   }
 
   const { data: checked } = await apiCheckFavorite(payload.source_type, payload.source_id)
@@ -109,7 +133,7 @@ export async function toggleFavoriteRecipe(payload: {
     title: payload.title,
     cuisine: payload.cuisine,
     ingredients: payload.ingredients ?? [],
-    recipe_content: payload.recipe_content,
+    recipe_content: payload.recipe_content ?? '',
     extra_payload: Object.keys(extra).length ? extra : null,
   })
 

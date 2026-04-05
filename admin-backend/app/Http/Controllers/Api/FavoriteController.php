@@ -7,6 +7,8 @@ use App\Http\Requests\Api\CheckFavoriteRequest;
 use App\Http\Requests\Api\StoreFavoriteRequest;
 use App\Models\Favorite;
 use App\Services\FavoriteService;
+use App\Services\RecommendationEventRecorder;
+use App\Services\UserPreferenceSignalRecorder;
 use App\Support\FavoriteSourceType;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +18,8 @@ final class FavoriteController extends Controller
 {
     public function __construct(
         private FavoriteService $favorites,
+        private UserPreferenceSignalRecorder $preferenceSignalRecorder,
+        private RecommendationEventRecorder $recommendationEventRecorder,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -40,7 +44,10 @@ final class FavoriteController extends Controller
 
     public function store(StoreFavoriteRequest $request): JsonResponse
     {
-        $favorite = $this->favorites->createForUser((int) $request->user()->id, $request->validated());
+        $validated = $request->validated();
+        $favorite = $this->favorites->createForUser((int) $request->user()->id, $validated);
+        $this->preferenceSignalRecorder->recordFavoriteCreated($request->user(), $favorite, $validated);
+        $this->recommendationEventRecorder->recipeFavoriteFromFavoriteStore($request->user(), $validated);
 
         return response()->json([
             'data' => $this->favorites->toApiArray($favorite),

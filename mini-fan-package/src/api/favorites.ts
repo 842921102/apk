@@ -9,6 +9,8 @@ export type FavoriteSourceTypeApi =
   | 'fortune_cooking'
   | 'sauce_design'
   | 'gallery'
+  | 'recommendation_record'
+  | 'recipe'
 
 export interface FavoriteApiItem {
   id: number
@@ -52,7 +54,8 @@ export async function apiCreateFavorite(body: {
   title: string
   cuisine?: string | null
   ingredients?: string[]
-  recipe_content: string
+  /** 菜谱收藏可为空串 */
+  recipe_content?: string
   extra_payload?: Record<string, unknown> | null
 }): Promise<{ data: FavoriteApiItem }> {
   return request<{ data: FavoriteApiItem }>({

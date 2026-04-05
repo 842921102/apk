@@ -29,18 +29,73 @@ function joinUrl(base: string, path: string): string {
   return `${b}${p}`
 }
 
-function parseErrorMessage(data: unknown, fallback: string): string {
+function stringifyDetail(detail: unknown): string {
+  if (detail == null) return ''
+  if (typeof detail === 'string') return detail.trim()
+  if (typeof detail === 'object') {
+    try {
+      return JSON.stringify(detail).slice(0, 200)
+    } catch {
+      return ''
+    }
+  }
+  return String(detail).trim()
+}
+
+function parseErrorMessage(data: unknown, fallback: string, statusCode: number): string {
+  if (data == null || data === '') {
+    if (statusCode >= 500) {
+      return `${fallback}（无响应体，检查 BFF/网关/Laravel 是否可达）`
+    }
+    return fallback
+  }
+
+  // 网关常返回 HTML 纯文本，uni 的 data 为 string，导致原先只能看到「请求失败 (502)」
+  if (typeof data === 'string') {
+    const s = data.trim()
+    if ((s.startsWith('{') || s.startsWith('[')) && s.length > 1) {
+      try {
+        return parseErrorMessage(JSON.parse(s) as unknown, fallback, statusCode)
+      } catch {
+        /* 非 JSON 字符串，继续走下方摘要 */
+      }
+    }
+    const snippet = s.replace(/\s+/g, ' ').slice(0, 180)
+    if (snippet) {
+      return `${fallback} · ${snippet}`
+    }
+  }
+
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    const o = data as Record<string, unknown>
+    if (Object.keys(o).length === 0 && statusCode >= 500) {
+      return `${fallback}（响应体为空，多为网关或上游未启动）`
+    }
+  }
+
   if (data && typeof data === 'object') {
     const o = data as Record<string, unknown>
     const err = o.error
     if (err && typeof err === 'object') {
       const er = err as Record<string, unknown>
       const m = er.message
+      const detailStr = stringifyDetail(er.detail)
+      const hintStr = stringifyDetail(er.hint)
       if (typeof m === 'string' && m) {
         if (m === 'not_found' && typeof er.path === 'string') {
           return `无此接口：${String(er.method ?? '')} ${er.path}`.trim()
         }
+        if (detailStr) {
+          const core = `${m}: ${detailStr}`.slice(0, 200)
+          return hintStr ? `${core} · ${hintStr.slice(0, 100)}` : core.slice(0, 240)
+        }
+        if (hintStr) {
+          return `${m} · ${hintStr}`.slice(0, 240)
+        }
         return m
+      }
+      if (detailStr) {
+        return detailStr.slice(0, 240)
       }
     }
     if (typeof o.message === 'string' && o.message) return o.message
@@ -94,7 +149,7 @@ export function request<T = unknown>(options: HttpRequestOptions): Promise<T> {
           resolve(res.data as T)
           return
         }
-        const msg = parseErrorMessage(res.data, `请求失败 (${status})`)
+        const msg = parseErrorMessage(res.data, `请求失败 (${status})`, status)
         reject(new HttpError(msg, status, res.data))
       },
       fail: (err) => {

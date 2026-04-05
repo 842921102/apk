@@ -28,6 +28,7 @@ final class RecipeHistoriesTable
             FavoriteSourceType::FortuneCooking->value => '玄学厨房',
             FavoriteSourceType::SauceDesign->value => '酱料大师',
             FavoriteSourceType::Gallery->value => '图鉴',
+            FavoriteSourceType::RecommendationRecord->value => '推荐历史',
         ];
 
         return $table

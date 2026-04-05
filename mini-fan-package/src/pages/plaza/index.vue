@@ -31,25 +31,8 @@
         <view class="plaza__section-titles">
           <text class="plaza__rail-k">功能入口</text>
           <text class="plaza__h2">全部工具</text>
-          <text class="plaza__h2-sub">
-            以下为远端配置的广场入口；「可进入」已接入小程序路由，「开发中」将在后续版本开放。
-          </text>
-          <text v-if="visibleEntries.length" class="plaza__h2-meta">
-            共 {{ visibleEntries.length }} 项 · 已开放 {{ liveCount }} 项 · 开发中 {{ holdCount }} 项
-          </text>
         </view>
         <text class="plaza__pill">精选</text>
-      </view>
-
-      <view class="plaza__legend">
-        <view class="plaza__legend-item">
-          <view class="plaza__legend-bar plaza__legend-bar--live" />
-          <text class="plaza__legend-txt">可进入</text>
-        </view>
-        <view class="plaza__legend-item">
-          <view class="plaza__legend-bar plaza__legend-bar--hold" />
-          <text class="plaza__legend-txt">开发中</text>
-        </view>
       </view>
 
       <view class="plaza__grid">
@@ -102,17 +85,6 @@
         </view>
       </view>
     </view>
-
-    <!-- 说明区 -->
-    <view class="plaza__section plaza__section--foot">
-      <view class="mp-card mp-card--inset plaza__hint">
-        <text class="plaza__rail-k plaza__rail-k--accent">说明</text>
-        <text class="plaza__hint-title">小程序版持续补齐</text>
-        <text class="plaza__hint-body">
-          入口列表由后台「广场配置」下发并与默认配置合并；已配置路由的入口会跳转对应页，未配置或标记即将上线的入口仅作展示。
-        </text>
-      </view>
-    </view>
   </view>
 </template>
 
@@ -123,21 +95,19 @@ import { useVisiblePlazaEntries } from '@/composables/useVisiblePlazaEntries'
 import { isKnownAppPageRoute, plazaNavTypeForRoute } from '@/lib/plazaNav'
 import type { PlazaEntryConfig } from '@/types/plazaConfig'
 
+/** 菜单 Tab 不展示（底栏已有「我的」等入口） */
+const PLAZA_MENU_HIDDEN_KEYS = new Set(['favorites', 'histories', 'me'])
+
 const { config } = useAppConfig()
 
-const visibleEntries = useVisiblePlazaEntries(config)
+const rawPlazaEntries = useVisiblePlazaEntries(config)
+const visibleEntries = computed(() =>
+  rawPlazaEntries.value.filter((e) => !PLAZA_MENU_HIDDEN_KEYS.has(e.key)),
+)
 
 function isPlaceholder(item: PlazaEntryConfig): boolean {
   return Boolean(item.coming_soon) || !item.route?.trim()
 }
-
-const liveCount = computed(() =>
-  visibleEntries.value.filter((e) => !isPlaceholder(e)).length,
-)
-
-const holdCount = computed(() =>
-  visibleEntries.value.filter((e) => isPlaceholder(e)).length,
-)
 
 function goInspiration() {
   uni.switchTab({ url: '/pages/inspiration/index' })
@@ -252,11 +222,6 @@ function onEntryTap(item: PlazaEntryConfig) {
   margin-top: 8rpx;
 }
 
-.plaza__section--foot {
-  margin-top: 12rpx;
-  margin-bottom: 8rpx;
-}
-
 .plaza__section-head {
   display: flex;
   flex-direction: row;
@@ -281,10 +246,6 @@ function onEntryTap(item: PlazaEntryConfig) {
   color: $mp-text-muted;
 }
 
-.plaza__rail-k--accent {
-  color: $mp-accent;
-}
-
 .plaza__h2 {
   display: block;
   margin-top: 8rpx;
@@ -292,22 +253,6 @@ function onEntryTap(item: PlazaEntryConfig) {
   font-weight: 800;
   color: $mp-text-primary;
   letter-spacing: -0.02em;
-}
-
-.plaza__h2-sub {
-  display: block;
-  margin-top: 12rpx;
-  font-size: 24rpx;
-  line-height: 1.55;
-  color: $mp-text-secondary;
-}
-
-.plaza__h2-meta {
-  display: block;
-  margin-top: 14rpx;
-  font-size: 22rpx;
-  line-height: 1.45;
-  color: $mp-text-muted;
 }
 
 .plaza__pill {
@@ -319,45 +264,6 @@ function onEntryTap(item: PlazaEntryConfig) {
   border-radius: 999rpx;
   background: $mp-accent-soft;
   border: 1rpx solid $mp-ring-accent;
-}
-
-.plaza__legend {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 24rpx;
-  margin-bottom: 20rpx;
-  padding: 16rpx 20rpx;
-  border-radius: 16rpx;
-  background: #fafbfc;
-  border: 1rpx solid $mp-border;
-}
-
-.plaza__legend-item {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 12rpx;
-}
-
-.plaza__legend-bar {
-  width: 8rpx;
-  height: 32rpx;
-  border-radius: 999rpx;
-}
-
-.plaza__legend-bar--live {
-  background: linear-gradient(180deg, #9575e8 0%, #7a57d1 50%, #6743bf 100%);
-}
-
-.plaza__legend-bar--hold {
-  background: linear-gradient(180deg, #d1d5db 0%, #9ca3af 100%);
-}
-
-.plaza__legend-txt {
-  font-size: 24rpx;
-  font-weight: 600;
-  color: $mp-text-primary;
 }
 
 .plaza__grid {
@@ -545,25 +451,5 @@ function onEntryTap(item: PlazaEntryConfig) {
 
 .plaza__card-arrow--hold {
   color: #d1d5db;
-}
-
-.plaza__hint {
-  padding: 28rpx 24rpx;
-}
-
-.plaza__hint-title {
-  display: block;
-  margin-top: 10rpx;
-  font-size: 30rpx;
-  font-weight: 800;
-  color: $mp-text-primary;
-}
-
-.plaza__hint-body {
-  display: block;
-  margin-top: 12rpx;
-  font-size: 24rpx;
-  line-height: 1.55;
-  color: $mp-text-secondary;
 }
 </style>

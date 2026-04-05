@@ -9,7 +9,7 @@ import type {
 // 线上默认读取后端公共流，避免误用本地 mock 导致只看到本地演示数据。
 // 如确实需要 mock 调试，请在此处临时改为 true。
 export const INSPIRATION_USE_MOCK = false
-const STORAGE_KEY = 'wte_inspiration_v1'
+const STORAGE_KEY = 'wte_inspiration_v2'
 
 const ME = { userId: 'u_self', nickname: '我', avatar: '' }
 
@@ -26,54 +26,88 @@ function cloneItem(item: InspirationItem): InspirationItem {
   return { ...item, images: [...item.images], relatedProduct: item.relatedProduct ?? null }
 }
 
+const SEED_TITLES = [
+  '番茄牛腩晚餐灵感',
+  '轻食鸡胸拼盘',
+  '香煎三文鱼摆盘',
+  '奶油蘑菇意面',
+  '椒盐虾仁快手菜',
+  '空气炸锅烤鸡翅',
+  '日式咖喱饭',
+  '麻辣香锅家常版',
+  '蒜蓉西兰花',
+  '红烧排骨',
+  '香菇滑鸡',
+  '柠檬烤鱼',
+  '牛油果早餐碗',
+  '芝士焗土豆',
+  '黑椒牛排',
+  '糖醋里脊',
+  '虾仁炒蛋',
+  '照烧鸡腿饭',
+  '家常豆腐',
+  '清汤面暖胃版',
+] as const
+
+const SEED_NICKNAMES = [
+  '灵感小厨',
+  '阿卓实拍',
+  'AI摆盘官',
+  '家常风味',
+  '轻食打卡',
+] as const
+
+const SEED_DESC_SNIPPETS = [
+  '图片为演示数据，适合首页图片流展示。',
+  '偏清淡口味，适合晚餐。',
+  '摆盘突出食材质感，适合收藏。',
+  '一锅完成，适合下班后快速开饭。',
+  '留出商品位，后续可挂锅具/食材包。',
+] as const
+
 function seedItems(): InspirationItem[] {
-  return [
-    {
-      id: 'i_seed_1',
-      userId: 'u_kitchen',
-      nickname: '厨房练习生',
+  return Array.from({ length: 20 }, (_, i) => {
+    const n = i + 1
+    const sourceType: InspirationItem['sourceType'] = i % 2 === 0 ? 'ai_generated' : 'user_uploaded'
+    const publishSource: InspirationItem['publishSource'] =
+      sourceType === 'ai_generated' ? 'ai_result' : 'manual_upload'
+    const seed = 500 + i
+    const img = `https://picsum.photos/seed/wte-insp-${seed}/720/960`
+    const img2 = `https://picsum.photos/seed/wte-insp-${seed}-b/720/960`
+    const base: InspirationItem = {
+      id: `i_seed_${n}`,
+      userId: `u_demo_${(i % SEED_NICKNAMES.length) + 1}`,
+      nickname: SEED_NICKNAMES[i % SEED_NICKNAMES.length],
       avatar: '',
-      title: '低脂鸡胸拼盘',
-      description: 'AI 给我的轻食灵感，摆盘很清爽，晚餐无负担。',
-      images: ['https://picsum.photos/seed/wte-inspiration-1/720/960'],
-      coverImage: 'https://picsum.photos/seed/wte-inspiration-1/720/960',
-      sourceType: 'ai_generated',
-      publishSource: 'ai_result',
-      favoriteCount: 32,
-      likeCount: 41,
-      commentCount: 3,
-      isFavorited: false,
-      isLiked: true,
-      createdAt: new Date(Date.now() - 3600_000 * 5).toISOString(),
+      title: SEED_TITLES[i] ?? `灵感条目 ${n}`,
+      description: SEED_DESC_SNIPPETS[i % SEED_DESC_SNIPPETS.length],
+      images: [img, img2],
+      coverImage: img,
+      sourceType,
+      publishSource,
+      favoriteCount: 8 + ((i * 7) % 73),
+      likeCount: 12 + ((i * 11) % 109),
+      commentCount: i === 0 ? 3 : i === 1 ? 1 : 0,
+      isFavorited: i === 1,
+      isLiked: i === 0,
+      createdAt: new Date(Date.now() - 3600_000 * (2 + i * 3)).toISOString(),
       relatedProductId: null,
       relatedProduct: null,
-    },
-    {
-      id: 'i_seed_2',
-      userId: 'u_light',
-      nickname: '轻食阿卓',
-      avatar: '',
-      title: '周末炖牛腩',
-      description: '实拍，慢炖 90 分钟，配米饭很香。',
-      images: ['https://picsum.photos/seed/wte-inspiration-2/720/920'],
-      coverImage: 'https://picsum.photos/seed/wte-inspiration-2/720/920',
-      sourceType: 'user_uploaded',
-      publishSource: 'manual_upload',
-      favoriteCount: 21,
-      likeCount: 27,
-      commentCount: 1,
-      isFavorited: true,
-      isLiked: false,
-      createdAt: new Date(Date.now() - 3600_000 * 14).toISOString(),
-      relatedProductId: 'sku_demo_001',
-      relatedProduct: {
-        id: 'sku_demo_001',
-        name: '不粘平底锅 28cm',
-        priceText: '¥129',
-        image: 'https://picsum.photos/seed/wte-product-1/320/320',
-      },
-    },
-  ]
+    }
+    if (i === 1) {
+      return {
+        ...base,
+        relatedProductId: 'sku_demo_001',
+        relatedProduct: {
+          id: 'sku_demo_001',
+          name: '不粘平底锅 28cm',
+          priceText: '¥129',
+          image: 'https://picsum.photos/seed/wte-product-1/320/320',
+        },
+      }
+    }
+    return base
+  })
 }
 
 function seedComments(): Record<string, InspirationComment[]> {
@@ -82,11 +116,22 @@ function seedComments(): Record<string, InspirationComment[]> {
       {
         id: 'ic_1',
         itemId: 'i_seed_1',
-        userId: 'u_light',
-        nickname: '轻食阿卓',
+        userId: 'u_demo_2',
+        nickname: '阿卓实拍',
         avatar: '',
         content: '这个摆盘很适合发朋友圈！',
         createdAt: new Date(Date.now() - 3600_000 * 3).toISOString(),
+      },
+    ],
+    i_seed_2: [
+      {
+        id: 'ic_2',
+        itemId: 'i_seed_2',
+        userId: 'u_demo_1',
+        nickname: '灵感小厨',
+        avatar: '',
+        content: '慢炖的颜色很正，周末我也试试。',
+        createdAt: new Date(Date.now() - 3600_000 * 8).toISOString(),
       },
     ],
   }
@@ -246,19 +291,27 @@ export async function getInspirationList(
   params: InspirationListParams,
 ): Promise<{ items: InspirationItem[]; hasMore: boolean }> {
   if (INSPIRATION_USE_MOCK) return mockList(params)
-  const raw = await requestWithFallback<{ items?: InspirationItem[]; has_more?: boolean }>(
-    {
-      url: '/api/inspiration/posts',
-      method: 'GET',
-      data: { tab: params.tab, page: params.page, per_page: params.perPage, keyword: params.keyword || '' },
-    },
-    {
-      url: '/api/circle/posts',
-      method: 'GET',
-      data: { tab: params.tab, page: params.page, per_page: params.perPage, keyword: params.keyword || '' },
-    },
-  )
-  return { items: Array.isArray(raw?.items) ? raw.items : [], hasMore: Boolean(raw?.has_more) }
+  try {
+    const raw = await requestWithFallback<{ items?: InspirationItem[]; has_more?: boolean }>(
+      {
+        url: '/api/inspiration/posts',
+        method: 'GET',
+        data: { tab: params.tab, page: params.page, per_page: params.perPage, keyword: params.keyword || '' },
+      },
+      {
+        url: '/api/circle/posts',
+        method: 'GET',
+        data: { tab: params.tab, page: params.page, per_page: params.perPage, keyword: params.keyword || '' },
+      },
+    )
+    return { items: Array.isArray(raw?.items) ? raw.items : [], hasMore: Boolean(raw?.has_more) }
+  } catch (e: unknown) {
+    // 开发联调阶段：后端临时不可达时，先回退到本地种子数据，避免页面空白不可用。
+    if (!(e instanceof HttpError) || e.statusCode >= 500) {
+      return mockList(params)
+    }
+    throw e
+  }
 }
 
 export async function getInspirationDetail(id: string): Promise<InspirationItem | null> {

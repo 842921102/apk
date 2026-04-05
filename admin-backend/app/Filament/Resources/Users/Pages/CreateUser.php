@@ -24,6 +24,8 @@ class CreateUser extends CreateRecord
 
     protected function afterCreate(): void
     {
+        $this->getRecord()->ensureProfile();
+
         AdminActionLogger::record('user.created', $this->getRecord(), [
             'email' => $this->getRecord()->email,
             'role' => $this->getRecord()->role,

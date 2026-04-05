@@ -51,11 +51,14 @@ final class FavoriteService
             ? (string) $data['source_id']
             : null;
 
+        $recipeContent = $data['recipe_content'] ?? null;
+        $recipeContent = is_string($recipeContent) ? $recipeContent : '';
+
         $attributes = [
             'title' => (string) $data['title'],
             'cuisine' => $data['cuisine'] ?? null,
             'ingredients' => $data['ingredients'] ?? null,
-            'recipe_content' => (string) $data['recipe_content'],
+            'recipe_content' => $recipeContent,
             'extra_payload' => $data['extra_payload'] ?? null,
         ];
 
@@ -116,7 +119,7 @@ final class FavoriteService
             'title' => $favorite->title,
             'cuisine' => $favorite->cuisine,
             'ingredients' => $favorite->ingredients,
-            'recipe_content' => $favorite->recipe_content,
+            'recipe_content' => (string) $favorite->recipe_content,
             'extra_payload' => $favorite->extra_payload,
             'created_at' => $favorite->created_at?->toIso8601String(),
             'updated_at' => $favorite->updated_at?->toIso8601String(),

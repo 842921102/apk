@@ -15,20 +15,31 @@ use Throwable;
 
 class WechatAuthController
 {
+    /**
+     * @return array{id: string, nickname: string, needs_onboarding: bool, period_feature_enabled: bool}
+     */
+    private function wechatUserPayload(User $user): array
+    {
+        $profile = $user->ensureProfile();
+
+        return [
+            'id' => (string) $user->id,
+            'nickname' => (string) $user->name,
+            'needs_onboarding' => $profile->onboarding_completed_at === null,
+            'period_feature_enabled' => (bool) $profile->period_feature_enabled,
+        ];
+    }
+
     public function login(Request $request): JsonResponse
     {
         $data = $request->validate([
             'code' => ['required', 'string', 'min:10'],
         ]);
 
-        // 开发兜底：当开发环境无法访问微信 jscode2session（网络/代理/白名单等）
-        // 允许通过环境变量直接绑定到已有后台用户，继续联调收藏等链路。
-        //
-        // 开启方式（仅开发）：
-        // WECHAT_DEV_BYPASS=true
+        // 开发兜底（仅联调）：显式 WECHAT_DEV_BYPASS=true 时启用，真实微信登录请勿开启。
         // WECHAT_DEV_FORCE_USER_ID=2
-        if (filter_var(env('WECHAT_DEV_BYPASS', false), FILTER_VALIDATE_BOOLEAN)) {
-            $forceUserIdRaw = env('WECHAT_DEV_FORCE_USER_ID');
+        if (config('services.wechat.dev_bypass')) {
+            $forceUserIdRaw = config('services.wechat.dev_force_user_id');
             $forceUserId = is_numeric($forceUserIdRaw) ? (int) $forceUserIdRaw : null;
 
             if ($forceUserId !== null) {
@@ -61,10 +72,7 @@ class WechatAuthController
                     'access_token' => $accessToken,
                     'openid' => (string) ($user->wechat_openid ?? ''),
                     'unionid' => $user->wechat_unionid !== null ? (string) $user->wechat_unionid : null,
-                    'user' => [
-                        'id' => (string) $user->id,
-                        'nickname' => $user->name,
-                    ],
+                    'user' => $this->wechatUserPayload($user),
                 ]);
             }
 
@@ -94,15 +102,12 @@ class WechatAuthController
                 'access_token' => $accessToken,
                 'openid' => $openid,
                 'unionid' => null,
-                'user' => [
-                    'id' => (string) $user->id,
-                    'nickname' => $user->name,
-                ],
+                'user' => $this->wechatUserPayload($user),
             ]);
         }
 
-        $appid = env('WECHAT_APP_ID');
-        $secret = env('WECHAT_APP_SECRET');
+        $appid = config('services.wechat.app_id');
+        $secret = config('services.wechat.app_secret');
         if (! is_string($appid) || $appid === '' || ! is_string($secret) || $secret === '') {
             throw ValidationException::withMessages([
                 'code' => ['未配置微信登录：请在 .env 设置 WECHAT_APP_ID / WECHAT_APP_SECRET。'],
@@ -210,10 +215,7 @@ class WechatAuthController
             'access_token' => $accessToken,
             'openid' => $openid,
             'unionid' => $unionid !== '' ? $unionid : null,
-            'user' => [
-                'id' => (string) $user->id,
-                'nickname' => $user->name,
-            ],
+            'user' => $this->wechatUserPayload($user),
         ]);
     }
 }

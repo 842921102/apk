@@ -1,230 +1,262 @@
 <template>
-  <view class="mp-page me">
-    <!-- 未登录 -->
-    <view v-if="!isLoggedIn" class="me__guest">
-      <view class="mp-hero me__guest-hero">
-        <view class="me__hero-inner">
-          <text class="mp-hero__kicker mp-kicker--on-dark">个人中心</text>
-          <text class="mp-hero__title me__hero-title">{{ config.profile_title || '开启你的美食生活' }}</text>
-          <text class="mp-hero__sub me__hero-sub">
-            {{ config.profile_subtitle || '登录后可同步收藏、历史与多端偏好' }}
-          </text>
-          <view class="me__hero-rule" />
-        </view>
-      </view>
-
-      <view class="me__sheet me__sheet--guest">
-        <view class="mp-card me__guest-card">
-          <view class="me__guest-icon-wrap">
-            <text class="me__guest-icon-emoji">✨</text>
-          </view>
-          <text class="me__rail me__rail--accent">当前状态</text>
-          <text class="me__guest-title">{{ config.login_prompt_title }}</text>
-          <text class="me__guest-sub">{{ config.login_prompt_subtitle }}</text>
-          <button class="mp-btn-primary me__guest-btn" @click="goLogin">
-            <text class="me__guest-btn-txt">{{ config.login_button_text }}</text>
-            <text class="me__guest-btn-go">→</text>
-          </button>
-          <view class="me__guest-tip">
-            <text class="me__guest-tip-title">未登录可先体验</text>
-            <text class="me__guest-tip-line">· 在「吃什么」生成今日推荐</text>
-            <text class="me__guest-tip-line">· 在「功能广场」浏览全部工具入口</text>
-            <text class="me__guest-tip-line">· 登录后收藏与历史会云端同步</text>
-          </view>
+  <view class="me">
+    <!-- 自定义顶栏：居中标题（避让微信胶囊，与系统导航字号一致） -->
+    <view class="me__nav" :style="navWrapStyle">
+      <view class="me__nav-row" :style="{ height: `${navBarPx}px` }">
+        <!-- 与原生导航栏一致：相对屏幕水平居中，非「减去右侧胶囊后的区域居中」 -->
+        <view class="me__nav-title-abs">
+          <text class="me__nav-title">我的</text>
         </view>
       </view>
     </view>
 
-    <!-- 已登录 -->
-    <view v-else class="me__logged">
-      <view class="mp-hero me__profile-hero">
-        <view class="me__hero-inner">
-          <text class="mp-hero__kicker mp-kicker--on-dark">已登录</text>
-          <view class="me__top-actions">
-            <button class="me__top-action-btn" @click.stop="onSettingsTap">
-              设置
+    <scroll-view scroll-y class="me__scroll" :style="scrollStyle">
+      <!-- —— 未登录 —— -->
+      <view v-if="!isLoggedIn" class="me__guest-wrap">
+        <view class="me__user-shell mp-card">
+          <view class="me__user-card me__user-card--guest">
+            <view class="me__avatar-ring">
+              <image class="me__avatar-img" src="/static/tabbar/me.png" mode="aspectFit" />
+            </view>
+            <text class="me__guest-lead">立即登录</text>
+            <text class="me__guest-sub">登录后同步收藏、最近推荐与个人偏好</text>
+            <button
+              class="mp-btn-primary me__wx-login"
+              :loading="wxLoading"
+              :disabled="wxLoading || !apiReady"
+              @click="onWeChatLoginInline"
+            >
+              <text class="me__wx-login-txt">微信一键登录</text>
             </button>
-            <button class="me__top-action-btn" @click.stop="onFeedbackTap">
-              反馈
-            </button>
-          </view>
-
-          <view class="me__avatar-wrap" @click="goProfile">
-            <text class="me__avatar">{{ avatarLetter }}</text>
-          </view>
-          <text class="me__profile-name" @click="goProfile">{{ displayPrimary }}</text>
-          <text class="me__profile-id">账号 ID · {{ shortId }}</text>
-          <view class="me__hero-rule" />
-        </view>
-      </view>
-
-      <view class="me__sheet">
-        <view class="mp-card me__user-card">
-          <text class="me__rail">账号信息</text>
-          <text class="me__user-card-name">{{ displayPrimary }}</text>
-          <text class="me__user-card-id">用户ID：{{ shortId }}</text>
-          <view
-            v-if="config.profile_title || config.profile_subtitle"
-            class="me__user-card-extra"
-          >
-            <view class="me__user-card-divider" />
-            <text v-if="config.profile_title" class="me__profile-head">{{ config.profile_title }}</text>
-            <text v-if="config.profile_subtitle" class="me__profile-sub">{{ config.profile_subtitle }}</text>
           </view>
         </view>
 
-        <!-- 会员/身份卡片 -->
-        <view class="mp-card me__membership">
-          <view class="me__membership-head">
-            <text class="me__rail">身份与权益</text>
-            <button class="me__link-btn" @click="onMemberCenterTap">
-              会员中心 ›
-            </button>
+        <view class="me__guest-newbie">
+          <view class="me__newbie-rail-row">
+            <text class="me__newbie-rail-k">新手</text>
+            <text class="me__newbie-rail-h">新手指引</text>
           </view>
-          <text class="me__membership-title">{{ memberLabel }}</text>
-          <text class="me__membership-sub">{{ memberSubtitle }}</text>
-          <view class="me__membership-badges">
-            <view class="me__badge me__badge--accent">云端同步：收藏/历史</view>
-            <view class="me__badge">统一回看详情</view>
-          </view>
-        </view>
-
-        <!-- 我的资产区 -->
-        <view v-if="configured" class="mp-card me__assets">
-          <view class="me__assets-head">
-            <text class="me__rail">我的资产</text>
-            <text class="me__assets-sub">更像“资产区”，而不是简单按钮</text>
-          </view>
-
-          <view class="me__assets-grid">
-            <view class="me__asset-tile" @click="goMenu('/pages/favorites/index')">
-              <text class="me__asset-label">我的收藏</text>
-              <text class="me__asset-num">{{ favDisplay }}</text>
-              <text class="me__asset-link">查看明细 ›</text>
-            </view>
-            <view class="me__asset-tile" @click="goMenu('/pages/histories/index')">
-              <text class="me__asset-label">我的历史</text>
-              <text class="me__asset-num">{{ histDisplay }}</text>
-              <text class="me__asset-link">查看明细 ›</text>
-            </view>
-          </view>
-
-          <view class="me__recent">
-            <view class="me__assets-head me__recent-head">
-              <text class="me__rail me__rail--muted">最近生成</text>
-              <button class="me__link-btn" @click="goMenu('/pages/histories/index')">
-                全部 ›
-              </button>
-            </view>
-
-            <view v-if="recentHistoriesLoading" class="me__recent-state">
-              加载中…
-            </view>
-            <view v-else-if="recentHistories.length === 0" class="me__recent-state">
-              暂无最近记录
-            </view>
-            <view v-else class="me__recent-list">
-              <view
-                v-for="h in recentHistories"
-                :key="h.id"
-                class="me__recent-item"
-                @click="openHistoryDetail(h)"
-              >
-                <view class="me__recent-item-left">
-                  <text class="me__recent-item-title">{{ h.title || '未命名' }}</text>
-                  <text class="me__recent-item-meta">{{ h.cuisine || '—' }} · {{ formatListTime(h.created_at) }}</text>
-                </view>
-                <text class="me__recent-item-arrow">›</text>
+          <view class="mp-card mp-card--accent-soft me__newbie-card">
+            <text class="me__newbie-kicker">上手三步</text>
+            <view class="me__newbie-steps">
+              <view v-for="(s, i) in newbieGuideSteps" :key="i" class="me__newbie-step">
+                <text class="me__newbie-num">{{ i + 1 }}</text>
+                <text class="me__newbie-txt">{{ s }}</text>
               </view>
             </view>
           </view>
         </view>
 
-        <view v-else class="mp-card me__assets me__assets--placeholder">
-          <text class="me__rail">我的资产</text>
-          <text class="me__assets-sub">请先完成微信一键登录后再查看云端数据。</text>
+        <view class="me__guest-settings-bar">
+          <text class="me__guest-settings-tap" @click="onSettingsTap">设置</text>
+        </view>
+      </view>
+
+      <!-- —— 已登录 —— -->
+      <view v-else class="me__logged-wrap">
+        <view class="me__user-shell mp-card me__user-shell--accent">
+          <view class="me__user-card me__user-card--logged">
+            <view class="me__user-main">
+              <view class="me__avatar-ring me__avatar-ring--lg" @click.stop="onAvatarTap">
+                <image
+                  v-if="avatarSrc"
+                  class="me__avatar-img me__avatar-img--round"
+                  :src="avatarSrc"
+                  mode="aspectFill"
+                />
+                <text v-else class="me__avatar-letter">{{ avatarLetter }}</text>
+              </view>
+              <view class="me__user-meta">
+                <text class="me__nick me__nick--tap" @click.stop="onNicknameTap">{{ displayPrimary }}</text>
+                <text class="me__uid">ID {{ displayUserId }}</text>
+                <text class="me__user-sub">{{ userCardSubtitle }}</text>
+                <view class="me__user-tags">
+                  <text class="me__pill me__pill--accent">{{ memberLabel }}</text>
+                </view>
+              </view>
+            </view>
+          </view>
         </view>
 
-        <!-- 我的记录区 -->
-        <view class="mp-card me__features">
-          <view class="me__features-head">
-            <text class="me__rail">我的记录</text>
-            <text class="me__features-sub">按类型快速回看详情</text>
+        <!-- 我的资产：收藏 / 推荐优先 -->
+        <view v-if="configured" class="me__block me__block--assets">
+          <view class="me__block-title-row">
+            <text class="me__block-title">我的资产</text>
+            <text class="me__block-sub">你积累的内容</text>
           </view>
+          <view class="mp-card me__assets-shell">
+            <view class="me__asset-hero" @click="goMenu('/pages/favorites/index')">
+              <text class="me__asset-hero-ico">⭐</text>
+              <view class="me__asset-hero-mid">
+                <text class="me__asset-hero-name">我的收藏</text>
+                <text class="me__asset-hero-desc">生成结果与内容收藏</text>
+              </view>
+              <text class="me__asset-hero-val">{{ favDisplay }}</text>
+              <text class="me__asset-hero-arrow">›</text>
+            </view>
+            <view class="me__asset-hero" @click="goMenu('/pages/recommendation-history/index')">
+              <text class="me__asset-hero-ico">📋</text>
+              <view class="me__asset-hero-mid">
+                <text class="me__asset-hero-name">最近推荐</text>
+                <text class="me__asset-hero-desc">每次「吃什么」的推荐记录</text>
+              </view>
+              <text class="me__asset-hero-val">{{ recDisplay }}</text>
+              <text class="me__asset-hero-arrow">›</text>
+            </view>
+            <view class="me__assets-subgrid">
+              <view class="me__asset-sub" @click="goMenu('/pages/histories/index')">
+                <text class="me__asset-sub-ico">🕐</text>
+                <text class="me__asset-sub-name">我的历史</text>
+                <text class="me__asset-sub-val">{{ histDisplay }}</text>
+                <text class="me__asset-sub-more">查看 ›</text>
+              </view>
+              <view class="me__asset-sub" @click="goMenu('/pages/me/recommendation-preferences')">
+                <text class="me__asset-sub-ico">🎯</text>
+                <text class="me__asset-sub-name">推荐偏好</text>
+                <text class="me__asset-sub-val me__asset-sub-val--muted">画像</text>
+                <text class="me__asset-sub-more">去管理 ›</text>
+              </view>
+            </view>
+          </view>
+        </view>
 
-          <view class="me__features-grid">
-            <view
-              v-for="tile in recordTiles"
-              :key="tile.id"
-              class="me__feature-item"
-              @click="onRecordTileTap(tile.type)"
-            >
-              <text class="me__feature-icon">{{ tile.icon }}</text>
-              <text class="me__feature-title">{{ tile.title }}</text>
-              <text v-if="latestByType[tile.type]?.title" class="me__feature-subtext">
-                {{ latestByType[tile.type]?.title }}
-              </text>
-              <text v-else class="me__feature-subtext me__feature-subtext--muted">暂无记录</text>
+        <!-- 订单与会员（次要） -->
+        <view v-if="configured" class="me__block">
+          <view class="me__block-title-row">
+            <text class="me__block-title">更多服务</text>
+          </view>
+          <view class="mp-card me__service-card">
+            <view class="me__service-row" @click="goMenu('/pages/mall/orders')">
+              <text class="me__service-ico">🧾</text>
+              <view class="me__service-mid">
+                <text class="me__service-name">我的订单</text>
+                <text class="me__service-desc">{{ orderHint }}</text>
+              </view>
+              <text class="me__service-arrow">›</text>
+            </view>
+            <view class="me__service-row" @click="onMemberCenterTap">
+              <text class="me__service-ico">👑</text>
+              <view class="me__service-mid">
+                <text class="me__service-name">会员中心</text>
+                <text class="me__service-desc">{{ memberShortHint }}</text>
+              </view>
+              <text class="me__service-arrow">›</text>
+            </view>
+          </view>
+        </view>
+
+        <view v-else class="me__block">
+          <view class="mp-card me__hint-card">
+            <text class="me__hint-title">完善登录环境</text>
+            <text class="me__hint-body">配置小程序 BFF 地址后，可查看云端收藏与历史数量。</text>
+          </view>
+        </view>
+
+        <!-- 各玩法生成记录 -->
+        <view class="me__block">
+          <view class="me__block-title-row">
+            <text class="me__block-title">生成记录</text>
+            <text class="me__block-sub">各玩法最近一次生成</text>
+          </view>
+          <view class="mp-card me__grid-card">
+            <view class="me__record-grid">
+              <view
+                v-for="tile in recordTiles"
+                :key="tile.id"
+                class="me__record-cell"
+                @click="onRecordTileTap(tile.type)"
+              >
+                <text class="me__record-ico">{{ tile.icon }}</text>
+                <text class="me__record-name">{{ tile.title }}</text>
+                <text v-if="latestByType[tile.type]?.title" class="me__record-sum">
+                  {{ latestByType[tile.type]?.title }}
+                </text>
+                <text v-else class="me__record-sum me__record-sum--muted">暂无记录</text>
+              </view>
             </view>
           </view>
         </view>
 
         <!-- 服务中心 -->
-        <view class="mp-card me__service">
-          <view class="me__support-head">
-            <text class="me__rail">服务中心</text>
+        <view class="me__block">
+          <view class="me__block-title-row">
+            <text class="me__block-title">服务中心</text>
           </view>
-          <view class="me__support-list">
+          <view class="mp-card me__service-card">
             <view
               v-for="entry in serviceEntries"
               :key="entry.id"
-              class="me__support-item"
+              class="me__service-row"
               @click="onServiceTap(entry.id)"
             >
-              <view class="me__support-left">
-                <text class="me__support-icon">{{ entry.icon }}</text>
-                <view>
-                  <text class="me__support-title">{{ entry.title }}</text>
-                  <text class="me__support-sub">{{ entry.subtitle }}</text>
-                </view>
+              <text class="me__service-ico">{{ entry.icon }}</text>
+              <view class="me__service-mid">
+                <text class="me__service-name">{{ entry.title }}</text>
+                <text class="me__service-desc">{{ entry.subtitle }}</text>
               </view>
-              <text class="me__support-arrow">›</text>
+              <text class="me__service-arrow">›</text>
             </view>
           </view>
         </view>
 
-        <!-- 支持与设置区 -->
-        <view class="mp-card me__support">
-          <view class="me__support-head">
-            <text class="me__rail">支持与设置</text>
-          </view>
-          <view class="me__support-list">
-            <view
-              v-for="entry in supportSettingsEntries"
-              :key="entry.id"
-              class="me__support-item"
-              @click="onSupportSettingsTap(entry.id)"
-            >
-              <view class="me__support-left">
-                <text class="me__support-icon">{{ entry.icon }}</text>
-                <view>
-                  <text class="me__support-title">{{ entry.title }}</text>
-                  <text class="me__support-sub">{{ entry.subtitle }}</text>
-                </view>
-              </view>
-              <text class="me__support-arrow">›</text>
+        <!-- 设置与退出 -->
+        <view class="me__block me__block--foot">
+          <view class="mp-card me__foot-card">
+            <view class="me__foot-row" hover-class="me__foot-row--hover" :hover-stay-time="80" @click="onSettingsTap">
+              <text class="me__foot-row-ico">⚙️</text>
+              <text class="me__foot-row-txt">设置</text>
+              <text class="me__foot-row-arrow">›</text>
             </view>
+            <view class="me__foot-divider" />
+            <button class="me__foot-logout" @click="onLogoutTap">
+              <text class="me__foot-logout-txt">{{ logoutButtonLabel }}</text>
+            </button>
+            <text class="me__ver me__ver--foot">版本 v{{ appVersion }}</text>
           </view>
         </view>
+      </view>
+    </scroll-view>
 
-        <!-- 底部操作区 -->
-        <view class="me__logout-zone mp-card">
-          <text class="me__rail me__rail--danger">账号与安全</text>
-          <text class="me__logout-hint">退出后需重新登录才能继续同步收藏与历史</text>
-          <button class="me__logout" @click="onLogoutTap">
-            <text class="me__logout-txt">{{ logoutButtonLabel }}</text>
-          </button>
-          <text class="me__version">版本号 v{{ appVersion }}</text>
+    <!-- 未登录：版本号固定在 TabBar 上方 -->
+    <view v-if="!isLoggedIn" class="me__guest-ver-fixed">
+      <text class="me__ver-fixed">版本 v{{ appVersion }}</text>
+    </view>
+
+    <!-- 微信头像授权（从相册/拍照在 actionSheet 中直接选） -->
+    <view
+      v-if="wxAvatarPickerVisible"
+      class="me__mask"
+      @touchmove.stop.prevent
+      @click="wxAvatarPickerVisible = false"
+    >
+      <view class="me__sheet" @click.stop>
+        <text class="me__sheet-title">使用微信头像</text>
+        <button class="me__sheet-primary" open-type="chooseAvatar" @chooseavatar="onWxChooseAvatar">
+          选择微信头像
+        </button>
+        <button class="me__sheet-cancel" @click="wxAvatarPickerVisible = false">取消</button>
+      </view>
+    </view>
+
+    <!-- 昵称：支持 type=nickname 同步微信昵称 -->
+    <view
+      v-if="nickSheetVisible"
+      class="me__mask"
+      @touchmove.stop.prevent
+      @click="closeNickSheet"
+    >
+      <view class="me__sheet me__sheet--nick" @click.stop>
+        <text class="me__sheet-title">修改昵称</text>
+        <input
+          v-model="nicknameDraft"
+          class="me__nick-input"
+          type="nickname"
+          maxlength="24"
+          placeholder="输入昵称或使用微信昵称"
+        />
+        <view class="me__sheet-actions">
+          <button class="me__sheet-cancel me__sheet-cancel--grow" @click="closeNickSheet">取消</button>
+          <button class="me__sheet-save" @click="saveNicknameDraft">保存</button>
         </view>
       </view>
     </view>
@@ -232,62 +264,206 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { onReady, onShow } from '@dcloudio/uni-app'
 import { useAuth } from '@/composables/useAuth'
 import { fetchHistories, getFavoritesCount, getHistoriesCount } from '@/api/biz'
+import { apiListRecommendationRecords } from '@/api/recommendationRecords'
+import { loginWithWechatCode } from '@/api/auth'
+import { HttpError } from '@/api/http'
+import { shouldAutoOpenOnboardingForCurrentSession } from '@/composables/useOnboardingFlow'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { API_BASE_URL } from '@/constants'
-import { useAppConfig } from '@/composables/useAppConfig'
+import { requestWeChatLoginCode } from '@/services/auth/wechatLoginSkeleton'
 import {
   LOGOUT_BUTTON,
   LOGOUT_CONFIRM_TITLE,
   LOGOUT_CONFIRM_CONTENT,
 } from '@/config/meCopy'
+import { NEWBIE_GUIDE_STEPS } from '@/config/newbieGuide'
 import type { HistoryRow } from '@/types/dto'
-import { formatListTime } from '@/utils/dateFormat'
 import { openResultDetail, toDetailPayloadFromHistory, normalizeSourceType, type ResultSourceType } from '@/lib/resultDetail'
-
-const { config } = useAppConfig()
 
 const {
   currentUser,
   isLoggedIn,
   syncAuthFromSupabase,
+  setToken,
+  setCurrentUser,
   logout,
 } = useAuth()
 
 const logoutButtonLabel = LOGOUT_BUTTON
 const appVersion = '1.0.0'
+const newbieGuideSteps = NEWBIE_GUIDE_STEPS
 
 const memberLabel = ref('普通用户')
-const memberSubtitle = ref('收藏与历史已接入云端，支持回看与再次使用（会员功能占位）')
+const orderHint = '全部订单'
+const memberShortHint = '权益·订阅'
 
-// 记录区：从最近历史里按 source_type 聚合一条用于快速回看
 const recordTiles = [
   { id: 'today_eat_record', type: 'today_eat' as const, title: '吃什么记录', icon: '🍽️' },
   { id: 'table_design_record', type: 'table_design' as const, title: '一桌好菜记录', icon: '🥘' },
   { id: 'fortune_cooking_record', type: 'fortune_cooking' as const, title: '玄学厨房记录', icon: '🔮' },
-  { id: 'sauce_design_record', type: 'sauce_design' as const, title: '酱料大师记录', icon: '🧑‍🍳' },
+  { id: 'sauce_design_record', type: 'sauce_design' as const, title: '酱料大师记录', icon: '🧂' },
 ] as const
 
-// 服务中心，按国内小程序常见“服务/支持”结构摆放
 const serviceEntries = [
-  { id: 'my_orders', title: '我的订单', subtitle: '查看下单和物流状态', icon: '📦' },
-  { id: 'menu_tutorial', title: '菜谱教学', subtitle: '入门指引与模板', icon: '📘' },
-  { id: 'function_square', title: '功能广场', subtitle: '浏览全部工具入口', icon: '🧭' },
-  { id: 'about_us', title: '关于我们', subtitle: '饭否小程序（占位）', icon: 'ℹ️' },
-  { id: 'member_center', title: '会员中心', subtitle: '权益与订阅（占位）', icon: '🎫' },
+  { id: 'help_center' as const, title: '帮助中心', subtitle: '使用指引与常见问题', icon: '💡' },
+  { id: 'about_us' as const, title: '关于我们', subtitle: '饭否小程序', icon: 'ℹ️' },
+  { id: 'user_agreement' as const, title: '用户协议', subtitle: '服务条款说明', icon: '📋' },
+  { id: 'privacy_policy' as const, title: '隐私政策', subtitle: '个人信息保护说明', icon: '🔐' },
 ] as const
 
-// 支持与设置（帮助中心/协议/隐私/设置/反馈）
-const supportSettingsEntries = [
-  { id: 'help_center', title: '帮助中心', subtitle: '使用指引与常见问题', icon: '📘' },
-  { id: 'user_agreement', title: '用户协议', subtitle: '占位内容', icon: '📄' },
-  { id: 'privacy_policy', title: '隐私政策', subtitle: '占位内容', icon: '🔒' },
-  { id: 'settings', title: '设置', subtitle: '账号与偏好（占位）', icon: '⚙️' },
-  { id: 'feedback', title: '反馈/客服', subtitle: '意见与问题（占位）', icon: '💬' },
-] as const
+type ServiceId = (typeof serviceEntries)[number]['id']
+
+const statusBarPx = ref(20)
+const navBarPx = ref(44)
+const windowWidthPx = ref(375)
+
+const navWrapStyle = computed(() => ({
+  paddingTop: `${statusBarPx.value}px`,
+}))
+
+function rpxToPx(rpx: number, winW: number): number {
+  return (rpx / 750) * winW
+}
+
+/**
+ * 本页为原生 tabBar（pages.json tabBar.custom=false），windowHeight 已是「导航以下、tabBar 以上」的可视高度，
+ * 再按自定义 MpIcoTabBar 去扣 96rpx 会在 scroll-view 下方多出一条无法滚动的空白带，看起来像白条遮挡内容。
+ */
+/** 未登录：底部固定版本条占位高度（与 .me__guest-ver-fixed 对齐） */
+function guestVersionStripPx(): number {
+  return isLoggedIn.value ? 0 : rpxToPx(64, windowWidthPx.value)
+}
+
+/** 与灵感页一致：用 windowHeight + 实测导航底边算高度；自定义导航页里 fixed+bottom:0 的 scroll-view 易出底白条 */
+const meScrollTopPx = ref(88)
+const meScrollHeightPx = ref(520)
+
+function measureMeScroll() {
+  const sys = uni.getSystemInfoSync()
+  const wh = Number(sys.windowHeight) || 667
+  const strip = guestVersionStripPx()
+  uni.createSelectorQuery()
+    .select('.me__nav')
+    .boundingClientRect((rect) => {
+      const top =
+        rect && typeof rect.bottom === 'number' ? rect.bottom : statusBarPx.value + navBarPx.value
+      meScrollTopPx.value = top
+      meScrollHeightPx.value = Math.max(200, wh - top - strip)
+    })
+    .exec()
+}
+
+const scrollStyle = computed(() => ({
+  position: 'fixed' as const,
+  left: '0',
+  right: '0',
+  top: `${meScrollTopPx.value}px`,
+  height: `${meScrollHeightPx.value}px`,
+  boxSizing: 'border-box' as const,
+}))
+
+watch(isLoggedIn, () => {
+  nextTick(() => measureMeScroll())
+})
+
+function initNavLayout() {
+  try {
+    const sys = uni.getSystemInfoSync()
+    const sb = Number(sys.statusBarHeight) || 20
+    statusBarPx.value = sb
+    windowWidthPx.value = Number(sys.windowWidth) || 375
+    let navH = 44
+    // #ifdef MP-WEIXIN
+    try {
+      const mb = uni.getMenuButtonBoundingClientRect()
+      if (mb && typeof mb.top === 'number' && mb.height) {
+        navH = mb.height + (mb.top - sb) * 2
+      }
+    } catch {
+      /* ignore */
+    }
+    // #endif
+    navBarPx.value = navH
+  } catch {
+    statusBarPx.value = 20
+    navBarPx.value = 44
+  }
+  meScrollTopPx.value = statusBarPx.value + navBarPx.value
+  nextTick(() => measureMeScroll())
+}
+
+const configured = computed(() => isSupabaseConfigured() || Boolean(API_BASE_URL.trim()))
+
+const wxLoading = ref(false)
+const isWxDevtools = ref(false)
+
+const apiReady = computed(() => Boolean(API_BASE_URL.trim()))
+const apiUsesLoopback = computed(() => {
+  const u = API_BASE_URL.trim().toLowerCase()
+  return u.includes('localhost') || u.includes('127.0.0.1')
+})
+
+const favCount = ref(0)
+const histCount = ref(0)
+const recommendationRecCount = ref(0)
+const statsLoading = ref(false)
+
+const historyRows = ref<HistoryRow[]>([])
+
+const displayPrimary = computed(() => {
+  const u = currentUser.value
+  if (!u) return '用户'
+  if (u.nickname?.trim()) return u.nickname.trim()
+  return '用户'
+})
+
+const avatarSrc = computed(() => {
+  const u = currentUser.value
+  const url = u?.avatarUrl?.trim()
+  return url || ''
+})
+
+const avatarLetter = computed(() => {
+  const s = displayPrimary.value.trim()
+  return s ? s.slice(0, 1) : '用'
+})
+
+const wxAvatarPickerVisible = ref(false)
+const nickSheetVisible = ref(false)
+const nicknameDraft = ref('')
+
+const favDisplay = computed(() => {
+  if (!configured.value) return '—'
+  if (statsLoading.value) return '…'
+  return String(favCount.value)
+})
+
+const histDisplay = computed(() => {
+  if (!configured.value) return '—'
+  if (statsLoading.value) return '…'
+  return String(histCount.value)
+})
+
+const recDisplay = computed(() => {
+  if (!configured.value) return '—'
+  if (statsLoading.value) return '…'
+  return String(recommendationRecCount.value)
+})
+
+const displayUserId = computed(() => {
+  const id = currentUser.value?.id
+  if (id == null || String(id).trim() === '') return '—'
+  return String(id).trim()
+})
+
+const userCardSubtitle = computed(() => {
+  if (!configured.value) return '登录环境未完全配置时部分数据仅本地可见'
+  return '收藏、最近推荐与偏好云端同步，换设备也能接着用'
+})
 
 function inferHistorySourceType(h: HistoryRow): ResultSourceType {
   return normalizeSourceType(h.source_type, h.request_payload)
@@ -302,7 +478,7 @@ const latestByType = computed(() => {
     gallery: null,
   }
 
-  for (const h of recentHistories.value) {
+  for (const h of historyRows.value) {
     const t = inferHistorySourceType(h)
     if (out[t] === null) out[t] = h
   }
@@ -310,48 +486,22 @@ const latestByType = computed(() => {
   return out
 })
 
-/** 收藏可走 Laravel；历史仍依赖 Supabase 会话（可并行展示，各自失败则为 0） */
-const configured = computed(() => isSupabaseConfigured() || Boolean(API_BASE_URL.trim()))
-
-const favCount = ref(0)
-const histCount = ref(0)
-const statsLoading = ref(false)
-
-const displayPrimary = computed(() => {
-  const u = currentUser.value
-  if (!u) return '用户'
-  if (u.nickname?.trim()) return u.nickname.trim()
-  return '用户'
+onMounted(() => {
+  initNavLayout()
 })
 
-const avatarLetter = computed(() => {
-  const s = displayPrimary.value.trim()
-  return s ? s.slice(0, 1) : '用'
+onReady(() => {
+  nextTick(() => measureMeScroll())
 })
-
-const shortId = computed(() => {
-  const id = currentUser.value?.id || ''
-  if (!id) return '—'
-  if (id.length <= 12) return id
-  return `${id.slice(0, 6)}…${id.slice(-4)}`
-})
-
-const favDisplay = computed(() => {
-  if (!configured.value) return '—'
-  if (statsLoading.value) return '…'
-  return String(favCount.value)
-})
-
-const histDisplay = computed(() => {
-  if (!configured.value) return '—'
-  if (statsLoading.value) return '…'
-  return String(histCount.value)
-})
-
-const recentHistories = ref<HistoryRow[]>([])
-const recentHistoriesLoading = ref(false)
 
 onShow(() => {
+  try {
+    const p = String(uni.getSystemInfoSync()?.platform || '').toLowerCase()
+    isWxDevtools.value = p === 'devtools'
+  } catch {
+    isWxDevtools.value = false
+  }
+  initNavLayout()
   void refresh()
 })
 
@@ -360,114 +510,204 @@ async function refresh() {
   if (!isLoggedIn.value || !configured.value) {
     favCount.value = 0
     histCount.value = 0
+    recommendationRecCount.value = 0
     statsLoading.value = false
-    recentHistories.value = []
+    historyRows.value = []
     return
   }
   statsLoading.value = true
-  recentHistoriesLoading.value = true
   try {
-    const [fSettled, hSettled, recentSettled] = await Promise.allSettled([
+    const [fSettled, hSettled, recSettled, rowsSettled] = await Promise.allSettled([
       getFavoritesCount(),
       getHistoriesCount(),
-      (async () => (await fetchHistories()).slice(0, 3))(),
+      apiListRecommendationRecords({ per_page: 1, page: 1 }).then((r) => r.meta.pagination.total),
+      fetchHistories(),
     ])
     favCount.value = fSettled.status === 'fulfilled' ? fSettled.value : 0
     histCount.value = hSettled.status === 'fulfilled' ? hSettled.value : 0
-    recentHistories.value = recentSettled.status === 'fulfilled' ? recentSettled.value : []
+    recommendationRecCount.value = recSettled.status === 'fulfilled' ? recSettled.value : 0
+    historyRows.value = rowsSettled.status === 'fulfilled' ? rowsSettled.value : []
   } finally {
     statsLoading.value = false
-    recentHistoriesLoading.value = false
   }
 }
 
-function goLogin() {
-  const redirect = encodeURIComponent('/pages/me/index')
-  uni.navigateTo({ url: `/pages/login/index?redirect=${redirect}` })
+function toastFromError(e: unknown): string {
+  if (e instanceof HttpError) return e.message.slice(0, 240)
+  if (e instanceof Error) return e.message.slice(0, 240)
+  return '登录失败'
+}
+
+function pickAvatarFromUser(wxUser: Record<string, unknown>): string | undefined {
+  for (const k of ['avatar_url', 'avatarUrl', 'headimgurl', 'avatar']) {
+    const v = wxUser[k]
+    if (typeof v === 'string' && v.trim()) return v.trim()
+  }
+  return undefined
+}
+
+async function onWeChatLoginInline() {
+  if (!apiReady.value) {
+    uni.showToast({ title: '未配置 BFF 地址', icon: 'none' })
+    return
+  }
+  if (apiUsesLoopback.value && !isWxDevtools.value) {
+    uni.showToast({
+      title: '真机请改用局域网 IP 的 BFF 地址',
+      icon: 'none',
+      duration: 2600,
+    })
+    return
+  }
+  wxLoading.value = true
+  try {
+    const code = await requestWeChatLoginCode()
+    const result = await loginWithWechatCode(code)
+    const accessToken = (result.access_token ?? result.accessToken) as string | undefined
+    const wxUser = result.user as Record<string, unknown> | undefined
+
+    if (accessToken) {
+      setToken(accessToken)
+      if (wxUser && wxUser.id != null) {
+        const nickname = typeof wxUser.nickname === 'string' ? wxUser.nickname : undefined
+        setCurrentUser({
+          id: String(wxUser.id),
+          nickname,
+          avatarUrl: pickAvatarFromUser(wxUser),
+          needsOnboarding: wxUser.needs_onboarding === true,
+          periodFeatureEnabled: wxUser.period_feature_enabled === true,
+        })
+      }
+      await syncAuthFromSupabase()
+      await refresh()
+      if (shouldAutoOpenOnboardingForCurrentSession()) {
+        uni.redirectTo({
+          url: `/pages/onboarding/index?redirect=${encodeURIComponent('/pages/me/index')}`,
+        })
+        return
+      }
+      uni.showToast({ title: '登录成功', icon: 'success' })
+    } else {
+      uni.showToast({ title: '服务端未返回 token', icon: 'none' })
+    }
+  } catch (e) {
+    console.error('[me wx login]', e)
+    uni.showToast({ title: toastFromError(e), icon: 'none', duration: 2600 })
+  } finally {
+    wxLoading.value = false
+  }
 }
 
 function goMenu(path: string) {
   uni.navigateTo({ url: path })
 }
 
-function goProfile() {
-  uni.navigateTo({ url: '/pages/profile/index' })
+function onAvatarTap() {
+  if (!currentUser.value) return
+  uni.showActionSheet({
+    itemList: ['使用微信头像', '从相册选择', '拍照'],
+    success: (res) => {
+      if (res.tapIndex === 0) wxAvatarPickerVisible.value = true
+      else if (res.tapIndex === 1) pickLocalAvatar(['album'])
+      else if (res.tapIndex === 2) pickLocalAvatar(['camera'])
+    },
+  })
+}
+
+function pickLocalAvatar(sourceType: Array<'album' | 'camera'>) {
+  const u = currentUser.value
+  if (!u) return
+  uni.chooseImage({
+    count: 1,
+    sizeType: ['compressed'],
+    sourceType,
+    success: (res) => {
+      const p = res.tempFilePaths?.[0]
+      if (!p) return
+      setCurrentUser({ ...u, avatarUrl: p })
+      uni.showToast({ title: '头像已更新', icon: 'success' })
+    },
+  })
+}
+
+function onWxChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
+  const u = currentUser.value
+  const url = e?.detail?.avatarUrl?.trim()
+  wxAvatarPickerVisible.value = false
+  if (!url || !u) return
+  setCurrentUser({ ...u, avatarUrl: url })
+  uni.showToast({ title: '头像已更新', icon: 'success' })
+}
+
+function onNicknameTap() {
+  if (!currentUser.value) return
+  nicknameDraft.value = displayPrimary.value === '用户' ? '' : displayPrimary.value
+  nickSheetVisible.value = true
+}
+
+function closeNickSheet() {
+  nickSheetVisible.value = false
+}
+
+function saveNicknameDraft() {
+  const u = currentUser.value
+  if (!u) return
+  const v = nicknameDraft.value.trim()
+  setCurrentUser({
+    ...u,
+    nickname: v || undefined,
+  })
+  closeNickSheet()
+  uni.showToast({ title: '昵称已保存', icon: 'success' })
 }
 
 function onSettingsTap() {
   uni.showModal({
     title: '设置',
-    content: '设置功能暂未接入（占位）。',
-    showCancel: false,
-  })
-}
-
-function onFeedbackTap() {
-  uni.showModal({
-    title: '意见反馈',
-    content: '反馈入口暂未接入（占位）。',
+    content: '更多设置能力将陆续开放。',
     showCancel: false,
   })
 }
 
 function onMemberCenterTap() {
-  uni.showToast({ title: '会员中心占位', icon: 'none' })
+  uni.showToast({ title: '会员中心即将开放', icon: 'none' })
 }
 
 function onRecordTileTap(type: ResultSourceType) {
   const h = latestByType.value[type]
   if (h) {
-    openHistoryDetail(h)
+    openResultDetail(toDetailPayloadFromHistory(h))
     return
   }
   goMenu('/pages/histories/index')
 }
 
-function onServiceTap(id: (typeof serviceEntries)[number]['id']) {
-  if (id === 'my_orders') {
-    goMenu('/pages/mall/orders')
-    return
-  }
-  if (id === 'menu_tutorial' || id === 'function_square') {
-    goMenu('/pages/plaza/index')
+function onServiceTap(id: ServiceId) {
+  if (id === 'help_center') {
+    uni.showModal({
+      title: '帮助中心',
+      content:
+        '「吃什么」生成推荐后，可在「我的资产」查看收藏与最近推荐；生成类玩法记录在下方「生成记录」快速回看。口味与问卷相关入口在「推荐偏好」。',
+      showCancel: false,
+    })
     return
   }
   if (id === 'about_us') {
     uni.showModal({
       title: '关于我们',
-      content: '饭否小程序（体验版）\n主功能：生成、收藏、历史、回看。',
-      showCancel: false,
-    })
-    return
-  }
-  if (id === 'member_center') return onMemberCenterTap()
-}
-
-function onSupportSettingsTap(id: (typeof supportSettingsEntries)[number]['id']) {
-  if (id === 'help_center') {
-    uni.showModal({
-      title: '帮助中心',
-      content: '占位内容：后续可接入 FAQ 或帮助页。',
+      content: '饭否小程序：美食灵感与生成工具。收藏、历史支持云端同步与回看。',
       showCancel: false,
     })
     return
   }
   if (id === 'user_agreement') {
-    uni.showModal({ title: '用户协议', content: '占位内容', showCancel: false })
+    uni.showModal({ title: '用户协议', content: '协议正文将由运营侧配置后展示。', showCancel: false })
     return
   }
   if (id === 'privacy_policy') {
-    uni.showModal({ title: '隐私政策', content: '占位内容', showCancel: false })
+    uni.showModal({ title: '隐私政策', content: '隐私说明将由运营侧配置后展示。', showCancel: false })
     return
   }
-  if (id === 'settings') return onSettingsTap()
-  if (id === 'feedback') return onFeedbackTap()
-}
-
-function openHistoryDetail(h: HistoryRow) {
-  if (!h) return
-  if (h.id == null) return
-  openResultDetail(toDetailPayloadFromHistory(h))
 }
 
 function onLogoutTap() {
@@ -486,6 +726,8 @@ async function doLogout() {
   await logout()
   favCount.value = 0
   histCount.value = 0
+  recommendationRecCount.value = 0
+  historyRows.value = []
   uni.showToast({ title: '已退出登录', icon: 'none' })
 }
 </script>
@@ -493,801 +735,830 @@ async function doLogout() {
 <style lang="scss" scoped>
 @import '@/uni.scss';
 
-.me__hero-inner {
-  text-align: center;
+.me {
+  /* min-height:100vh 在 Tab 页易比实际可视区「撑高」，底部多出一条与页面背景同色的空白带 */
+  background: $mp-bg-page;
 }
 
-.me__hero-title {
-  max-width: 620rpx;
-  margin-left: auto;
-  margin-right: auto;
+.me__nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: rgba($mp-bg-page, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1rpx solid rgba($mp-border, 0.85);
 }
 
-.me__hero-sub {
-  max-width: 580rpx;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.me__hero-rule {
-  width: 72rpx;
-  height: 6rpx;
-  margin: 28rpx auto 0;
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.45);
-}
-
-/* 白卡片层叠：贴近 Web -mt 主卡片 */
-.me__sheet {
+.me__nav-row {
   position: relative;
-  z-index: 2;
-  margin-top: -36rpx;
+  box-sizing: border-box;
+}
+
+/* 对齐微信原生导航：标题相对整栏垂直居中，水平为视口中心（与「吃什么」等默认导航一致） */
+.me__nav-title-abs {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 52%;
+  pointer-events: none;
+}
+
+.me__nav-title {
+  text-align: center;
+  font-size: 34rpx;
+  font-weight: 500;
+  line-height: 1;
+  color: #000000;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.me__nav-chip {
+  font-size: 22rpx;
+  font-weight: 800;
+  color: $mp-accent;
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  background: $mp-accent-soft;
+  border: 1rpx solid $mp-ring-accent;
+}
+
+.me__nav-chip--ghost {
+  background: #fff;
+  color: $mp-text-secondary;
+  border-color: $mp-border;
+}
+
+.me__scroll {
+  box-sizing: border-box;
+  padding-top: 0;
+  /* 避免默认白底在 TabBar 重叠区形成「挡板」 */
+  background: $mp-bg-page;
+}
+
+.me__block {
+  padding: 0 24rpx;
+  margin-top: 24rpx;
+}
+
+.me__block--foot {
+  margin-bottom: 32rpx;
+}
+
+.me__guest-settings-bar {
+  margin: 28rpx 24rpx 0;
   display: flex;
-  flex-direction: column;
-  gap: 24rpx;
+  flex-direction: row;
+  justify-content: center;
 }
 
-.me__sheet--guest {
-  margin-top: -36rpx;
+.me__guest-settings-tap {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: $mp-text-secondary;
+  padding: 12rpx 24rpx;
 }
 
-.me__rail {
-  display: block;
+.me__guest-newbie {
+  margin: 24rpx 24rpx 0;
+}
+
+.me__newbie-rail-row {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+  padding-left: 8rpx;
+}
+
+.me__newbie-rail-k {
   font-size: 20rpx;
   font-weight: 800;
   letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: $mp-text-muted;
-  margin-bottom: 12rpx;
-}
-
-.me__rail--accent {
   color: $mp-accent;
+  text-transform: uppercase;
 }
 
-.me__rail--danger {
-  color: #b91c1c;
+.me__newbie-rail-h {
+  font-size: 30rpx;
+  font-weight: 900;
+  color: $mp-text-primary;
 }
 
-/* —— 未登录 —— */
-.me__guest {
+.me__newbie-card {
+  padding: 26rpx 22rpx 28rpx;
+}
+
+.me__newbie-kicker {
+  display: block;
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: $mp-accent;
+  margin-bottom: 16rpx;
+}
+
+.me__newbie-steps {
   display: flex;
   flex-direction: column;
+  gap: 16rpx;
 }
 
-.me__guest-hero {
-  margin-bottom: 0;
+.me__newbie-step {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 16rpx;
 }
 
-.me__guest-card {
-  padding: 36rpx 28rpx 32rpx;
+.me__newbie-num {
+  flex-shrink: 0;
+  width: 40rpx;
+  height: 40rpx;
+  line-height: 40rpx;
+  text-align: center;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: $mp-accent;
+  background: #fff;
+  border-radius: 999rpx;
+  border: 1rpx solid #dccdf7;
+}
+
+.me__newbie-txt {
+  flex: 1;
+  font-size: 26rpx;
+  line-height: 1.55;
+  color: #5a3ba8;
+  padding-top: 4rpx;
+}
+
+.me__guest-ver-fixed {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 920;
+  /* 原生 tabBar 页：可视区底即 tab 上沿，勿再按自定义 TabBar 预留 96rpx */
+  bottom: 0;
+  min-height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8rpx 0;
+  background: rgba($mp-bg-page, 0.96);
+  border-top: 1rpx solid rgba($mp-border, 0.6);
+  pointer-events: none;
+}
+
+.me__ver-fixed {
+  font-size: 22rpx;
+  color: $mp-text-muted;
+}
+
+.me__block-title-row {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 14rpx;
+  padding-left: 6rpx;
+}
+
+.me__block-title {
+  font-size: 30rpx;
+  font-weight: 900;
+  color: $mp-text-primary;
+}
+
+.me__block-sub {
+  font-size: 22rpx;
+  color: $mp-text-muted;
+}
+
+/* 用户信息卡 */
+.me__user-shell {
+  margin: 16rpx 24rpx 0;
+  overflow: hidden;
+  border-radius: $mp-radius-card;
+  box-shadow: $mp-shadow-card;
+}
+
+.me__user-shell--accent {
+  border: 1rpx solid $mp-ring-accent;
+  box-shadow: 0 16rpx 48rpx rgba(122, 87, 209, 0.12);
+}
+
+.me__user-card {
+  position: relative;
+  padding: 28rpx 24rpx 32rpx;
+}
+
+.me__user-card-actions {
+  position: absolute;
+  top: 20rpx;
+  right: 20rpx;
+  display: flex;
+  flex-direction: row;
+  gap: 10rpx;
+  z-index: 2;
+}
+
+.me__user-card--guest {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  border-color: $mp-ring-accent;
-  box-shadow: 0 12rpx 40rpx rgba(122, 87, 209, 0.1);
+  padding-top: 36rpx;
 }
 
-.me__guest-icon-wrap {
-  width: 112rpx;
-  height: 112rpx;
-  border-radius: 28rpx;
-  background: $mp-accent-soft;
-  border: 1rpx solid $mp-ring-accent;
+.me__user-card--logged {
+  padding-top: 28rpx;
+}
+
+.me__avatar-ring {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 36rpx;
+  background: linear-gradient(145deg, $mp-accent-soft 0%, #fff 100%);
+  border: 2rpx solid $mp-ring-accent;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 8rpx;
-  box-shadow: 0 4rpx 16rpx rgba(122, 87, 209, 0.08);
+  overflow: hidden;
+  box-shadow: 0 8rpx 28rpx rgba(122, 87, 209, 0.12);
 }
 
-.me__guest-icon-emoji {
-  font-size: 52rpx;
-  line-height: 1;
+.me__avatar-ring--lg {
+  width: 128rpx;
+  height: 128rpx;
+  flex-shrink: 0;
 }
 
-.me__guest-title {
+.me__avatar-img {
+  width: 72rpx;
+  height: 72rpx;
+}
+
+.me__avatar-img--round {
+  width: 100%;
+  height: 100%;
+  border-radius: 36rpx;
+}
+
+.me__avatar-letter {
+  font-size: 48rpx;
+  font-weight: 900;
+  color: $mp-accent-deep;
+}
+
+.me__guest-lead {
+  margin-top: 22rpx;
   font-size: 32rpx;
-  font-weight: 800;
+  font-weight: 900;
   color: $mp-text-primary;
+  line-height: 1.35;
+  padding: 0 12rpx;
 }
 
 .me__guest-sub {
   margin-top: 12rpx;
-  font-size: 26rpx;
-  line-height: 1.55;
-  color: $mp-text-secondary;
-  padding: 0 8rpx;
-}
-
-.me__guest-btn {
-  margin-top: 36rpx;
-  width: 100%;
-  max-width: 480rpx;
-  display: flex !important;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 10rpx;
-  padding-top: 30rpx !important;
-  padding-bottom: 30rpx !important;
-  box-shadow: 0 16rpx 48rpx rgba(122, 87, 209, 0.35);
-}
-
-.me__guest-btn-txt {
-  font-weight: 800;
-  font-size: 30rpx;
-}
-
-.me__guest-btn-go {
-  font-size: 32rpx;
-  font-weight: 800;
-}
-
-.me__guest-tip {
-  margin-top: 28rpx;
-  align-self: stretch;
-  text-align: left;
-  padding: 22rpx 24rpx;
-  border-radius: 18rpx;
-  background: rgba(243, 236, 255, 0.55);
-  border: 1rpx solid $mp-ring-accent;
-}
-
-.me__guest-tip-title {
-  display: block;
   font-size: 24rpx;
-  font-weight: 800;
-  color: $mp-accent;
-  margin-bottom: 12rpx;
-}
-
-.me__guest-tip-line {
-  display: block;
-  font-size: 24rpx;
-  line-height: 1.55;
-  color: #5a3ba8;
-}
-
-/* —— 已登录头图 —— */
-.me__logged {
-  display: flex;
-  flex-direction: column;
-}
-
-.me__profile-hero {
-  padding-top: 32rpx;
-  padding-bottom: 48rpx;
-}
-
-.me__avatar-wrap {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 32rpx;
-  background: rgba(255, 255, 255, 0.22);
-  border: 2rpx solid rgba(255, 255, 255, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 20rpx auto 16rpx;
-}
-
-.me__avatar {
-  font-size: 48rpx;
-  font-weight: 800;
-  color: #fff;
-}
-
-.me__profile-name {
-  font-size: 36rpx;
-  font-weight: 800;
-  color: #fff;
-}
-
-.me__profile-id {
-  margin-top: 10rpx;
-  font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.88);
-  max-width: 90%;
-  word-break: break-all;
-}
-
-/* 用户信息白卡片 */
-.me__user-card {
-  padding: 28rpx 24rpx 30rpx;
-}
-
-.me__user-card-name {
-  font-size: 34rpx;
-  font-weight: 800;
-  color: $mp-text-primary;
-}
-
-.me__user-card-id {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  color: $mp-text-secondary;
-  word-break: break-all;
-}
-
-.me__user-card-extra {
-  margin-top: 8rpx;
-}
-
-.me__user-card-divider {
-  height: 1rpx;
-  background: #f3f4f6;
-  margin: 20rpx 0 16rpx;
-}
-
-.me__profile-head {
-  display: block;
-  font-size: 28rpx;
-  font-weight: 700;
-  color: $mp-text-primary;
-}
-
-.me__profile-sub {
-  display: block;
-  margin-top: 10rpx;
-  font-size: 26rpx;
   line-height: 1.5;
-  color: $mp-text-secondary;
-}
-
-/* 数据统计 */
-.me__stats {
-  padding: 28rpx 24rpx 30rpx;
-}
-
-.me__stats-desc {
-  display: block;
-  margin-top: 4rpx;
-  margin-bottom: 20rpx;
-  font-size: 24rpx;
-  line-height: 1.45;
-  color: $mp-text-secondary;
-}
-
-.me__stats-grid {
-  display: flex;
-  flex-direction: row;
-  gap: 20rpx;
-}
-
-.me__stat-tile {
-  flex: 1;
-  padding: 24rpx 20rpx;
-  border-radius: 18rpx;
-  background: #fafbfc;
-  border: 1rpx solid $mp-border;
-}
-
-.me__stat-label {
-  display: block;
-  font-size: 22rpx;
-  font-weight: 700;
   color: $mp-text-muted;
-}
-
-.me__stat-num {
-  display: block;
-  margin-top: 12rpx;
-  font-size: 44rpx;
-  font-weight: 800;
-  color: $mp-accent;
-  line-height: 1;
-}
-
-/* 宫格入口 */
-.me__menu-block {
-  margin-top: 0;
-  padding: 28rpx 24rpx;
-}
-
-.me__menu-head {
-  margin-bottom: 16rpx;
-  padding-left: 4rpx;
-}
-
-.me__menu-h2 {
-  display: block;
-  font-size: 30rpx;
-  font-weight: 800;
-  color: $mp-text-primary;
-}
-
-.me__menu-lead {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  line-height: 1.45;
-  color: $mp-text-secondary;
-}
-
-.me__quick-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 14rpx;
-}
-
-.me__quick-item {
-  padding: 22rpx 20rpx;
-  border-radius: 18rpx;
-  background: #fafbfc;
-  border: 1rpx solid $mp-border;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.me__quick-left {
-  display: flex;
-  align-items: center;
-  gap: 14rpx;
-  min-width: 0;
-}
-
-.me__quick-right {
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-}
-
-.me__quick-count {
-  font-size: 28rpx;
-  font-weight: 700;
-  color: $mp-accent;
-}
-
-.me__quick-arrow {
-  font-size: 30rpx;
-  color: $mp-text-muted;
-}
-
-.me__tile-ico {
-  width: 56rpx;
-  height: 56rpx;
-  border-radius: 16rpx;
-  background: $mp-accent-soft;
-  border: 1rpx solid $mp-ring-accent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 0;
-}
-
-.me__tile-emoji {
-  font-size: 32rpx;
-  line-height: 1;
-}
-
-.me__tile-title {
-  font-size: 28rpx;
-  font-weight: 800;
-  color: $mp-text-primary;
-}
-
-.me__tile-sub {
-  margin-top: 8rpx;
-  font-size: 22rpx;
-  line-height: 1.4;
-  color: $mp-text-secondary;
-}
-
-.me__tools {
-  padding: 28rpx 24rpx;
-}
-
-.me__tool-row {
-  padding: 18rpx 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-top: 1rpx solid #f3f4f6;
-}
-
-.me__tool-row:first-of-type {
-  border-top: none;
-}
-
-.me__tool-left {
-  display: flex;
-  align-items: center;
-  gap: 14rpx;
-}
-
-.me__tool-icon {
-  font-size: 30rpx;
-  width: 42rpx;
+  padding: 0 32rpx;
   text-align: center;
 }
 
-.me__tool-title {
-  display: block;
-  font-size: 27rpx;
-  color: $mp-text-primary;
+.me__wx-login {
+  margin-top: 36rpx;
+  width: 100%;
+  max-width: 520rpx;
+  padding-top: 28rpx !important;
+  padding-bottom: 28rpx !important;
+  font-size: 30rpx !important;
+  font-weight: 800 !important;
+  box-shadow: 0 16rpx 44rpx rgba(122, 87, 209, 0.32);
+}
+
+.me__wx-login-txt {
+  font-weight: 800;
+}
+
+.me__user-main {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 22rpx;
+}
+
+.me__user-meta {
+  flex: 1;
+  min-width: 0;
+  padding-top: 6rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10rpx;
+}
+
+.me__uid {
+  font-size: 24rpx;
+  color: $mp-text-muted;
   font-weight: 600;
 }
 
-.me__tool-sub {
-  display: block;
-  margin-top: 6rpx;
-  font-size: 22rpx;
-  color: $mp-text-muted;
-}
-
-.me__tool-arrow {
-  font-size: 30rpx;
-  color: $mp-text-muted;
-}
-
-/* 退出：贴近 Web 浅红底 + 描边，识别度高 */
-.me__logout-zone {
-  padding: 28rpx 24rpx 20rpx;
-}
-
-.me__logout-hint {
-  display: block;
-  margin-top: 4rpx;
-  margin-bottom: 20rpx;
+.me__user-sub {
   font-size: 24rpx;
-  line-height: 1.5;
+  line-height: 1.45;
   color: $mp-text-secondary;
 }
 
-.me__logout {
-  width: 100%;
-  padding: 28rpx;
-  font-size: 30rpx;
-  font-weight: 800;
-  color: #d64556 !important;
-  background: #fff5f5 !important;
-  border: 2rpx solid #fde2e4 !important;
-  border-radius: 22rpx;
+.me__user-tags {
+  margin-top: 4rpx;
 }
 
-.me__logout::after {
-  border: none !important;
-}
-
-.me__logout-txt {
-  font-weight: 800;
-}
-
-/* —— 个人中心新版结构（顶部快捷 / 会员 / 资产 / 功能 / 支持） —— */
-.me__profile-hero {
-  position: relative;
-}
-
-.me__top-actions {
-  position: absolute;
-  top: 16rpx;
-  right: 24rpx;
-  display: flex;
-  flex-direction: row;
-  gap: 12rpx;
-}
-
-.me__top-action-btn {
-  font-size: 22rpx;
-  font-weight: 800;
-  color: rgba(255, 255, 255, 0.92);
-  background: rgba(255, 255, 255, 0.18);
-  border: 1rpx solid rgba(255, 255, 255, 0.32);
-  padding: 10rpx 16rpx;
-  border-radius: 18rpx;
-}
-
-.me__link-btn {
-  border: none;
-  background: none;
-  padding: 0;
-  margin: 0;
-  color: $mp-accent;
-  font-size: 22rpx;
-  font-weight: 900;
-}
-
-.me__badge {
-  display: inline-block;
-  padding: 10rpx 14rpx;
-  border-radius: 999rpx;
-  background: #f3f4f6;
-  border: 1rpx solid #e5e7eb;
-  font-size: 22rpx;
-  color: $mp-text-secondary;
-  margin-right: 12rpx;
-  margin-bottom: 10rpx;
-}
-
-.me__badge--accent {
-  background: rgba(122, 87, 209, 0.12);
-  border-color: rgba(122, 87, 209, 0.22);
-  color: $mp-accent;
-}
-
-.me__membership,
-.me__assets,
-.me__features,
-.me__support,
-.me__service {
-  padding: 28rpx 24rpx;
-}
-
-.me__membership-head {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16rpx;
-}
-
-.me__membership-title {
+.me__nick {
   display: block;
-  margin-top: 6rpx;
-  font-size: 34rpx;
+  font-size: 36rpx;
   font-weight: 900;
   color: $mp-text-primary;
+  line-height: 1.25;
 }
 
-.me__membership-sub {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  line-height: 1.5;
+.me__nick--tap {
+  border-bottom: 2rpx dashed rgba(122, 87, 209, 0.35);
+  padding-bottom: 4rpx;
+}
+
+.me__pill {
+  font-size: 20rpx;
+  font-weight: 800;
   color: $mp-text-secondary;
-}
-
-.me__membership-badges {
-  margin-top: 16rpx;
-}
-
-.me__assets-head {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16rpx;
-}
-
-.me__assets-sub {
-  display: block;
-  margin-top: 6rpx;
-  font-size: 22rpx;
-  line-height: 1.4;
-  color: $mp-text-secondary;
-}
-
-.me__assets-grid {
-  margin-top: 12rpx;
-  display: flex;
-  flex-direction: row;
-  gap: 20rpx;
-}
-
-.me__asset-tile {
-  flex: 1;
-  padding: 22rpx 18rpx;
-  border-radius: 18rpx;
-  background: #fafbfc;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: #f3f4f6;
   border: 1rpx solid $mp-border;
 }
 
-.me__asset-label {
+.me__pill--accent {
+  color: $mp-accent;
+  background: $mp-accent-soft;
+  border-color: $mp-ring-accent;
+}
+
+/* 我的资产：主入口条 + 次宫格 */
+.me__assets-shell {
+  padding: 20rpx 18rpx 22rpx;
+}
+
+.me__asset-hero {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 18rpx;
+  padding: 26rpx 20rpx;
+  margin-bottom: 14rpx;
+  border-radius: 22rpx;
+  background: linear-gradient(135deg, rgba(122, 87, 209, 0.08) 0%, #fafbfc 55%, #fff 100%);
+  border: 1rpx solid rgba(122, 87, 209, 0.22);
+  box-sizing: border-box;
+}
+
+.me__asset-hero + .me__assets-subgrid {
+  margin-top: 4rpx;
+}
+
+.me__asset-hero:active {
+  opacity: 0.92;
+}
+
+.me__asset-hero-ico {
+  font-size: 44rpx;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.me__asset-hero-mid {
+  flex: 1;
+  min-width: 0;
+}
+
+.me__asset-hero-name {
   display: block;
-  font-size: 26rpx;
-  font-weight: 800;
+  font-size: 32rpx;
+  font-weight: 900;
   color: $mp-text-primary;
 }
 
-.me__asset-num {
+.me__asset-hero-desc {
   display: block;
-  margin-top: 12rpx;
-  font-size: 46rpx;
-  font-weight: 950;
-  color: $mp-accent;
-  line-height: 1;
-}
-
-.me__asset-link {
-  display: block;
-  margin-top: 12rpx;
+  margin-top: 6rpx;
   font-size: 22rpx;
-  font-weight: 850;
-  color: $mp-accent;
-}
-
-.me__recent {
-  margin-top: 22rpx;
-}
-
-.me__rail--muted {
   color: $mp-text-muted;
+  line-height: 1.35;
 }
 
-.me__recent-head {
-  margin-bottom: 14rpx;
+.me__asset-hero-val {
+  font-size: 40rpx;
+  font-weight: 900;
+  color: $mp-accent;
+  flex-shrink: 0;
+  min-width: 56rpx;
+  text-align: right;
 }
 
-.me__recent-state {
-  padding: 18rpx 0;
-  text-align: center;
-  font-size: 24rpx;
-  color: $mp-text-secondary;
+.me__asset-hero-arrow {
+  font-size: 36rpx;
+  color: $mp-text-muted;
+  flex-shrink: 0;
 }
 
-.me__recent-list {
-  display: flex;
-  flex-direction: column;
+.me__assets-subgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 14rpx;
 }
 
-.me__recent-item {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12rpx;
-  padding: 16rpx 14rpx;
-  border-radius: 18rpx;
-  background: #fff;
+.me__asset-sub {
+  min-height: 168rpx;
+  padding: 20rpx 18rpx;
+  border-radius: 20rpx;
+  background: #fafbfc;
   border: 1rpx solid $mp-border;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
 }
 
-.me__recent-item-left {
-  min-width: 0;
-  flex: 1;
+.me__asset-sub:active {
+  background: #f3f4f6;
 }
 
-.me__recent-item-title {
-  display: block;
+.me__asset-sub-ico {
+  font-size: 32rpx;
+  line-height: 1;
+  margin-bottom: 2rpx;
+}
+
+.me__asset-sub-name {
   font-size: 26rpx;
   font-weight: 900;
   color: $mp-text-primary;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.me__recent-item-meta {
-  display: block;
-  margin-top: 6rpx;
-  font-size: 22rpx;
-  color: $mp-text-secondary;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.me__asset-sub-val {
+  font-size: 34rpx;
+  font-weight: 900;
+  color: $mp-accent;
+  line-height: 1.1;
+  margin-top: 4rpx;
 }
 
-.me__recent-item-arrow {
-  font-size: 30rpx;
-  font-weight: 950;
-  color: $mp-text-muted;
-}
-
-.me__features-head {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16rpx;
-}
-
-.me__features-sub {
-  display: block;
-  margin-top: 6rpx;
-  font-size: 22rpx;
+.me__asset-sub-val--muted {
+  font-size: 26rpx;
+  font-weight: 800;
   color: $mp-text-secondary;
 }
 
-.me__features-grid {
-  margin-top: 18rpx;
+.me__asset-sub-more {
+  margin-top: auto;
+  padding-top: 8rpx;
+  font-size: 22rpx;
+  font-weight: 800;
+  color: $mp-accent;
+}
+
+/* 资产 / 记录 宫格 */
+.me__grid-card {
+  padding: 22rpx 20rpx 24rpx;
+}
+
+.me__asset-grid,
+.me__record-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16rpx;
 }
 
-.me__feature-item {
-  padding: 22rpx 18rpx;
-  border-radius: 18rpx;
+.me__asset-cell,
+.me__record-cell {
+  min-height: 168rpx;
+  padding: 20rpx 18rpx;
+  border-radius: 20rpx;
   background: #fafbfc;
   border: 1rpx solid $mp-border;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
+  justify-content: flex-start;
+  gap: 6rpx;
 }
 
-.me__feature-icon {
-  font-size: 36rpx;
-  line-height: 1;
-}
-
-.me__feature-title {
-  font-size: 24rpx;
+.me__asset-name,
+.me__record-name {
+  font-size: 26rpx;
   font-weight: 900;
   color: $mp-text-primary;
 }
 
-.me__feature-subtext {
-  display: block;
-  margin-top: 2rpx;
-  font-size: 22rpx;
-  color: $mp-text-secondary;
+.me__asset-val {
+  font-size: 40rpx;
+  font-weight: 900;
+  color: $mp-accent;
+  line-height: 1.1;
+  margin-top: 4rpx;
 }
 
-.me__feature-subtext--muted {
+.me__asset-val--sub {
+  font-size: 26rpx;
+  font-weight: 800;
+  color: $mp-text-secondary;
+  margin-top: 8rpx;
+}
+
+.me__asset-more {
+  margin-top: auto;
+  padding-top: 8rpx;
+  font-size: 22rpx;
+  font-weight: 800;
+  color: $mp-accent;
+}
+
+.me__record-ico {
+  font-size: 36rpx;
+  line-height: 1;
+  margin-bottom: 4rpx;
+}
+
+.me__record-sum {
+  font-size: 22rpx;
+  color: $mp-text-secondary;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.me__record-sum--muted {
   color: $mp-text-muted;
 }
 
-.me__support-head {
-  display: block;
-  margin-bottom: 6rpx;
+/* 服务中心 */
+.me__service-card {
+  padding: 8rpx 8rpx 12rpx;
 }
 
-.me__support-list {
-  margin-top: 12rpx;
-}
-
-.me__support-item {
-  padding: 18rpx 0;
-  border-top: 1rpx solid #f3f4f6;
+.me__service-row {
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: space-between;
+  gap: 16rpx;
+  padding: 22rpx 16rpx;
+  border-radius: 16rpx;
+}
+
+.me__service-row:active {
+  background: #f5f6f8;
+}
+
+.me__service-ico {
+  font-size: 34rpx;
+  width: 48rpx;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.me__service-mid {
+  flex: 1;
+  min-width: 0;
+}
+
+.me__service-name {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 800;
+  color: $mp-text-primary;
+}
+
+.me__service-desc {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: $mp-text-muted;
+}
+
+.me__service-arrow {
+  font-size: 32rpx;
+  color: $mp-text-muted;
+  flex-shrink: 0;
+}
+
+.me__hint-card {
+  padding: 28rpx 24rpx;
+}
+
+.me__hint-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 900;
+  color: $mp-text-primary;
+}
+
+.me__hint-body {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: $mp-text-secondary;
+}
+
+/* 底部：设置 + 退出 */
+.me__foot-card {
+  padding: 8rpx 8rpx 20rpx;
+  overflow: hidden;
+}
+
+.me__foot-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16rpx;
+  padding: 24rpx 18rpx;
+  border-radius: 16rpx;
+}
+
+.me__foot-row--hover {
+  background: #f5f6f8;
+}
+
+.me__foot-row-ico {
+  font-size: 34rpx;
+  width: 48rpx;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.me__foot-row-txt {
+  flex: 1;
+  font-size: 30rpx;
+  font-weight: 800;
+  color: $mp-text-primary;
+}
+
+.me__foot-row-arrow {
+  font-size: 32rpx;
+  color: $mp-text-muted;
+}
+
+.me__foot-divider {
+  height: 1rpx;
+  margin: 0 20rpx;
+  background: rgba($mp-border, 0.85);
+}
+
+.me__foot-logout {
+  margin: 12rpx 12rpx 0;
+  width: calc(100% - 24rpx);
+  padding: 26rpx;
+  font-size: 30rpx;
+  font-weight: 800;
+  color: #d64556 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 16rpx;
+}
+
+.me__foot-logout::after {
+  border: none !important;
+}
+
+.me__foot-logout-txt {
+  font-weight: 800;
+}
+
+.me__ver {
+  display: block;
+  margin-top: 20rpx;
+  font-size: 20rpx;
+  color: $mp-text-muted;
+  text-align: center;
+}
+
+.me__ver--foot {
+  margin-top: 16rpx;
+}
+
+.me__mask {
+  position: fixed;
+  z-index: 500;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.me__sheet {
+  width: 100%;
+  padding: 32rpx 32rpx calc(24rpx + env(safe-area-inset-bottom));
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  box-sizing: border-box;
+}
+
+.me__sheet-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 900;
+  color: $mp-text-primary;
+  text-align: center;
+}
+
+.me__sheet-primary {
+  margin-top: 28rpx;
+  width: 100%;
+  padding: 26rpx;
+  font-size: 30rpx;
+  font-weight: 800;
+  color: #fff !important;
+  background: #07c160;
+  border-radius: 16rpx;
+  border: none;
+}
+
+.me__sheet-primary::after {
+  border: none;
+}
+
+.me__sheet-cancel {
+  margin-top: 16rpx;
+  width: 100%;
+  padding: 22rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: $mp-text-secondary;
+  background: #f3f4f6;
+  border-radius: 16rpx;
+  border: none;
+}
+
+.me__sheet-cancel::after {
+  border: none;
+}
+
+.me__sheet--nick {
+  max-height: 70vh;
+}
+
+.me__nick-input {
+  margin-top: 28rpx;
+  width: 100%;
+  height: 88rpx;
+  padding: 0 20rpx;
+  border-radius: 14rpx;
+  border: 1rpx solid $mp-border;
+  background: #fafbfc;
+  font-size: 28rpx;
+  color: $mp-text-primary;
+  box-sizing: border-box;
+}
+
+.me__sheet-actions {
+  margin-top: 28rpx;
+  display: flex;
+  flex-direction: row;
   gap: 16rpx;
 }
 
-.me__support-item:first-child {
-  border-top: none;
-}
-
-.me__support-left {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 14rpx;
-  min-width: 0;
+.me__sheet-save {
   flex: 1;
+  padding: 22rpx;
+  font-size: 28rpx;
+  font-weight: 800;
+  color: #fff !important;
+  background: $mp-accent;
+  border-radius: 16rpx;
+  border: none;
 }
 
-.me__support-icon {
-  font-size: 32rpx;
-  width: 50rpx;
-  text-align: center;
+.me__sheet-save::after {
+  border: none;
 }
 
-.me__support-title {
-  display: block;
-  font-size: 24rpx;
-  font-weight: 900;
-  color: $mp-text-primary;
-  word-break: break-all;
+.me__sheet-cancel--grow {
+  flex: 1;
+  margin-top: 0 !important;
 }
-
-.me__support-sub {
-  display: block;
-  margin-top: 6rpx;
-  font-size: 20rpx;
-  color: $mp-text-secondary;
-  word-break: break-all;
-}
-
-.me__support-arrow {
-  font-size: 30rpx;
-  font-weight: 950;
-  color: $mp-text-muted;
-}
-
-.me__version {
-  display: block;
-  margin-top: 18rpx;
-  font-size: 20rpx;
-  color: $mp-text-muted;
-  text-align: center;
-}
-
 </style>

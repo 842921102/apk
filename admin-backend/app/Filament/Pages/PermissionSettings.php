@@ -12,6 +12,8 @@ use UnitEnum;
 
 class PermissionSettings extends Page
 {
+    protected static ?string $title = '权限设置';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShieldCheck;
 
     protected static ?string $navigationLabel = '权限设置';
@@ -19,6 +21,8 @@ class PermissionSettings extends Page
     protected static string|UnitEnum|null $navigationGroup = '系统管理';
 
     protected static ?int $navigationSort = 111;
+
+    protected ?string $subheading = '基于 Laravel Gate / Policy 的只读说明与注册表，便于排查访问控制。';
 
     protected string $view = 'filament.pages.permission-settings';
 

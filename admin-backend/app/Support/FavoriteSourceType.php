@@ -12,6 +12,11 @@ enum FavoriteSourceType: string
     case FortuneCooking = 'fortune_cooking';
     case SauceDesign = 'sauce_design';
     case Gallery = 'gallery';
+    /** 今日推荐历史单条（关联 recommendation_records.id） */
+    case RecommendationRecord = 'recommendation_record';
+
+    /** 后台标准菜谱（关联 dish_recipes.id） */
+    case Recipe = 'recipe';
 
     /**
      * @return list<string>

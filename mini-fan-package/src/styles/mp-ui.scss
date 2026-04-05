@@ -13,7 +13,12 @@ page {
   min-height: 100vh;
   box-sizing: border-box;
   padding: 32rpx;
-  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
+  /*
+   * 底部 Tab 为原生 tabBar 时，可视区已在 Tab 之上，勿再叠加大段 padding-bottom + safe-area，
+   * 否则会整块留白（用户看到的「白条」）。需要给自定义底栏（MpIcoTabBar）留位的页面请用各页
+   * scoped 里的 `.has-bottom-nav { padding-bottom: calc(120rpx + env(safe-area-inset-bottom)); }`。
+   */
+  padding-bottom: 32rpx;
   background: $mp-bg-page;
 }
 

@@ -5,9 +5,17 @@
 
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
+import { syncLaravelMeSummaryIfNeeded } from '@/composables/useAuth'
 
-onLaunch(() => {
+onLaunch(async () => {
   console.log('App Launch')
+  await syncLaravelMeSummaryIfNeeded()
+  try {
+    const { tryOnboardingGateOnColdStart } = await import('@/composables/useOnboardingFlow')
+    tryOnboardingGateOnColdStart()
+  } catch (e) {
+    console.warn('[wte-mp][onboarding] cold gate failed:', e)
+  }
 })
 onShow(() => {
   console.log('App Show')

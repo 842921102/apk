@@ -29,6 +29,7 @@ class InspirationDemoSeeder extends Seeder
                     'role' => 'user',
                 ],
             );
+            $user->ensureProfile();
 
             return $user;
         })->values();

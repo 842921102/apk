@@ -72,9 +72,6 @@ final class CircleService
             ->map(fn (CirclePost $p) => $this->postToApiArray($p, $viewerId))
             ->all();
 
-        $relatedImages = $relatedProduct instanceof Product && is_array($relatedProduct->images) ? $relatedProduct->images : [];
-        $canExposeRelatedProduct = $relatedProduct instanceof Product && $relatedProduct->status === 'online';
-
         return [
             'items' => $items,
             'has_more' => $paginator->hasMorePages(),
@@ -92,6 +89,8 @@ final class CircleService
         }
         $u = $post->user;
         $relatedProduct = $post->relatedProduct;
+        $relatedImages = $relatedProduct instanceof Product && is_array($relatedProduct->images) ? $relatedProduct->images : [];
+        $canExposeRelatedProduct = $relatedProduct instanceof Product && $relatedProduct->status === 'online';
 
         $images = is_array($post->images) ? array_values(array_filter($post->images, fn ($v) => is_string($v) && $v !== '')) : [];
 

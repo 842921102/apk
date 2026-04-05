@@ -25,7 +25,7 @@ class StoreFavoriteRequest extends FormRequest
             'cuisine' => ['nullable', 'string', 'max:128'],
             'ingredients' => ['nullable', 'array'],
             'ingredients.*' => ['string', 'max:255'],
-            'recipe_content' => ['required', 'string'],
+            'recipe_content' => ['nullable', 'string'],
             'extra_payload' => ['nullable', 'array'],
         ];
     }

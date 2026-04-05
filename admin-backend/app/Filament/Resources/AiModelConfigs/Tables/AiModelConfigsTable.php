@@ -65,9 +65,17 @@ class AiModelConfigsTable
                             'error_message' => $result['error_message'],
                         ]);
 
+                        $body =
+                            $result['status'] === 'success'
+                                ? ($result['error_message'] ?? '测试完成')
+                                : trim(
+                                    ($result['error_message'] ?? '测试完成')
+                                        .(isset($result['request_url']) ? "\n".$result['request_url'] : ''),
+                                );
+
                         Notification::make()
                             ->title($result['status'] === 'success' ? '连接成功' : '连接失败')
-                            ->body($result['error_message'] ?? '测试完成')
+                            ->body($body)
                             ->status($result['status'] === 'success' ? 'success' : 'danger')
                             ->send();
                     }),

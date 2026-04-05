@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    /*
+    | 小程序微信登录：须走 config()，勿在业务代码里直接 env()，
+    | 否则 `php artisan config:cache` 后 env() 为空，开发兜底与密钥会全部失效。
+    */
+    'wechat' => [
+        'app_id' => env('WECHAT_APP_ID'),
+        'app_secret' => env('WECHAT_APP_SECRET'),
+        'dev_bypass' => filter_var(env('WECHAT_DEV_BYPASS', false), FILTER_VALIDATE_BOOLEAN),
+        'dev_force_user_id' => env('WECHAT_DEV_FORCE_USER_ID'),
+    ],
+
 ];

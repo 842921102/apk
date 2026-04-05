@@ -40,32 +40,109 @@ class UsersTable
                     ->label('编号')
                     ->sortable()
                     ->searchable()
-                    ->copyable(),
+                    ->copyable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('name')
+                    ->label('昵称')
+                    ->description(fn (User $record): string => str_contains((string) $record->email, '@wechat.local') ? '微信' : '后台')
+                    ->searchable()
+                    ->limit(16)
+                    ->tooltip(fn (?string $state): ?string => $state),
+                TextColumn::make('email')
+                    ->label('邮箱')
+                    ->searchable()
+                    ->limit(22)
+                    ->tooltip(fn (?string $state): ?string => $state),
+                TextColumn::make('phone')
+                    ->label('手机号')
+                    ->placeholder('—')
+                    ->searchable(),
+                TextColumn::make('profile.gender')
+                    ->label('性别')
+                    ->formatStateUsing(function (?string $state): string {
+                        return match ((string) $state) {
+                            'male' => '男',
+                            'female' => '女',
+                            'undisclosed' => '不愿透露',
+                            default => '未设置',
+                        };
+                    })
+                    ->placeholder('—'),
+                TextColumn::make('profile.birthday')
+                    ->label('生日')
+                    ->date()
+                    ->placeholder('—'),
+                TextColumn::make('profile.flavor_preferences')
+                    ->label('口味偏好')
+                    ->formatStateUsing(function ($state): string {
+                        if (! is_array($state) || $state === []) {
+                            return '—';
+                        }
+
+                        return implode('、', array_slice(array_map(strval(...), $state), 0, 12));
+                    }),
+                TextColumn::make('profile.health_goal')
+                    ->label('饮食目标')
+                    ->placeholder('—')
+                    ->limit(24)
+                    ->tooltip(fn (?string $state): ?string => $state),
+                IconColumn::make('profile.destiny_mode_enabled')
+                    ->label('食命推荐')
+                    ->boolean()
+                    ->placeholder('—'),
+                IconColumn::make('profile.period_feature_enabled')
+                    ->label('特殊时期推荐')
+                    ->boolean()
+                    ->placeholder('—'),
+                TextColumn::make('role')
+                    ->label('角色')
+                    ->formatStateUsing(fn (?string $state): string => AppRole::labelCn((string) $state))
+                    ->badge()
+                    ->color(fn (?string $state): string => match ((string) $state) {
+                        'super_admin' => 'danger',
+                        'operator' => 'warning',
+                        'viewer' => 'info',
+                        default => 'gray',
+                    })
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                IconColumn::make('is_active')
+                    ->label('账号启用')
+                    ->boolean()
+                    ->trueIcon(Heroicon::OutlinedCheckCircle)
+                    ->falseIcon(Heroicon::OutlinedXCircle)
+                    ->trueColor('success')
+                    ->falseColor('danger')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('created_at')
+                    ->label('注册时间')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('last_login_at')
+                    ->label('最近登录')
+                    ->dateTime()
+                    ->placeholder('—')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('favorites_count')
+                    ->label('收藏数')
+                    ->sortable()
+                    ->alignCenter()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('histories_count')
+                    ->label('历史数')
+                    ->badge()
+                    ->alignCenter()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 ImageColumn::make('avatar_url')
                     ->label('头像')
                     ->circular()
                     ->imageHeight(40)
                     ->imageWidth(40)
-                    ->toggleable()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->defaultImageUrl(fn (): string => 'data:image/svg+xml,'.rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#d1d5db"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6v1H4v-1z"/></svg>')),
-                TextColumn::make('name')
-                    ->label('昵称 / 姓名')
-                    ->description(fn (User $record): string => str_contains((string) $record->email, '@wechat.local') ? '微信登录' : '后台账号')
-                    ->searchable()
-                    ->limit(18)
-                    ->tooltip(fn (?string $state): ?string => $state)
-                    ->wrap(),
-                TextColumn::make('phone')
-                    ->label('手机号')
-                    ->placeholder('—')
-                    ->searchable()
-                    ->toggleable(),
-                TextColumn::make('email')
-                    ->label('邮箱')
-                    ->searchable()
-                    ->limit(24)
-                    ->tooltip(fn (?string $state): ?string => $state)
-                    ->toggleable(),
                 TextColumn::make('wechat_openid')
                     ->label('开放标识')
                     ->toggleable(isToggledHiddenByDefault: true)
@@ -77,43 +154,6 @@ class UsersTable
                     ->placeholder('—')
                     ->limit(10)
                     ->tooltip(fn (?string $state): ?string => $state),
-                TextColumn::make('role')
-                    ->label('角色')
-                    ->formatStateUsing(fn (?string $state): string => AppRole::labelCn((string) $state))
-                    ->badge()
-                    ->color(fn (?string $state): string => match ((string) $state) {
-                        'super_admin' => 'danger',
-                        'operator' => 'warning',
-                        'viewer' => 'info',
-                        default => 'gray',
-                    })
-                    ->sortable(),
-                IconColumn::make('is_active')
-                    ->label('状态')
-                    ->boolean()
-                    ->trueIcon(Heroicon::OutlinedCheckCircle)
-                    ->falseIcon(Heroicon::OutlinedXCircle)
-                    ->trueColor('success')
-                    ->falseColor('danger')
-                    ->sortable(),
-                TextColumn::make('created_at')
-                    ->label('注册时间')
-                    ->dateTime()
-                    ->sortable(),
-                TextColumn::make('last_login_at')
-                    ->label('最近登录')
-                    ->dateTime()
-                    ->placeholder('—')
-                    ->sortable()
-                    ->toggleable(),
-                TextColumn::make('favorites_count')
-                    ->label('收藏数')
-                    ->sortable()
-                    ->alignCenter(),
-                TextColumn::make('histories_count')
-                    ->label('历史数')
-                    ->badge()
-                    ->alignCenter(),
             ])
             ->filters([
                 Filter::make('user_id')

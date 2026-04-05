@@ -28,7 +28,9 @@
     {
       "path": "pages/me/index",
       "style": {
-        "navigationBarTitleText": "我的"
+        "navigationBarTitleText": "我的",
+        "navigationStyle": "custom",
+        "navigationBarTextStyle": "black"
       }
     },
     {
@@ -48,6 +50,33 @@
       "path": "pages/histories/index",
       "style": {
         "navigationBarTitleText": "历史",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/recommendation-history/index",
+      "style": {
+        "navigationBarTitleText": "最近推荐",
+        "enablePullDownRefresh": true,
+        "onReachBottomDistance": 80
+      }
+    },
+    {
+      "path": "pages/recommendation-history/detail",
+      "style": {
+        "navigationBarTitleText": "推荐详情"
+      }
+    },
+    {
+      "path": "pages/recipe/detail",
+      "style": {
+        "navigationBarTitleText": "做法详情"
+      }
+    },
+    {
+      "path": "pages/recipe-favorites/index",
+      "style": {
+        "navigationBarTitleText": "菜谱收藏",
         "enablePullDownRefresh": true
       }
     },
@@ -86,6 +115,44 @@
       "path": "pages/profile/index",
       "style": {
         "navigationBarTitleText": "个人资料"
+      }
+    },
+    {
+      "path": "pages/onboarding/index",
+      "style": {
+        "navigationBarTitleText": "了解你的口味",
+        "navigationStyle": "custom",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/me/diet-preferences",
+      "style": {
+        "navigationBarTitleText": "饮食偏好"
+      }
+    },
+    {
+      "path": "pages/me/recommend-settings",
+      "style": {
+        "navigationBarTitleText": "推荐设置"
+      }
+    },
+    {
+      "path": "pages/me/basic-profile",
+      "style": {
+        "navigationBarTitleText": "基础资料"
+      }
+    },
+    {
+      "path": "pages/me/recommendation-preferences",
+      "style": {
+        "navigationBarTitleText": "推荐偏好"
+      }
+    },
+    {
+      "path": "pages/me/recommendation-profile-edit",
+      "style": {
+        "navigationBarTitleText": "编辑画像"
       }
     },
     {
@@ -140,6 +207,12 @@
       "path": "pages/mall/order-detail",
       "style": {
         "navigationBarTitleText": "订单详情"
+      }
+    },
+    {
+      "path": "pages/pay/test-pay",
+      "style": {
+        "navigationBarTitleText": "支付测试"
       }
     }
   ],
