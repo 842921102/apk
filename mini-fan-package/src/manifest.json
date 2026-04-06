@@ -10,6 +10,14 @@
     "setting": {
       "urlCheck": false
     },
+    "requiredPrivateInfos": [
+      "getLocation"
+    ],
+    "permission": {
+      "scope.userLocation": {
+        "desc": "用于展示所在城市与天气信息"
+      }
+    },
     "usingComponents": true
   },
   "vueVersion": "3",

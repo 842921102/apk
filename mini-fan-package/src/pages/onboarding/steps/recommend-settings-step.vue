@@ -142,12 +142,12 @@ function onBirthChange(e: { detail?: { value?: string } }) {
 @import '@/uni.scss';
 
 .rs {
-  padding: 8rpx 0 32rpx;
+  padding: 6rpx 0 28rpx;
 }
 
 .rs__title {
   display: block;
-  font-size: 40rpx;
+  font-size: 34rpx;
   font-weight: 700;
   color: $mp-text-primary;
   line-height: 1.35;
@@ -156,19 +156,19 @@ function onBirthChange(e: { detail?: { value?: string } }) {
 
 .rs__lead {
   display: block;
-  margin-top: 16rpx;
-  margin-bottom: 28rpx;
-  font-size: 26rpx;
-  line-height: 1.6;
+  margin-top: 12rpx;
+  margin-bottom: 22rpx;
+  font-size: 23rpx;
+  line-height: 1.5;
   color: $mp-text-secondary;
 }
 
 .rs__module {
-  padding: 28rpx 26rpx 32rpx;
+  padding: 22rpx 20rpx 22rpx;
 }
 
 .rs__module + .rs__module {
-  margin-top: 24rpx;
+  margin-top: 16rpx;
 }
 
 .rs__mod-head {
@@ -176,39 +176,41 @@ function onBirthChange(e: { detail?: { value?: string } }) {
   align-items: baseline;
   justify-content: space-between;
   gap: 20rpx;
-  margin-bottom: 12rpx;
+  margin-bottom: 10rpx;
 }
 
 .rs__mod-title {
-  font-size: 30rpx;
+  font-size: 26rpx;
   font-weight: 700;
   color: $mp-text-primary;
 }
 
 .rs__mod-hint {
-  font-size: 22rpx;
+  font-size: 20rpx;
   color: $mp-text-muted;
   font-weight: 500;
 }
 
 .rs__mod-desc {
   display: block;
-  margin-bottom: 20rpx;
-  font-size: 24rpx;
-  line-height: 1.55;
+  margin-bottom: 14rpx;
+  font-size: 22rpx;
+  line-height: 1.48;
   color: $mp-text-secondary;
 }
 
 .rs__mod-desc--compact {
-  margin-bottom: 16rpx;
+  margin-bottom: 12rpx;
 }
 
 .rs__picker {
   margin-top: 8rpx;
-  padding: 22rpx 24rpx;
+  height: 80rpx;
+  padding: 0 20rpx;
   background: #f3f4f6;
-  border-radius: 18rpx;
-  font-size: 30rpx;
+  border-radius: 14rpx;
+  font-size: 24rpx;
+  line-height: 80rpx;
   color: $mp-text-primary;
 }
 </style>

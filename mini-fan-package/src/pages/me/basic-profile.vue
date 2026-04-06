@@ -1,16 +1,16 @@
 <template>
   <view class="pg">
     <view class="mp-card pg__card">
-      <text class="pg__hint">基础资料仅用于展示与运营统计，不会自动决定任何推荐能力。</text>
+      <text class="pg__hint">基础资料用于完善账号信息与推荐上下文，不会单独决定推荐结果。</text>
       <text class="pg__label">生日</text>
       <picker mode="date" :value="birthday" @change="onBirthChange">
-        <view class="pg__picker">{{ birthday || '点击选择' }}</view>
+        <view class="pg__picker">{{ birthday || '请选择生日' }}</view>
       </picker>
       <text class="pg__label">性别</text>
       <picker :range="genderLabels" :value="genderIndex" @change="onGenderChange">
         <view class="pg__picker">{{ genderLabels[genderIndex] }}</view>
       </picker>
-      <button class="mp-btn-primary pg__btn" :loading="loading" @click="onSave">保存</button>
+      <button class="mp-btn-primary pg__btn" :loading="loading" @click="onSave">保存基础资料</button>
     </view>
   </view>
 </template>
@@ -92,23 +92,24 @@ async function onSave() {
   min-height: 100vh;
   padding: 32rpx;
   box-sizing: border-box;
-  background: #f5f5f7;
+  background: linear-gradient(180deg, #f6f4fc 0%, #f9fafb 120rpx);
 }
 .pg__card {
   padding: 32rpx;
+  border-color: rgba(122, 87, 209, 0.2);
 }
 .pg__hint {
   display: block;
-  font-size: 24rpx;
+  font-size: 25rpx;
   color: #6b7280;
-  line-height: 1.5;
+  line-height: 1.6;
   margin-bottom: 24rpx;
 }
 .pg__label {
   display: block;
   font-size: 26rpx;
-  font-weight: 600;
-  color: #374151;
+  font-weight: 800;
+  color: #1f2937;
   margin-top: 24rpx;
   margin-bottom: 12rpx;
 }
@@ -116,8 +117,9 @@ async function onSave() {
   padding: 20rpx 22rpx;
   background: #f9fafb;
   border-radius: 14rpx;
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: #111827;
+  font-weight: 600;
 }
 .pg__btn {
   margin-top: 40rpx;

@@ -7,9 +7,7 @@
       <view class="osh__mid">
         <text class="osh__progress">{{ progressCurrent }} / {{ progressTotal }}</text>
       </view>
-      <view class="osh__side osh__side--right">
-        <text class="osh__link" @click="emit('skip')">跳过</text>
-      </view>
+      <view class="osh__side osh__side--right" />
     </view>
   </view>
 </template>
@@ -40,7 +38,7 @@ const emit = defineEmits<{
 .osh__row {
   display: flex;
   align-items: center;
-  padding: 0 24rpx;
+  padding: 0 18rpx;
   box-sizing: border-box;
 }
 
@@ -59,16 +57,16 @@ const emit = defineEmits<{
 }
 
 .osh__progress {
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 700;
   color: $mp-text-primary;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
 }
 
 .osh__link {
-  font-size: 28rpx;
+  font-size: 26rpx;
   font-weight: 600;
   color: $mp-accent;
-  padding: 12rpx 8rpx;
+  padding: 10rpx 8rpx;
 }
 </style>

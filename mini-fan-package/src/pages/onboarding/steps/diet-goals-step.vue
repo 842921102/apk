@@ -39,12 +39,12 @@ const options = [
 @import '@/uni.scss';
 
 .dgs {
-  padding: 8rpx 0 32rpx;
+  padding: 6rpx 0 28rpx;
 }
 
 .dgs__title {
   display: block;
-  font-size: 40rpx;
+  font-size: 34rpx;
   font-weight: 700;
   color: $mp-text-primary;
   line-height: 1.35;
@@ -53,10 +53,10 @@ const options = [
 
 .dgs__desc {
   display: block;
-  margin-top: 16rpx;
-  margin-bottom: 36rpx;
-  font-size: 26rpx;
-  line-height: 1.55;
+  margin-top: 12rpx;
+  margin-bottom: 24rpx;
+  font-size: 23rpx;
+  line-height: 1.5;
   color: $mp-text-secondary;
 }
 </style>

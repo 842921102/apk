@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\InternalAiRuntimeController;
 use App\Http\Controllers\Api\InternalEatMemeController;
 use App\Http\Controllers\Api\InternalFeatureDataController;
+use App\Http\Controllers\Api\InternalMiniappWeatherController;
 use App\Http\Controllers\Api\MeDailyStatusController;
 use App\Http\Controllers\Api\MeProfileController;
 use App\Http\Controllers\Api\OrderController;
@@ -48,6 +49,7 @@ Route::post('/internal/eat-meme', [InternalEatMemeController::class, 'store']);
 Route::delete('/internal/eat-meme/{eatMeme}', [InternalEatMemeController::class, 'destroy']);
 Route::get('/internal/feature-data', [InternalFeatureDataController::class, 'index']);
 Route::post('/internal/feature-data', [InternalFeatureDataController::class, 'store']);
+Route::get('/internal/miniapp/weather/ambient', [InternalMiniappWeatherController::class, 'ambient']);
 
 Route::middleware([AuthenticateLaravelAccessToken::class])->group(function (): void {
     Route::get('/me/profile', [MeProfileController::class, 'show']);

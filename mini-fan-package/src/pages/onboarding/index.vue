@@ -17,13 +17,13 @@
     >
       <view v-if="screen === 'welcome'" class="ob__body">
         <view class="mp-card ob__hero-card">
-          <text class="ob__hero-title">先了解你一点，后面的推荐会更懂你</text>
+          <text class="ob__hero-title">完善推荐画像，让每次推荐更懂你</text>
           <text class="ob__hero-sub">
-            这不是普通问卷，而是你的饮食画像采集。填写后，系统会结合你的口味、健康目标和生活方式，给你更有理由的菜品推荐与食命文案。
+            你填写的口味、目标与生活方式将用于生成更贴合的推荐结果。全程约 1～2 分钟，后续也可随时修改。
           </text>
         </view>
 
-        <text class="ob__section-k">你能获得</text>
+        <text class="ob__section-k">完成后你将获得</text>
         <view class="mp-card ob__value-card">
           <view v-for="(row, i) in valueRows" :key="i" class="ob__value-row">
             <text class="ob__value-dot">·</text>
@@ -228,9 +228,9 @@ const summaryPayload = computed(() => ({
 }))
 
 const valueRows = [
-  '推荐更贴口味：不是随机给菜，而是优先推荐你更容易接受的方向',
-  '后续可做健康饮食服务：例如减脂、养胃、轻负担、高蛋白等建议',
-  '让今天的推荐更有意义：天气、节日、生日、状态都能成为推荐依据',
+  '更贴合口味与忌口的菜品建议，减少“踩雷”推荐',
+  '结合目标与场景生成更可执行的饮食方案',
+  '在天气、节日与当日状态下提供更有理由的推荐说明',
 ]
 
 const tabPaths = [
@@ -611,12 +611,12 @@ function onStepNext() {
 }
 
 .ob__body {
-  padding: 24rpx 32rpx 48rpx;
+  padding: 20rpx 28rpx 44rpx;
   box-sizing: border-box;
 }
 
 .ob__body--step {
-  padding-top: 16rpx;
+  padding-top: 12rpx;
 }
 
 .ob__hero-card {
@@ -625,7 +625,7 @@ function onStepNext() {
 
 .ob__hero-title {
   display: block;
-  font-size: 36rpx;
+  font-size: 34rpx;
   font-weight: 700;
   color: $mp-text-primary;
   line-height: 1.4;
@@ -635,15 +635,15 @@ function onStepNext() {
 .ob__hero-sub {
   display: block;
   margin-top: 20rpx;
-  font-size: 26rpx;
+  font-size: 24rpx;
   line-height: 1.6;
   color: $mp-text-secondary;
 }
 
 .ob__section-k {
   display: block;
-  margin: 32rpx 8rpx 16rpx;
-  font-size: 22rpx;
+  margin: 28rpx 8rpx 14rpx;
+  font-size: 21rpx;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -675,7 +675,7 @@ function onStepNext() {
 
 .ob__value-txt {
   flex: 1;
-  font-size: 28rpx;
+  font-size: 25rpx;
   line-height: 1.55;
   color: $mp-text-primary;
 }
@@ -689,7 +689,7 @@ function onStepNext() {
   display: block;
   margin-top: 20rpx;
   text-align: center;
-  font-size: 24rpx;
+  font-size: 22rpx;
   color: $mp-text-muted;
   line-height: 1.5;
 }
@@ -704,7 +704,7 @@ function onStepNext() {
   right: 0;
   bottom: 0;
   z-index: 22;
-  padding: 20rpx 32rpx 24rpx;
+  padding: 14rpx 24rpx 18rpx;
   box-sizing: border-box;
   background: linear-gradient(180deg, rgba(245, 245, 247, 0) 0%, $mp-bg-page 24%);
   border-top: 1rpx solid $mp-border;
@@ -717,6 +717,39 @@ function onStepNext() {
 
 .ob__summary-secondary {
   width: 100%;
-  margin: 20rpx 0 0;
+  margin: 14rpx 0 0;
+}
+
+/* 问卷页内统一选项视觉密度（不影响其它页面） */
+.ob :deep(.ocg) {
+  gap: 12rpx;
+}
+
+.ob :deep(.ocg__chip) {
+  padding: 12rpx 20rpx;
+}
+
+.ob :deep(.ocg__txt) {
+  font-size: 23rpx;
+  font-weight: 600;
+}
+
+.ob :deep(.oscg) {
+  gap: 10rpx;
+}
+
+.ob :deep(.oscg__card) {
+  padding: 18rpx 20rpx;
+  border-radius: 14rpx;
+  min-height: 76rpx;
+}
+
+.ob :deep(.oscg__txt) {
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
+.ob :deep(.oscg__check) {
+  font-size: 22rpx;
 }
 </style>

@@ -1108,6 +1108,51 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, {})
     }
 
+    // 首页 Banner 城市与天气：由 admin-backend 内部接口 + 系统配置驱动
+    if (req.method === 'GET' && pathname === '/api/miniapp/home-banner-ambient') {
+      if (!ADMIN_BACKEND_BASE_URL || !INTERNAL_SERVICE_TOKEN) {
+        return json(res, 200, {
+          city_name: '深圳',
+          weather_text: '晴',
+          weather_code: 'sunny',
+          weather_icon_emoji: '☀️',
+        })
+      }
+      const uFull = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`)
+      const lat = Number(uFull.searchParams.get('latitude'))
+      const lng = Number(uFull.searchParams.get('longitude'))
+      const query = new URLSearchParams()
+      if (Number.isFinite(lat)) query.set('latitude', String(lat))
+      if (Number.isFinite(lng)) query.set('longitude', String(lng))
+      const q = query.toString()
+      const target = `${ADMIN_BACKEND_BASE_URL.replace(/\/$/, '')}/api/internal/miniapp/weather/ambient${q ? `?${q}` : ''}`
+      try {
+        const resp = await fetch(target, {
+          headers: {
+            Accept: 'application/json',
+            'X-Internal-Token': INTERNAL_SERVICE_TOKEN,
+          },
+        })
+        const data = await resp.json().catch(() => null)
+        if (!resp.ok || !data || typeof data !== 'object') {
+          return json(res, 200, {
+            city_name: '深圳',
+            weather_text: '晴',
+            weather_code: 'sunny',
+            weather_icon_emoji: '☀️',
+          })
+        }
+        return json(res, 200, data)
+      } catch {
+        return json(res, 200, {
+          city_name: '深圳',
+          weather_text: '晴',
+          weather_code: 'sunny',
+          weather_icon_emoji: '☀️',
+        })
+      }
+    }
+
     // 微信登录：POST /api/auth/wechat
     // 小程序：uni.login(provider:'weixin') -> code
     // BFF：把 code 转发给 Laravel -> 返回 access_token + user

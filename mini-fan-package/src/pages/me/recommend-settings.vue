@@ -1,9 +1,9 @@
 <template>
   <view class="pg">
     <view class="mp-card pg__card">
-      <text class="pg__hint">「食命推荐」与玄学厨房等玩法联动；特殊时期能力与性别无关，仅在你开启后出现相关提问。</text>
+      <text class="pg__hint">用于控制推荐的呈现方式与功能开关，可随时调整并即时生效。</text>
       <text class="pg__label">推荐风格（选填）</text>
-      <input v-model="styleDraft" class="pg__input" placeholder="如：清淡优先、快手" />
+      <input v-model="styleDraft" class="pg__input" placeholder="例如：偏实用、清淡优先、快手为主" />
       <view class="pg__row">
         <text class="pg__row-title">食命推荐</text>
         <switch :checked="destiny" color="#7A57D1" @change="onDestinyChange" />
@@ -11,11 +11,11 @@
       <view class="pg__row">
         <view class="pg__row-mid">
           <text class="pg__row-title">特殊时期贴心推荐</text>
-          <text class="pg__row-sub">开启后，在「吃什么」生成前可填写今日状态</text>
+          <text class="pg__row-sub">开启后，可在生成前补充当日状态以提升推荐匹配度</text>
         </view>
         <switch :checked="period" color="#7A57D1" @change="onPeriodChange" />
       </view>
-      <button class="mp-btn-primary pg__btn" :loading="loading" @click="onSave">保存</button>
+      <button class="mp-btn-primary pg__btn" :loading="loading" @click="onSave">保存推荐设置</button>
     </view>
   </view>
 </template>
@@ -87,23 +87,24 @@ async function onSave() {
   min-height: 100vh;
   padding: 32rpx;
   box-sizing: border-box;
-  background: #f5f5f7;
+  background: linear-gradient(180deg, #f6f4fc 0%, #f9fafb 120rpx);
 }
 .pg__card {
   padding: 32rpx;
+  border-color: rgba(122, 87, 209, 0.2);
 }
 .pg__hint {
   display: block;
-  font-size: 24rpx;
+  font-size: 25rpx;
   color: #6b7280;
-  line-height: 1.5;
+  line-height: 1.6;
   margin-bottom: 24rpx;
 }
 .pg__label {
   display: block;
   font-size: 26rpx;
-  font-weight: 600;
-  color: #374151;
+  font-weight: 800;
+  color: #1f2937;
   margin-bottom: 12rpx;
 }
 .pg__input {
@@ -112,7 +113,8 @@ async function onSave() {
   box-sizing: border-box;
   background: #f9fafb;
   border-radius: 14rpx;
-  font-size: 28rpx;
+  font-size: 26rpx;
+  color: #111827;
 }
 .pg__row {
   display: flex;
@@ -127,16 +129,16 @@ async function onSave() {
   padding-right: 20rpx;
 }
 .pg__row-title {
-  font-size: 28rpx;
-  font-weight: 600;
+  font-size: 26rpx;
+  font-weight: 800;
   color: #111827;
 }
 .pg__row-sub {
   display: block;
   margin-top: 8rpx;
-  font-size: 24rpx;
+  font-size: 23rpx;
   color: #6b7280;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 .pg__btn {
   margin-top: 40rpx;

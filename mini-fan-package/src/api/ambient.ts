@@ -69,14 +69,25 @@ export function parseHomeBannerAmbient(raw: unknown): HomeBannerAmbient | null {
 }
 
 /** 未配置 BFF、失败或未实现接口时返回 MOCK，不抛错 */
-export async function fetchHomeBannerAmbient(): Promise<HomeBannerAmbient> {
+export async function fetchHomeBannerAmbient(params?: {
+  latitude?: number
+  longitude?: number
+}): Promise<HomeBannerAmbient> {
   if (!API_BASE_URL.trim()) {
     return { ...MOCK_HOME_BANNER_AMBIENT }
+  }
+  const reqData: Record<string, unknown> = {}
+  if (typeof params?.latitude === 'number' && Number.isFinite(params.latitude)) {
+    reqData.latitude = params.latitude
+  }
+  if (typeof params?.longitude === 'number' && Number.isFinite(params.longitude)) {
+    reqData.longitude = params.longitude
   }
   try {
     const raw = await request<unknown>({
       url: HOME_BANNER_AMBIENT_PATH,
       method: 'GET',
+      data: reqData,
     })
     const parsed = parseHomeBannerAmbient(raw)
     if (parsed) return parsed

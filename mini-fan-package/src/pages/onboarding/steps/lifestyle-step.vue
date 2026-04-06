@@ -91,12 +91,12 @@ const familyOptions = [
 @import '@/uni.scss';
 
 .ls {
-  padding: 8rpx 0 32rpx;
+  padding: 6rpx 0 28rpx;
 }
 
 .ls__title {
   display: block;
-  font-size: 40rpx;
+  font-size: 34rpx;
   font-weight: 700;
   color: $mp-text-primary;
   line-height: 1.35;
@@ -105,19 +105,19 @@ const familyOptions = [
 
 .ls__lead {
   display: block;
-  margin-top: 16rpx;
-  margin-bottom: 28rpx;
-  font-size: 26rpx;
-  line-height: 1.6;
+  margin-top: 12rpx;
+  margin-bottom: 22rpx;
+  font-size: 23rpx;
+  line-height: 1.5;
   color: $mp-text-secondary;
 }
 
 .ls__module {
-  padding: 28rpx 26rpx 32rpx;
+  padding: 22rpx 20rpx 22rpx;
 }
 
 .ls__module + .ls__module {
-  margin-top: 24rpx;
+  margin-top: 16rpx;
 }
 
 .ls__mod-head {
@@ -125,19 +125,19 @@ const familyOptions = [
   align-items: baseline;
   justify-content: space-between;
   gap: 20rpx;
-  margin-bottom: 24rpx;
-  padding-bottom: 20rpx;
+  margin-bottom: 14rpx;
+  padding-bottom: 14rpx;
   border-bottom: 1rpx solid #f0f2f5;
 }
 
 .ls__mod-title {
-  font-size: 30rpx;
+  font-size: 26rpx;
   font-weight: 700;
   color: $mp-text-primary;
 }
 
 .ls__mod-hint {
-  font-size: 22rpx;
+  font-size: 20rpx;
   color: $mp-text-muted;
   font-weight: 500;
 }

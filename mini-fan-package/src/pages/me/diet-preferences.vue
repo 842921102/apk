@@ -1,16 +1,16 @@
 <template>
   <view class="pg">
     <view class="mp-card pg__card">
-      <text class="pg__hint">与账号同步，用于生成推荐时的长期口味与饮食约束。</text>
-      <text class="pg__label">口味偏好（逗号分隔）</text>
-      <input v-model="flavorText" class="pg__input" placeholder="如：清淡、鲜" />
-      <text class="pg__label">忌口</text>
-      <input v-model="tabooText" class="pg__input" placeholder="不想吃的食材" />
+      <text class="pg__hint">本页信息会同步到推荐画像，用于长期优化推荐结果。</text>
+      <text class="pg__label">口味偏好（可多项）</text>
+      <input v-model="flavorText" class="pg__input" placeholder="例如：清淡、鲜香、微辣" />
+      <text class="pg__label">忌口与不吃</text>
+      <input v-model="tabooText" class="pg__input" placeholder="例如：香菜、内脏、重辣" />
       <text class="pg__label">饮食类型</text>
-      <input v-model="dietText" class="pg__input" placeholder="如：少油、素食倾向" />
-      <text class="pg__label">饮食 / 健康目标</text>
-      <input v-model="healthGoal" class="pg__input" placeholder="选填" />
-      <button class="mp-btn-primary pg__btn" :loading="loading" @click="onSave">保存</button>
+      <input v-model="dietText" class="pg__input" placeholder="例如：家常、减脂、健身、轻食" />
+      <text class="pg__label">健康目标（选填）</text>
+      <input v-model="healthGoal" class="pg__input" placeholder="例如：控糖、养胃、控盐" />
+      <button class="mp-btn-primary pg__btn" :loading="loading" @click="onSave">保存饮食偏好</button>
     </view>
   </view>
 </template>
@@ -82,23 +82,24 @@ async function onSave() {
   min-height: 100vh;
   padding: 32rpx;
   box-sizing: border-box;
-  background: #f5f5f7;
+  background: linear-gradient(180deg, #f6f4fc 0%, #f9fafb 120rpx);
 }
 .pg__card {
   padding: 32rpx;
+  border-color: rgba(122, 87, 209, 0.2);
 }
 .pg__hint {
   display: block;
-  font-size: 24rpx;
+  font-size: 25rpx;
   color: #6b7280;
-  line-height: 1.5;
+  line-height: 1.6;
   margin-bottom: 24rpx;
 }
 .pg__label {
   display: block;
   font-size: 26rpx;
-  font-weight: 600;
-  color: #374151;
+  font-weight: 800;
+  color: #1f2937;
   margin-top: 24rpx;
   margin-bottom: 12rpx;
 }
@@ -108,7 +109,8 @@ async function onSave() {
   box-sizing: border-box;
   background: #f9fafb;
   border-radius: 14rpx;
-  font-size: 28rpx;
+  font-size: 26rpx;
+  color: #111827;
 }
 .pg__btn {
   margin-top: 40rpx;

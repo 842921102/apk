@@ -114,12 +114,12 @@ function onTargetInput(e: { detail?: { value?: string } }) {
 @import '@/uni.scss';
 
 .vs {
-  padding: 8rpx 0 32rpx;
+  padding: 6rpx 0 28rpx;
 }
 
 .vs__title {
   display: block;
-  font-size: 40rpx;
+  font-size: 34rpx;
   font-weight: 700;
   color: $mp-text-primary;
   line-height: 1.35;
@@ -128,20 +128,20 @@ function onTargetInput(e: { detail?: { value?: string } }) {
 
 .vs__desc {
   display: block;
-  margin-top: 16rpx;
-  margin-bottom: 28rpx;
-  font-size: 26rpx;
-  line-height: 1.55;
+  margin-top: 12rpx;
+  margin-bottom: 22rpx;
+  font-size: 23rpx;
+  line-height: 1.5;
   color: $mp-text-secondary;
 }
 
 .vs__card {
-  padding: 28rpx 28rpx 32rpx;
+  padding: 22rpx 20rpx 22rpx;
 }
 
 .vs__row + .vs__row {
-  margin-top: 28rpx;
-  padding-top: 28rpx;
+  margin-top: 20rpx;
+  padding-top: 20rpx;
   border-top: 1rpx solid #f3f4f6;
 }
 
@@ -149,25 +149,27 @@ function onTargetInput(e: { detail?: { value?: string } }) {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  font-size: 28rpx;
-  font-weight: 600;
+  font-size: 24rpx;
+  font-weight: 700;
   color: $mp-text-primary;
 }
 
 .vs__opt {
-  font-size: 24rpx;
+  font-size: 21rpx;
   font-weight: 500;
   color: $mp-text-muted;
 }
 
 .vs__input {
-  margin-top: 16rpx;
+  margin-top: 10rpx;
   width: 100%;
   box-sizing: border-box;
-  padding: 22rpx 24rpx;
+  height: 80rpx;
+  padding: 0 20rpx;
   background: #f3f4f6;
-  border-radius: 18rpx;
-  font-size: 30rpx;
+  border-radius: 14rpx;
+  font-size: 24rpx;
+  line-height: 80rpx;
   color: $mp-text-primary;
   border: 2rpx solid transparent;
 }
@@ -183,9 +185,9 @@ function onTargetInput(e: { detail?: { value?: string } }) {
 
 .vs__footnote {
   display: block;
-  margin-top: 24rpx;
-  font-size: 24rpx;
-  line-height: 1.5;
+  margin-top: 18rpx;
+  font-size: 21rpx;
+  line-height: 1.45;
   color: $mp-text-muted;
 }
 </style>

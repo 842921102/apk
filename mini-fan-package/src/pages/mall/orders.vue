@@ -1,7 +1,21 @@
 <template>
   <view class="ord">
-    <!-- 状态 Tab -->
     <view class="ord__tabs-wrap">
+      <view class="ord__search-wrap">
+        <view class="ord__search">
+          <text class="ord__search-ico">🔎</text>
+          <input
+            v-model.trim="searchKeyword"
+            class="ord__search-input"
+            type="text"
+            confirm-type="search"
+            placeholder="搜索订单号 / 商品名称"
+            placeholder-class="ord__search-placeholder"
+          />
+          <view v-if="searchKeyword" class="ord__search-clear" @click="searchKeyword = ''">清空</view>
+        </view>
+      </view>
+      <!-- 状态 Tab -->
       <scroll-view scroll-x class="ord__tabs-scroll" :show-scrollbar="false" :enable-flex="true">
         <view class="ord__tabs">
           <view
@@ -116,6 +130,7 @@ const tabs: { key: OrderTabKey; label: string }[] = [
 ]
 
 const activeTab = ref<OrderTabKey>('all')
+const searchKeyword = ref('')
 const orders = ref<MallOrder[]>([])
 const loading = ref(true)
 const loadError = ref('')
@@ -136,7 +151,18 @@ function matchesTab(o: MallOrder, tab: OrderTabKey): boolean {
   return false
 }
 
-const filteredOrders = computed(() => orders.value.filter((o) => matchesTab(o, activeTab.value)))
+const normalizedKeyword = computed(() => searchKeyword.value.trim().toLowerCase())
+
+const filteredOrders = computed(() => {
+  return orders.value.filter((o) => {
+    if (!matchesTab(o, activeTab.value)) return false
+    const kw = normalizedKeyword.value
+    if (!kw) return true
+    const orderNo = (o.orderNo || '').toLowerCase()
+    const productName = (o.productName || '').toLowerCase()
+    return orderNo.includes(kw) || productName.includes(kw)
+  })
+})
 
 const tabCounts = computed(() => {
   const c: Record<OrderTabKey, number> = {
@@ -276,6 +302,49 @@ $ord-red: #dc2626;
   z-index: 20;
   background: $ord-card;
   border-bottom: 1rpx solid $ord-line;
+}
+
+.ord__search-wrap {
+  padding: 16rpx 24rpx 8rpx;
+}
+
+.ord__search {
+  height: 72rpx;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.08) 0%, rgba(139, 92, 246, 0.04) 100%);
+  border: 1rpx solid rgba(139, 92, 246, 0.18);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12rpx;
+  box-sizing: border-box;
+}
+
+.ord__search-ico {
+  font-size: 24rpx;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.ord__search-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 26rpx;
+  color: $ord-text;
+}
+
+.ord__search-placeholder {
+  color: $ord-muted;
+}
+
+.ord__search-clear {
+  flex-shrink: 0;
+  padding: 6rpx 16rpx;
+  font-size: 22rpx;
+  color: $ord-purple;
+  background: rgba(139, 92, 246, 0.12);
+  border-radius: 999rpx;
 }
 
 .ord__tabs-scroll {

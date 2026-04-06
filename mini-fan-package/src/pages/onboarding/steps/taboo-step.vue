@@ -83,12 +83,12 @@ const allergyOptions = [
 @import '@/uni.scss';
 
 .ts {
-  padding: 8rpx 0 32rpx;
+  padding: 6rpx 0 28rpx;
 }
 
 .ts__title {
   display: block;
-  font-size: 40rpx;
+  font-size: 34rpx;
   font-weight: 700;
   color: $mp-text-primary;
   line-height: 1.35;
@@ -97,19 +97,19 @@ const allergyOptions = [
 
 .ts__lead {
   display: block;
-  margin-top: 16rpx;
-  margin-bottom: 28rpx;
-  font-size: 26rpx;
-  line-height: 1.6;
+  margin-top: 12rpx;
+  margin-bottom: 22rpx;
+  font-size: 23rpx;
+  line-height: 1.5;
   color: $mp-text-secondary;
 }
 
 .ts__module {
-  padding: 28rpx 26rpx 32rpx;
+  padding: 22rpx 20rpx 22rpx;
 }
 
 .ts__module + .ts__module {
-  margin-top: 24rpx;
+  margin-top: 16rpx;
 }
 
 .ts__module--accent {
@@ -118,14 +118,14 @@ const allergyOptions = [
 }
 
 .ts__module-head {
-  margin-bottom: 24rpx;
-  padding-bottom: 20rpx;
+  margin-bottom: 16rpx;
+  padding-bottom: 14rpx;
   border-bottom: 1rpx solid #f0f2f5;
 }
 
 .ts__module-k {
   display: block;
-  font-size: 22rpx;
+  font-size: 20rpx;
   font-weight: 600;
   letter-spacing: 0.1em;
   color: $mp-text-muted;
@@ -138,17 +138,17 @@ const allergyOptions = [
 
 .ts__module-title {
   display: block;
-  margin-top: 10rpx;
-  font-size: 32rpx;
+  margin-top: 8rpx;
+  font-size: 27rpx;
   font-weight: 700;
   color: $mp-text-primary;
 }
 
 .ts__module-hint {
   display: block;
-  margin-top: 10rpx;
-  font-size: 24rpx;
-  line-height: 1.5;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  line-height: 1.45;
   color: $mp-text-secondary;
 }
 </style>

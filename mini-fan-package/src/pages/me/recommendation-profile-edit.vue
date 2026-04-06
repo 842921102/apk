@@ -2,7 +2,7 @@
   <view class="pe">
     <scroll-view scroll-y class="pe__scroll" :show-scrollbar="false">
       <view class="pe__inner">
-        <text class="pe__page-desc">修改后将在后续「吃什么」推荐中生效，与账号同步保存。</text>
+        <text class="pe__page-desc">推荐画像会持续影响后续推荐结果，保存后将同步至账号并在多端生效。</text>
 
         <!-- 1 基础信息 -->
         <view class="pe__mod">
@@ -18,12 +18,12 @@
             <picker mode="selector" :range="heightRange" :value="heightIndex" @change="onHeightChange">
               <view class="pe__picker-cell">{{ heightDisplay }}</view>
             </picker>
-            <text class="pe__label pe__label--sp">体重（kg）</text>
+            <text class="pe__label pe__label--sp">体重</text>
             <input
               v-model="weightStr"
               class="pe__input"
               type="digit"
-              placeholder="如 58.5"
+              placeholder="请输入体重（kg），如 58.5"
             />
           </view>
         </view>
@@ -36,7 +36,7 @@
             <text class="pe__hint">可多选</text>
             <OptionChipGroup v-model="flavorPreferences" :options="PROFILE_FLAVOR_OPTIONS" />
             <text class="pe__label pe__label--sp">饮食类型</text>
-            <text class="pe__hint">家常、减脂、健身等场景，可多选</text>
+            <text class="pe__hint">用于识别日常饮食场景，可多选</text>
             <OptionChipGroup v-model="cuisinePreferences" :options="PROFILE_DIET_TYPE_OPTIONS" />
           </view>
         </view>
@@ -79,12 +79,12 @@
 
         <!-- 5 女性专属 -->
         <view v-if="genderSel === 'female'" class="pe__mod">
-          <text class="pe__mod-k">女性专属</text>
+          <text class="pe__mod-k">特殊时期</text>
           <view class="mp-card pe__card">
             <view class="pe__switch-row">
               <view class="pe__switch-mid">
-                <text class="pe__switch-title">记录生理期</text>
-                <text class="pe__switch-sub">开启后可在「吃什么」前填写今日状态</text>
+                <text class="pe__switch-title">开启生理期记录</text>
+                <text class="pe__switch-sub">开启后可在推荐前补充当日状态，提升结果匹配度</text>
               </view>
               <switch :checked="periodFeatureEnabled" color="#7A57D1" @change="onPeriodSwitch" />
             </view>
@@ -118,7 +118,7 @@
             <view class="pe__switch-row pe__switch-row--sp">
               <view class="pe__switch-mid">
                 <text class="pe__switch-title">食命文案</text>
-                <text class="pe__switch-sub">推荐里附带更有情绪价值的「食命」短句</text>
+            <text class="pe__switch-sub">在推荐结果中展示更具氛围感的「食命」短句</text>
               </view>
               <switch :checked="destinyModeEnabled" color="#7A57D1" @change="onDestinySwitch" />
             </view>
@@ -131,7 +131,7 @@
 
     <view class="pe__bar">
       <button class="mp-btn-primary pe__save" :loading="saving" :disabled="saving" @click="onSave">
-        保存偏好
+        保存推荐画像
       </button>
     </view>
   </view>
@@ -389,74 +389,79 @@ async function onSave() {
 }
 
 .pe__inner {
-  padding: 20rpx 24rpx 0;
+  padding: 18rpx 24rpx 0;
   box-sizing: border-box;
 }
 
 .pe__page-desc {
   display: block;
   font-size: 24rpx;
-  line-height: 1.5;
-  color: $mp-text-muted;
-  padding: 0 8rpx 20rpx;
+  line-height: 1.55;
+  color: $mp-text-secondary;
+  padding: 4rpx 10rpx 20rpx;
 }
 
 .pe__mod {
-  margin-bottom: 28rpx;
+  margin-bottom: 22rpx;
 }
 
 .pe__mod-k {
   display: block;
-  font-size: 22rpx;
+  font-size: 23rpx;
   font-weight: 800;
-  letter-spacing: 0.12em;
-  color: $mp-accent;
-  text-transform: uppercase;
-  margin-bottom: 12rpx;
+  letter-spacing: 0.06em;
+  color: $mp-text-secondary;
+  margin-bottom: 10rpx;
   padding-left: 8rpx;
 }
 
 .pe__card {
-  padding: 26rpx 22rpx 28rpx;
+  padding: 22rpx 18rpx 22rpx;
   border-color: rgba(122, 87, 209, 0.2);
 }
 
 .pe__label {
   display: block;
-  font-size: 28rpx;
+  font-size: 24rpx;
   font-weight: 800;
   color: $mp-text-primary;
 }
 
 .pe__label--sp {
-  margin-top: 28rpx;
+  margin-top: 24rpx;
 }
 
 .pe__hint {
   display: block;
-  font-size: 22rpx;
+  font-size: 21rpx;
   color: $mp-text-muted;
-  margin-top: 8rpx;
-  margin-bottom: 16rpx;
+  margin-top: 6rpx;
+  margin-bottom: 10rpx;
+  line-height: 1.45;
 }
 
 .pe__picker-cell {
   margin-top: 12rpx;
-  padding: 22rpx 20rpx;
-  border-radius: 16rpx;
+  height: 80rpx;
+  padding: 0 20rpx;
+  border-radius: 14rpx;
   background: #f3f4f6;
-  font-size: 28rpx;
+  font-size: 24rpx;
   color: $mp-text-primary;
   font-weight: 600;
+  line-height: 80rpx;
+  box-sizing: border-box;
 }
 
 .pe__input {
   margin-top: 12rpx;
-  padding: 22rpx 20rpx;
-  border-radius: 16rpx;
+  height: 80rpx;
+  padding: 0 20rpx;
+  border-radius: 14rpx;
   background: #f3f4f6;
-  font-size: 28rpx;
+  font-size: 24rpx;
   color: $mp-text-primary;
+  line-height: 80rpx;
   box-sizing: border-box;
 }
 
@@ -481,7 +486,7 @@ async function onSave() {
 
 .pe__switch-title {
   display: block;
-  font-size: 28rpx;
+  font-size: 24rpx;
   font-weight: 800;
   color: $mp-text-primary;
 }
@@ -489,9 +494,9 @@ async function onSave() {
 .pe__switch-sub {
   display: block;
   margin-top: 6rpx;
-  font-size: 22rpx;
+  font-size: 21rpx;
   color: $mp-text-muted;
-  line-height: 1.35;
+  line-height: 1.45;
 }
 
 .pe__style-grid {
@@ -501,8 +506,8 @@ async function onSave() {
 }
 
 .pe__style-card {
-  padding: 24rpx 22rpx;
-  border-radius: 18rpx;
+  padding: 20rpx 20rpx;
+  border-radius: 16rpx;
   background: #f3f4f6;
   border: 2rpx solid transparent;
 }
@@ -514,16 +519,50 @@ async function onSave() {
 
 .pe__style-name {
   display: block;
-  font-size: 30rpx;
+  font-size: 25rpx;
   font-weight: 900;
   color: $mp-text-primary;
 }
 
 .pe__style-desc {
   display: block;
-  margin-top: 6rpx;
+  margin-top: 4rpx;
   font-size: 22rpx;
   color: $mp-text-muted;
+  line-height: 1.45;
+}
+
+/* 本页内精调选择组件字号与留白，避免全局联动 */
+.pe :deep(.oscg) {
+  gap: 10rpx;
+}
+
+.pe :deep(.oscg__card) {
+  padding: 18rpx 20rpx;
+  border-radius: 14rpx;
+  min-height: 76rpx;
+}
+
+.pe :deep(.oscg__txt) {
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
+.pe :deep(.oscg__check) {
+  font-size: 22rpx;
+}
+
+.pe :deep(.ocg) {
+  gap: 12rpx;
+}
+
+.pe :deep(.ocg__chip) {
+  padding: 12rpx 20rpx;
+}
+
+.pe :deep(.ocg__txt) {
+  font-size: 23rpx;
+  font-weight: 600;
 }
 
 .pe__scroll-pad {
@@ -536,7 +575,7 @@ async function onSave() {
   right: 0;
   bottom: 0;
   z-index: 100;
-  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+  padding: 14rpx 24rpx calc(14rpx + env(safe-area-inset-bottom));
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(12px);
   border-top: 1rpx solid rgba($mp-border, 0.85);
@@ -546,5 +585,6 @@ async function onSave() {
 .pe__save {
   width: 100%;
   margin: 0;
+  font-size: 30rpx;
 }
 </style>

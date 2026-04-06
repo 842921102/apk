@@ -160,7 +160,7 @@
     {
       "path": "pages/me/recommendation-profile-edit",
       "style": {
-        "navigationBarTitleText": "编辑画像"
+        "navigationBarTitleText": "推荐画像"
       }
     },
     {

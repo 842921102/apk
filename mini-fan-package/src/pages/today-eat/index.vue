@@ -13,6 +13,7 @@
           class="te__banner-meteo"
           :class="{ 'te__banner-meteo--loading': bannerMeteoLoading }"
           :style="bannerMeteoLayoutStyle"
+          @click="onBannerMeteoTap"
         >
           <text class="te__banner-meteo-city">{{ bannerCityName }}</text>
           <text class="te__banner-meteo-sep">·</text>
@@ -249,7 +250,7 @@
       <view class="te__sheet" @click.stop>
         <view class="te__sheet-head">
           <text class="te__sheet-title">今日状态</text>
-          <text class="te__sheet-sub">标签描述今天的你；口味与忌口点选即可（多选）。登录后写入今日状态并参与推荐。</text>
+          <text class="te__sheet-sub">标签描述今天的你；口味与忌口点选即可（多选）。</text>
         </view>
 
         <scroll-view scroll-y class="te__sheet-scroll" :show-scrollbar="false">
@@ -312,7 +313,6 @@
 
           <view class="te__sheet-block">
             <text class="te__sheet-k">口味偏好</text>
-            <text class="te__sheet-multi-hint">可多选</text>
             <view class="te__chip-row">
               <view
                 v-for="opt in MEAL_FLAVOR_TAG_OPTIONS"
@@ -327,7 +327,6 @@
           </view>
           <view class="te__sheet-block te__sheet-block--last">
             <text class="te__sheet-k">忌口 / 不吃</text>
-            <text class="te__sheet-multi-hint">可多选；选「暂无」会清空其它项</text>
             <view class="te__chip-row">
               <view
                 v-for="opt in MEAL_TABOO_TAG_OPTIONS"
@@ -502,7 +501,9 @@ const homeTabIndex = ref(0)
 const activeHomePanel = computed(() => HOME_TAB_PANELS[homeTabIndex.value])
 
 const STORAGE_HOME_BANNER_CITY = 'home_banner_city'
+const STORAGE_HOME_LOCATION_PROMPTED = 'home_location_prompted_v1'
 const bannerMeteoLoading = ref(false)
+const locationDenied = ref(false)
 const bannerCityName = ref('深圳')
 const bannerWeatherText = ref('晴')
 const bannerWeatherIcon = ref('☀️')
@@ -547,16 +548,18 @@ const bannerHeroLayoutStyle = computed(() => ({
   top: `${bannerHeroTopPx.value}px`,
 }))
 
-async function refreshBannerAmbient() {
+async function refreshBannerAmbient(coords?: { latitude?: number; longitude?: number }) {
   bannerMeteoLoading.value = true
   try {
-    const remote = await fetchHomeBannerAmbient()
+    const remote = await fetchHomeBannerAmbient(coords)
     bannerWeatherText.value = remote.weatherText
     bannerWeatherIcon.value = remote.weatherIcon
-    let city = remote.cityName
+    const remoteCity = (remote.cityName || '').trim()
+    let city = remoteCity
     try {
       const c = uni.getStorageSync(STORAGE_HOME_BANNER_CITY)
-      if (typeof c === 'string' && c.trim()) {
+      // 仅在服务端未返回城市时才使用本地缓存兜底，避免覆盖定位结果
+      if (!remoteCity && typeof c === 'string' && c.trim()) {
         city = c.trim()
       }
     } catch {
@@ -566,6 +569,125 @@ async function refreshBannerAmbient() {
   } finally {
     bannerMeteoLoading.value = false
   }
+}
+
+function isLocationScopeGranted(): Promise<boolean> {
+  return new Promise((resolve) => {
+    uni.getSetting({
+      success: (res) => {
+        resolve(Boolean(res.authSetting?.['scope.userLocation']))
+      },
+      fail: () => resolve(false),
+    })
+  })
+}
+
+function requestUserLocationAuthorize(): Promise<boolean> {
+  return new Promise((resolve) => {
+    uni.authorize({
+      scope: 'scope.userLocation',
+      success: () => resolve(true),
+      fail: () => resolve(false),
+    })
+  })
+}
+
+function getUserLocationCoords(): Promise<{ latitude: number; longitude: number } | null> {
+  return new Promise((resolve) => {
+    uni.getLocation({
+      type: 'gcj02',
+      success: (res) => {
+        const latitude = Number(res.latitude)
+        const longitude = Number(res.longitude)
+        if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+          resolve({ latitude, longitude })
+          return
+        }
+        resolve(null)
+      },
+      fail: () => resolve(null),
+    })
+  })
+}
+
+async function ensureLocationPromptAndFetchAmbient() {
+  let prompted = false
+  try {
+    prompted = Boolean(uni.getStorageSync(STORAGE_HOME_LOCATION_PROMPTED))
+  } catch {
+    prompted = false
+  }
+
+  const granted = await isLocationScopeGranted()
+  if (granted) {
+    locationDenied.value = false
+    const coords = await getUserLocationCoords()
+    await refreshBannerAmbient(coords ?? undefined)
+    if (!prompted) {
+      try {
+        uni.setStorageSync(STORAGE_HOME_LOCATION_PROMPTED, 1)
+      } catch {
+        /* ignore */
+      }
+    }
+    return
+  }
+
+  if (!prompted) {
+    const modal = await new Promise<{ confirm: boolean }>((resolve) => {
+      uni.showModal({
+        title: '位置授权',
+        content: '用于显示你所在城市和实时天气，不影响核心功能使用。',
+        confirmText: '去授权',
+        cancelText: '暂不',
+        success: (res) => resolve({ confirm: Boolean(res.confirm) }),
+        fail: () => resolve({ confirm: false }),
+      })
+    })
+    try {
+      uni.setStorageSync(STORAGE_HOME_LOCATION_PROMPTED, 1)
+    } catch {
+      /* ignore */
+    }
+    if (modal.confirm) {
+      const ok = await requestUserLocationAuthorize()
+      if (ok) {
+        locationDenied.value = false
+        const coords = await getUserLocationCoords()
+        await refreshBannerAmbient(coords ?? undefined)
+        return
+      }
+      locationDenied.value = true
+    } else {
+      locationDenied.value = true
+    }
+  }
+
+  if (!granted) {
+    locationDenied.value = true
+  }
+  await refreshBannerAmbient()
+}
+
+function onBannerMeteoTap() {
+  if (!locationDenied.value) return
+  uni.showModal({
+    title: '开启位置权限',
+    content: '开启后可显示你所在城市和实时天气。',
+    confirmText: '去设置',
+    cancelText: '取消',
+    success: (res) => {
+      if (!res.confirm) return
+      uni.openSetting({
+        success: (settingRes) => {
+          if (settingRes.authSetting?.['scope.userLocation']) {
+            locationDenied.value = false
+            void ensureLocationPromptAndFetchAmbient()
+          }
+        },
+      })
+    },
+  })
 }
 
 const statusSheetOpen = ref(false)
@@ -777,7 +899,7 @@ onMounted(() => {
 
 onShow(() => {
   syncBannerCapsuleAlign()
-  void refreshBannerAmbient()
+  void ensureLocationPromptAndFetchAmbient()
   void hydrateMeContext()
   void loadRecentRecords()
 })
