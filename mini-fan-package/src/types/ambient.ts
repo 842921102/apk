@@ -4,4 +4,6 @@ export interface HomeBannerAmbient {
   weatherText: string
   /** 展示用 emoji，如 ☀️ */
   weatherIcon: string
+  /** 展示用温度，如 26°C */
+  temperatureText?: string
 }

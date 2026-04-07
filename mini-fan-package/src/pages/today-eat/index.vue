@@ -19,14 +19,13 @@
           <text class="te__banner-meteo-sep">·</text>
           <text class="te__banner-meteo-ico" aria-hidden="true">{{ bannerWeatherIcon }}</text>
           <text class="te__banner-meteo-w">{{ bannerWeatherText }}</text>
+          <text v-if="bannerTemperatureText" class="te__banner-meteo-sep">·</text>
+          <text v-if="bannerTemperatureText" class="te__banner-meteo-w">{{ bannerTemperatureText }}</text>
         </view>
         <view class="te__banner-hero" :style="bannerHeroLayoutStyle">
           <text class="te__banner-brand">饭否 · 今日灵感</text>
           <text class="te__banner-title">今天吃什么？</text>
           <text class="te__banner-sub">不用纠结，给你一个刚刚好的答案</text>
-          <view class="te__banner-pill" @click="openTodayStatusSheet">
-            <text class="te__banner-pill-txt">选今日状态</text>
-          </view>
         </view>
       </view>
 
@@ -184,36 +183,20 @@
           <text class="te__result-hero-sub">以下是依据你本次偏好生成的方案，可作为晚餐参考</text>
         </view>
 
-        <view class="te__result-core">
-          <view class="te__result-core-head">
-            <view class="te__result-core-ico">
-              <text class="te__result-core-emoji">🍽️</text>
-            </view>
-            <view class="te__result-core-titles">
-              <text class="te__result-core-k">菜谱名称</text>
-              <text class="te__result-title">{{ result.title }}</text>
-            </view>
-          </view>
-
-          <text class="te__block-title">菜品信息</text>
-          <view class="te__meta-grid">
-            <view class="te__meta-cell">
-              <text class="te__meta-label">菜系</text>
-              <text class="te__meta-value">{{ result.cuisine || '—' }}</text>
-            </view>
-            <view class="te__meta-cell te__meta-cell--wide">
-              <text class="te__meta-label">食材</text>
-              <text class="te__meta-value">{{ ingredientsText }}</text>
-            </view>
-          </view>
-
-          <view class="te__body">
-            <text class="te__body-k">详细说明</text>
-            <view class="te__body-sheet">
-              <text class="te__body-text">{{ result.content }}</text>
-            </view>
-          </view>
-        </view>
+        <TodayEatResultBody
+          class="te__result-body"
+          :cover-image="result.cover_image ?? null"
+          :recommended-dish="recommendedDishDisplay"
+          :main-tagline="mainTaglineDisplay"
+          :tags="displayTags"
+          :reason-text="reasonTextDisplay"
+          :destiny-text="destinyTextDisplay"
+          :alternatives="displayAlternatives"
+          :alternatives-interactive="false"
+          :cuisine="result.cuisine ?? null"
+          :ingredients-text="ingredientsText"
+          :recipe-content="result.content"
+        />
 
         <view v-if="historyNote" class="te__history-banner">
           <text class="te__history-note">{{ historyNote }}</text>
@@ -235,7 +218,6 @@
                 <text class="te__recent-name">{{ row.result_title || '未命名结果' }}</text>
                 <text class="te__recent-meta">{{ row.result_cuisine || '—' }} · {{ row.created_at || '' }}</text>
               </view>
-              <text class="te__recent-del" @click="onDeleteRecord(row.id)">删除</text>
             </view>
           </view>
         </view>
@@ -371,7 +353,8 @@ import {
   BIZ_NEED_LARAVEL_AUTH,
   BIZ_NOT_CONFIGURED,
 } from '@/api/biz'
-import { fetchEatMemeRecords, deleteEatMemeRecord, type EatMemeRecordItem } from '@/api/eatMeme'
+import { fetchEatMemeRecords, type EatMemeRecordItem } from '@/api/eatMeme'
+import TodayEatResultBody from '@/components/TodayEatResultBody.vue'
 import { favoriteContentDigest } from '@/lib/favoriteDigest'
 import type { TodayEatResult } from '@/types/ai'
 import { fetchMeProfile, fetchMeDailyToday, putMeDailyToday } from '@/api/me'
@@ -495,6 +478,10 @@ const dailyBody = ref('')
 const dailyPeriod = ref('')
 const dailyFlavorTags = ref<string[]>([])
 const dailyTabooTags = ref<string[]>([])
+const profileFlavorPreferences = ref<string[]>([])
+const profileTabooIngredients = ref<string[]>([])
+const profileCuisinePreferences = ref<string[]>([])
+const profileDietPreferences = ref<string[]>([])
 
 const homeTabIndex = ref(0)
 /** 当前首页 Tab 面板（仅用于模板展示与 :key 切换动效，业务仍以 homeTabIndex + HOME_TAB_PANELS 为准） */
@@ -507,6 +494,7 @@ const locationDenied = ref(false)
 const bannerCityName = ref('深圳')
 const bannerWeatherText = ref('晴')
 const bannerWeatherIcon = ref('☀️')
+const bannerTemperatureText = ref('')
 
 const bannerMeteoTopPx = ref(48)
 const bannerMeteoHeightPx = ref(32)
@@ -518,14 +506,14 @@ function syncBannerCapsuleAlign() {
     const sb = Number(sys.statusBarHeight) || 20
     let meteoTop = sb + 6
     let meteoH = 32
-    let heroTop = sb + 44 + 12
+    let heroTop = sb + 44 + 38
 
     try {
       const mb = uni.getMenuButtonBoundingClientRect()
       if (mb && typeof mb.top === 'number' && typeof mb.height === 'number' && mb.height > 0) {
         meteoTop = mb.top
         meteoH = mb.height
-        heroTop = Math.round(mb.bottom + 12)
+        heroTop = Math.round(mb.bottom + 38)
       }
     } catch {
       /* 非微信端 */
@@ -554,6 +542,8 @@ async function refreshBannerAmbient(coords?: { latitude?: number; longitude?: nu
     const remote = await fetchHomeBannerAmbient(coords)
     bannerWeatherText.value = remote.weatherText
     bannerWeatherIcon.value = remote.weatherIcon
+    const t = (remote.temperatureText || '').trim()
+    bannerTemperatureText.value = t
     const remoteCity = (remote.cityName || '').trim()
     let city = remoteCity
     try {
@@ -863,15 +853,86 @@ const ingredientsText = computed(() => {
   return ing.join('、')
 })
 
+const displayTags = computed(() => {
+  const t = result.value?.tags
+  if (!Array.isArray(t)) return []
+  return t.filter((x) => typeof x === 'string' && x.trim()).slice(0, 4)
+})
+
+const displayAlternatives = computed(() => {
+  const a = result.value?.alternatives
+  if (!Array.isArray(a)) return []
+  return a.filter((x) => typeof x === 'string' && x.trim())
+})
+
+const recommendedDishDisplay = computed(() => {
+  const r = result.value?.recommended_dish
+  if (typeof r === 'string' && r.trim()) return r.trim()
+  return (result.value?.title || '').trim()
+})
+
+const mainTaglineDisplay = computed(() => {
+  const tag = displayTags.value[0]
+  if (tag) return `${tag}——今晚的主角就是它。`
+  return '和你今天选的口味与状态相称，下面是可以直接照做的参考。'
+})
+
+const reasonTextDisplay = computed(() => {
+  const s = result.value?.reason_text
+  const t = typeof s === 'string' ? s.trim() : ''
+  if (t) return t
+  return '本次结合你的偏好生成；具体步骤与用料见下方「制作参考」。'
+})
+
+const destinyTextDisplay = computed(() => {
+  const s = result.value?.destiny_text
+  return typeof s === 'string' ? s.trim() : ''
+})
+
+const realtimeContextForRecommend = computed(() => {
+  const city = (bannerCityName.value || '').trim()
+  const weatherText = (bannerWeatherText.value || '').trim()
+  const weatherIcon = (bannerWeatherIcon.value || '').trim()
+  const temperatureText = (bannerTemperatureText.value || '').trim()
+  const tempMatch = temperatureText.match(/-?\d+(\.\d+)?/)
+  const temperatureC = tempMatch ? Number(tempMatch[0]) : undefined
+  const hasCore = city || weatherText || Number.isFinite(temperatureC)
+  if (!hasCore) return undefined
+  return {
+    city: city || undefined,
+    weather_text: weatherText || undefined,
+    weather_icon: weatherIcon || undefined,
+    temperature_text: temperatureText || undefined,
+    temperature_c: Number.isFinite(temperatureC) ? temperatureC : undefined,
+    location_authorized: !locationDenied.value,
+  }
+})
+
 async function hydrateMeContext() {
   await syncAuthFromSupabase()
   if (!isLoggedIn.value) {
     periodFeatureEnabled.value = false
+    profileFlavorPreferences.value = []
+    profileTabooIngredients.value = []
+    profileCuisinePreferences.value = []
+    profileDietPreferences.value = []
     return
   }
   try {
     const res = await fetchMeProfile()
     periodFeatureEnabled.value = Boolean(res.profile.period_feature_enabled)
+    profileFlavorPreferences.value = Array.isArray(res.profile.flavor_preferences)
+      ? res.profile.flavor_preferences.filter((x): x is string => typeof x === 'string' && x.trim())
+      : []
+    profileTabooIngredients.value = Array.isArray(res.profile.taboo_ingredients)
+      ? res.profile.taboo_ingredients.filter((x): x is string => typeof x === 'string' && x.trim())
+      : []
+    profileCuisinePreferences.value = Array.isArray(res.profile.cuisine_preferences)
+      ? res.profile.cuisine_preferences.filter((x): x is string => typeof x === 'string' && x.trim())
+      : []
+    profileDietPreferences.value = Array.isArray(res.profile.diet_preferences)
+      ? res.profile.diet_preferences.filter((x): x is string => typeof x === 'string' && x.trim())
+      : []
     const t = res.today_status
     if (t) {
       dailyMood.value = normalizeMoodFromApi(t.mood)
@@ -905,9 +966,33 @@ onShow(() => {
 })
 
 function buildPreferences() {
+  const tasteFromDaily = flavorTagsToPreferenceTaste(dailyFlavorTags.value)
+  const avoidFromDaily = tabooTagsToPreferenceAvoid(dailyTabooTags.value)
+  const tasteFromProfile = [
+    profileFlavorPreferences.value.join('、'),
+    profileCuisinePreferences.value.join('、'),
+    profileDietPreferences.value.join('、'),
+  ]
+    .map((x) => x.trim())
+    .filter((x) => x.length > 0)
+    .join('；')
+  const avoidFromProfile = profileTabooIngredients.value
+    .map((x) => x.trim())
+    .filter((x) => x.length > 0)
+    .join('、')
+
+  const taste = [tasteFromDaily, tasteFromProfile]
+    .map((x) => (typeof x === 'string' ? x.trim() : ''))
+    .filter((x) => x.length > 0)
+    .join('；')
+  const avoid = [avoidFromDaily, avoidFromProfile]
+    .map((x) => (typeof x === 'string' ? x.trim() : ''))
+    .filter((x) => x.length > 0)
+    .join('；')
+
   return {
-    taste: flavorTagsToPreferenceTaste(dailyFlavorTags.value),
-    avoid: tabooTagsToPreferenceAvoid(dailyTabooTags.value),
+    taste: taste || undefined,
+    avoid: avoid || undefined,
   }
 }
 
@@ -960,6 +1045,7 @@ async function runGenerate(saveDaily: boolean) {
       preferences,
       locale: 'zh-CN',
       context_tags: contextTags,
+      realtime_context: realtimeContextForRecommend.value,
     })
 
     if (!data || typeof data.content !== 'string' || !data.title) {
@@ -967,11 +1053,10 @@ async function runGenerate(saveDaily: boolean) {
     }
 
     result.value = {
+      ...data,
       title: data.title,
-      cuisine: data.cuisine,
-      ingredients: data.ingredients,
       content: data.content,
-      history_saved: data.history_saved,
+      ingredients: data.ingredients ?? [],
     }
 
     await maybeSaveHistoryLocally(data, preferences)
@@ -1104,7 +1189,7 @@ function goLogin() {
 async function loadRecentRecords() {
   recentLoading.value = true
   try {
-    recentRecords.value = await fetchEatMemeRecords(1, 10)
+    recentRecords.value = await fetchEatMemeRecords(1, 3)
   } catch {
     recentRecords.value = []
   } finally {
@@ -1121,20 +1206,16 @@ function onReplayRecord(id: number) {
     ingredients: row.result_ingredients ?? [],
     content: row.result_content,
     history_saved: false,
+    tags: undefined,
+    reason_text: undefined,
+    destiny_text: undefined,
+    alternatives: undefined,
+    cover_image: undefined,
+    recommended_dish: undefined,
   }
   phase.value = 'success'
 }
 
-async function onDeleteRecord(id: number) {
-  try {
-    await deleteEatMemeRecord(id)
-    recentRecords.value = recentRecords.value.filter((x) => x.id !== id)
-    uni.showToast({ title: '已删除', icon: 'success' })
-  } catch (e: unknown) {
-    const err = e as Error
-    msg.toastSaveFailed(err.message || '删除失败')
-  }
-}
 </script>
 
 <style lang="scss" scoped>
@@ -1327,7 +1408,7 @@ $te-topbar-h: 88rpx;
 
 .te__banner-title {
   display: block;
-  margin-top: 16rpx;
+  margin-top: 24rpx;
   font-size: 48rpx;
   font-weight: 800;
   color: #fff;
@@ -1337,30 +1418,11 @@ $te-topbar-h: 88rpx;
 
 .te__banner-sub {
   display: block;
-  margin-top: 16rpx;
+  margin-top: 24rpx;
   font-size: 26rpx;
   line-height: 1.55;
   color: rgba(255, 255, 255, 0.88);
   max-width: 420rpx;
-}
-
-.te__banner-pill {
-  align-self: flex-start;
-  margin-top: 28rpx;
-  padding: 12rpx 28rpx;
-  border-radius: 999rpx;
-  border: 2rpx solid rgba(255, 255, 255, 0.55);
-  background: rgba(255, 255, 255, 0.12);
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
-  pointer-events: auto;
-}
-
-.te__banner-pill-txt {
-  font-size: 24rpx;
-  font-weight: 600;
-  color: #fff;
 }
 
 /* 首页 Banner 下：治愈系文件夹 Tab — 选中项与白卡片顶缘连成一块白 */
@@ -2207,6 +2269,10 @@ $te-topbar-h: 88rpx;
   line-height: 1.5;
   color: $mp-text-secondary;
   padding: 0 16rpx;
+}
+
+.te__result-body {
+  padding: 28rpx 28rpx 32rpx;
 }
 
 .te__result-core {

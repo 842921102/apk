@@ -95,8 +95,10 @@ for(var i=0;i<_gs.length;i++)_install(_gs[i]);
 // 显式注入 VITE_*，避免 mp-weixin 产物里 import.meta.env 退化为 {} 导致运行异常
 export default defineConfig(({ mode }) => {
   // 只读 mini-fan-package 下的 .env*，避免仓库根目录 .env 里旧的 VITE_API_BASE_URL 覆盖本子工程配置
-  const mergedEnv = loadEnv(mode, process.cwd(), 'VITE_')
+  const envDir = path.resolve(__dirname)
+  const mergedEnv = loadEnv(mode, envDir, 'VITE_')
   return {
+    envDir,
     plugins: [uni(), mpWeixinFetchPolyfill()],
     resolve: {
       alias: {

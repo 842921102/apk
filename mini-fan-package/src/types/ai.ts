@@ -13,6 +13,15 @@ export interface TodayEatRequestBody {
   locale?: string
   /** 由服务端根据用户授权与当日状态生成的上下文标签，BFF 写入模型提示词 */
   context_tags?: string[]
+  /** 前端实时环境信号（城市/天气/温度），用于增强当次推荐上下文 */
+  realtime_context?: {
+    city?: string
+    weather_text?: string
+    weather_icon?: string
+    temperature_text?: string
+    temperature_c?: number
+    location_authorized?: boolean
+  }
 }
 
 /**

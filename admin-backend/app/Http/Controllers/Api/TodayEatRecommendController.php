@@ -35,6 +35,9 @@ final class TodayEatRecommendController extends Controller
         $preferences = isset($validated['preferences']) && is_array($validated['preferences'])
             ? $validated['preferences']
             : [];
+        $realtimeContext = isset($validated['realtime_context']) && is_array($validated['realtime_context'])
+            ? $validated['realtime_context']
+            : [];
 
         $ctx = $this->contextService->aggregateForUser(
             $user,
@@ -42,6 +45,9 @@ final class TodayEatRecommendController extends Controller
             $preferences,
             true,
         );
+        if ($realtimeContext !== []) {
+            $ctx = $this->contextService->mergeMiniRealtimeContext($ctx, $realtimeContext);
+        }
         $tags = $this->tagService->buildFromContext($ctx);
         $ctx['generated_tags'] = $tags;
 

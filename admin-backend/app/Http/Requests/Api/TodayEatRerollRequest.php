@@ -23,6 +23,13 @@ class TodayEatRerollRequest extends FormRequest
             'preferences.avoid' => ['nullable', 'string', 'max:400'],
             'preferences.people' => ['nullable', 'integer', 'min:1', 'max:30'],
             'locale' => ['nullable', 'string', 'max:32'],
+            'realtime_context' => ['sometimes', 'array'],
+            'realtime_context.city' => ['nullable', 'string', 'max:80'],
+            'realtime_context.weather_text' => ['nullable', 'string', 'max:120'],
+            'realtime_context.weather_icon' => ['nullable', 'string', 'max:16'],
+            'realtime_context.temperature_text' => ['nullable', 'string', 'max:32'],
+            'realtime_context.temperature_c' => ['nullable', 'numeric', 'between:-50,60'],
+            'realtime_context.location_authorized' => ['nullable', 'boolean'],
         ];
     }
 }

@@ -18,6 +18,7 @@ export interface RecommendationRecordsListMeta {
 export async function apiListRecommendationRecords(params?: {
   page?: number
   per_page?: number
+  keyword?: string
 }): Promise<{ data: RecommendationRecordListItem[]; meta: RecommendationRecordsListMeta }> {
   return request({
     url: '/api/me/recommendation-records',

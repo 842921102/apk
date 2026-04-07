@@ -262,6 +262,7 @@ import {
   toggleFavoriteRecipe,
   BIZ_UNAUTHORIZED,
   BIZ_NEED_LARAVEL_AUTH,
+  BIZ_NOT_CONFIGURED,
 } from '@/api/biz'
 import { favoriteContentDigest } from '@/lib/favoriteDigest'
 import type { SaucePreference, SauceRecipe, SauceStep } from '@/types/sauce'
@@ -434,6 +435,8 @@ async function maybeSaveRecipeHistory(
       msg.toastSaveFailed('登录已过期')
     } else if (e.code === BIZ_NEED_LARAVEL_AUTH || e.message === BIZ_NEED_LARAVEL_AUTH) {
       msg.toastSaveFailed('请使用微信一键登录后再试')
+    } else if (e.code === BIZ_NOT_CONFIGURED || e.message === BIZ_NOT_CONFIGURED) {
+      historyNote.value = '当前环境未启用历史写入配置，已跳过保存。'
     } else {
       msg.toastSaveFailed(e.message)
       console.error('[sauce-design] history insert failed:', err)
@@ -483,8 +486,14 @@ async function onToggleFavorite() {
     if (favorited) msg.toastFavoriteSuccess()
     else msg.toastFavoriteCancel()
   } catch (e: unknown) {
-    const err = e as Error
-    msg.toastSaveFailed(err.message)
+    const err = e as Error & { code?: string }
+    if (err.code === BIZ_NEED_LARAVEL_AUTH || err.message === BIZ_NEED_LARAVEL_AUTH) {
+      msg.toastSaveFailed('请先使用微信一键登录')
+    } else if (err.code === BIZ_NOT_CONFIGURED || err.message === BIZ_NOT_CONFIGURED) {
+      msg.toastSaveFailed('当前环境未开启收藏配置')
+    } else {
+      msg.toastSaveFailed(err.message || '收藏失败')
+    }
   } finally {
     favoriteLoading.value = false
   }

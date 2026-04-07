@@ -1,8 +1,13 @@
 <template>
   <view class="bab" :style="{ paddingBottom: `calc(24rpx + ${safeBottom}px)` }">
     <view class="bab__row">
-      <slot name="left" />
-      <slot name="right" />
+      <!-- 小程序里 button 作 flex 子节点常不按比例分配宽度，用 view 包一层再写死 3:7 -->
+      <view class="bab__slot bab__slot--prev">
+        <slot name="left" />
+      </view>
+      <view class="bab__slot bab__slot--next">
+        <slot name="right" />
+      </view>
     </view>
   </view>
 </template>
@@ -36,14 +41,27 @@ defineProps<{
   gap: 14rpx;
 }
 
-.bab__row :deep(button) {
-  margin: 0;
+.bab__slot {
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
 }
 
-/* mp-ui 主按钮默认 width:100%，底栏双键需横向分摊 */
-.bab__row :deep(.mp-btn-primary) {
-  width: auto !important;
-  flex: 1;
+.bab__slot--prev {
+  flex: 3 3 0%;
+}
+
+.bab__slot--next {
+  flex: 7 7 0%;
+}
+
+.bab__slot :deep(button) {
+  margin: 0;
+  width: 100% !important;
+}
+
+/* 配色沿用全局 mp-btn-*；宽度由外层 bab__slot 的 3:7 决定 */
+.bab__slot :deep(.mp-btn-primary) {
   height: 44rpx;
   padding: 0 20rpx;
   border-radius: 12rpx;
@@ -56,12 +74,9 @@ defineProps<{
   justify-content: center;
 }
 
-.bab__row :deep(.mp-btn-ghost) {
-  width: auto !important;
-  flex: 0 0 auto;
-  min-width: 252rpx;
+.bab__slot :deep(.mp-btn-ghost) {
   height: 44rpx;
-  padding: 0 28rpx;
+  padding: 0 16rpx;
   border-radius: 12rpx;
   font-size: 24rpx;
   line-height: 44rpx;
@@ -75,8 +90,8 @@ defineProps<{
   justify-content: center;
 }
 
-.bab__row :deep(.mp-btn-ghost text),
-.bab__row :deep(.mp-btn-primary text) {
+.bab__slot :deep(.mp-btn-ghost text),
+.bab__slot :deep(.mp-btn-primary text) {
   white-space: nowrap;
   word-break: keep-all;
   display: inline-block;

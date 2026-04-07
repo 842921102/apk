@@ -138,7 +138,16 @@
             <view v-else-if="wizardRecipe" class="home__wizard-result">
               <text class="home__wizard-r-title">{{ wizardRecipe.title }}</text>
               <text class="home__wizard-r-meta">{{ wizardRecipe.cuisine || '—' }}</text>
+              <text v-if="wizardRecipe.ingredients?.length" class="home__wizard-r-ing">
+                食材：{{ wizardRecipe.ingredients.join('、') }}
+              </text>
               <text class="home__wizard-r-content">{{ wizardRecipe.content }}</text>
+              <view v-if="historyNote" class="home__wizard-note">
+                <text class="home__wizard-note-txt">{{ historyNote }}</text>
+              </view>
+              <button class="mp-btn-ghost home__wizard-fav-btn" :disabled="favoriteLoading" @click="onToggleFavorite">
+                <text>{{ isFavorited ? '取消收藏' : '加入收藏' }}</text>
+              </button>
               <button class="mp-btn-ghost home__wizard-image-btn" :disabled="recipeImageLoading" @click="generateWizardImage">
                 {{ recipeImageLoading ? '生成图片中…' : '生成菜品图片' }}
               </button>
@@ -170,13 +179,28 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useAppConfig } from '@/composables/useAppConfig'
+import { useAppMessages } from '@/composables/useAppMessages'
+import { useAuth } from '@/composables/useAuth'
 import { requestTodayEat, requestRecipeImage, requestRecognizeIngredients } from '@/api/ai'
+import { HttpError } from '@/api/http'
+import {
+  insertRecipeHistoryFromTodayEat,
+  isFavoriteRecipe,
+  toggleFavoriteRecipe,
+  BIZ_UNAUTHORIZED,
+  BIZ_NEED_LARAVEL_AUTH,
+  BIZ_NOT_CONFIGURED,
+} from '@/api/biz'
 import { upsertLocalGalleryItem } from '@/api/gallery'
 import { favoriteContentDigest } from '@/lib/favoriteDigest'
 import { NEWBIE_GUIDE_STEPS } from '@/config/newbieGuide'
+import type { TodayEatResult } from '@/types/ai'
 
 const { config } = useAppConfig()
+const msg = useAppMessages()
+const { syncAuthFromSupabase, isLoggedIn } = useAuth()
 const currentIngredient = ref('')
 const ingredients = ref<string[]>([])
 const selectedCuisines = ref<string[]>([])
@@ -185,7 +209,10 @@ const wizardLoading = ref(false)
 const wizardProgress = ref(0)
 const wizardStageText = ref('准备食材中…')
 const wizardError = ref('')
-const wizardRecipe = ref<{ title: string; cuisine?: string; content: string } | null>(null)
+const wizardRecipe = ref<{ title: string; cuisine?: string; content: string; ingredients?: string[] } | null>(null)
+const historyNote = ref('')
+const favoriteLoading = ref(false)
+const isFavorited = ref(false)
 const photoLoading = ref(false)
 const recognizedCandidates = ref<string[]>([])
 const recognizedSelected = ref<string[]>([])
@@ -231,6 +258,10 @@ const tastePresets = [
 ] as const
 
 const newbieSteps = NEWBIE_GUIDE_STEPS
+
+onShow(() => {
+  void syncAuthFromSupabase()
+})
 
 function addIngredient() {
   const v = currentIngredient.value.trim()
@@ -354,6 +385,104 @@ function applyPreset(prompt: string) {
   customPrompt.value = customPrompt.value ? `${customPrompt.value}；${prompt}` : prompt
 }
 
+async function maybeSaveHistory(res: TodayEatResult, tasteText: string) {
+  historyNote.value = ''
+  if (res.history_saved === true) {
+    msg.toastSaveSuccess()
+    return
+  }
+  if (!isLoggedIn.value) {
+    historyNote.value = '未登录：本次未写入历史；登录后可将结果保存到「历史」'
+    return
+  }
+  const title = (res.title || res.recommended_dish || '').trim()
+  const body = typeof res.content === 'string' ? res.content.trim() : ''
+  if (!title || !body) return
+  try {
+    await insertRecipeHistoryFromTodayEat({
+      title,
+      cuisine: res.cuisine ?? null,
+      ingredients: Array.isArray(res.ingredients) ? res.ingredients : [],
+      response_content: res.content,
+      request_payload: {
+        source: 'mp-custom-wizard',
+        preferences: { taste: tasteText },
+        wizard_ingredients: [...ingredients.value],
+      },
+    })
+    msg.toastSaveSuccess()
+  } catch (err: unknown) {
+    const e = err as Error & { code?: string }
+    if (e.code === BIZ_UNAUTHORIZED || e.message === BIZ_UNAUTHORIZED) {
+      msg.toastSaveFailed('登录已过期')
+    } else if (e.code === BIZ_NEED_LARAVEL_AUTH || e.message === BIZ_NEED_LARAVEL_AUTH) {
+      msg.toastSaveFailed('请使用微信一键登录后再试')
+    } else if (e.code === BIZ_NOT_CONFIGURED || e.message === BIZ_NOT_CONFIGURED) {
+      historyNote.value = '当前环境未启用历史写入配置，已跳过保存。'
+    } else {
+      msg.toastSaveFailed(e.message)
+      console.error('[custom-wizard] history insert failed:', err)
+    }
+  }
+}
+
+async function syncFavoriteState() {
+  const r = wizardRecipe.value
+  if (!r?.title || !r?.content) return
+  if (!isLoggedIn.value) {
+    isFavorited.value = false
+    return
+  }
+  try {
+    const sid = favoriteContentDigest(r.title, r.content)
+    isFavorited.value = await isFavoriteRecipe({
+      source_type: 'today_eat',
+      source_id: sid,
+    })
+  } catch {
+    isFavorited.value = false
+  }
+}
+
+async function onToggleFavorite() {
+  const r = wizardRecipe.value
+  if (!r?.title || !r?.content) return
+  if (!isLoggedIn.value) {
+    uni.navigateTo({
+      url: `/pages/login/index?redirect=${encodeURIComponent('/pages/index/index')}`,
+    })
+    return
+  }
+  if (favoriteLoading.value) return
+  favoriteLoading.value = true
+  try {
+    const sid = favoriteContentDigest(r.title, r.content)
+    const { favorited } = await toggleFavoriteRecipe({
+      source_type: 'today_eat',
+      source_id: sid,
+      title: r.title,
+      cuisine: r.cuisine ?? null,
+      ingredients: r.ingredients ?? [],
+      recipe_content: r.content,
+      image_url: null,
+    })
+    isFavorited.value = favorited
+    if (favorited) msg.toastFavoriteSuccess()
+    else msg.toastFavoriteCancel()
+  } catch (e: unknown) {
+    const err = e as Error & { code?: string }
+    if (err.code === BIZ_NEED_LARAVEL_AUTH || err.message === BIZ_NEED_LARAVEL_AUTH) {
+      msg.toastSaveFailed('请先使用微信一键登录')
+    } else if (err.code === BIZ_NOT_CONFIGURED || err.message === BIZ_NOT_CONFIGURED) {
+      msg.toastSaveFailed('当前环境未开启收藏配置')
+    } else {
+      msg.toastSaveFailed(err.message || '收藏失败')
+    }
+  } finally {
+    favoriteLoading.value = false
+  }
+}
+
 async function generateFromWizard() {
   if (wizardLoading.value) {
     return
@@ -369,6 +498,9 @@ async function generateFromWizard() {
   wizardError.value = ''
   wizardRecipe.value = null
   wizardImageUrl.value = ''
+  historyNote.value = ''
+  isFavorited.value = false
+  favoriteLoading.value = false
   if (wizardTimer) clearInterval(wizardTimer)
   wizardTimer = setInterval(() => {
     wizardProgress.value = Math.min(92, wizardProgress.value + 7)
@@ -377,6 +509,7 @@ async function generateFromWizard() {
     else wizardStageText.value = '大师正在润色步骤与细节…'
   }, 350)
   try {
+    await syncAuthFromSupabase()
     const cuisineText = cuisineOptions.filter((x) => selectedCuisines.value.includes(x.id)).map((x) => x.name).join('、')
     const tasteText = [cuisineText ? `偏好菜系：${cuisineText}` : '', customPrompt.value ? `要求：${customPrompt.value}` : '', `食材：${ingredients.value.join('、')}`]
       .filter(Boolean)
@@ -389,16 +522,30 @@ async function generateFromWizard() {
       locale: 'zh-CN',
     })
 
+    const title = (res.title || res.recommended_dish || '').trim()
+    const contentRaw = res.content
+    const content = typeof contentRaw === 'string' ? contentRaw.trim() : ''
+    if (!title || !content) {
+      throw new Error('接口返回格式异常，缺少菜名或做法正文')
+    }
+
     wizardRecipe.value = {
-      title: res.title || res.recommended_dish || '',
+      title,
       cuisine: res.cuisine,
-      content: res.content,
+      content: contentRaw,
+      ingredients: Array.isArray(res.ingredients) ? res.ingredients : undefined,
     }
     wizardProgress.value = 100
     wizardStageText.value = '生成完成'
+    void maybeSaveHistory(res, tasteText)
+    void syncFavoriteState()
   } catch (e: unknown) {
-    const err = e as Error
-    wizardError.value = err.message || '生成失败，请稍后重试'
+    if (e instanceof HttpError && e.statusCode === 401) {
+      wizardError.value = '需要登录后才能生成，或登录已过期'
+    } else {
+      const err = e as Error
+      wizardError.value = err.message || '生成失败，请稍后重试'
+    }
   } finally {
     if (wizardTimer) {
       clearInterval(wizardTimer)
@@ -862,6 +1009,33 @@ async function generateWizardImage() {
   margin-top: 6rpx;
   font-size: 22rpx;
   color: $mp-text-muted;
+}
+
+.home__wizard-r-ing {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  line-height: 1.45;
+  color: #374151;
+}
+
+.home__wizard-note {
+  margin-top: 12rpx;
+  padding: 12rpx 14rpx;
+  border-radius: 12rpx;
+  background: #f9fafb;
+  border: 1rpx dashed $mp-border;
+}
+
+.home__wizard-note-txt {
+  font-size: 22rpx;
+  line-height: 1.45;
+  color: $mp-text-secondary;
+}
+
+.home__wizard-fav-btn {
+  width: 100%;
+  margin-top: 12rpx;
 }
 
 .home__wizard-r-content {

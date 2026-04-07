@@ -166,7 +166,7 @@ import {
 } from '@/api/gallery'
 import { useAuth } from '@/composables/useAuth'
 import { useAppMessages } from '@/composables/useAppMessages'
-import { isFavoriteRecipe, toggleFavoriteRecipe } from '@/api/biz'
+import { isFavoriteRecipe, toggleFavoriteRecipe, BIZ_NEED_LARAVEL_AUTH, BIZ_NOT_CONFIGURED } from '@/api/biz'
 import type { GalleryItem } from '@/types/gallery'
 
 const msg = useAppMessages()
@@ -338,8 +338,14 @@ async function onToggleGalleryFavorite() {
     if (favorited) msg.toastFavoriteSuccess()
     else msg.toastFavoriteCancel()
   } catch (e: unknown) {
-    const err = e as Error
-    uni.showToast({ title: err.message?.slice(0, 42) || '操作失败', icon: 'none' })
+    const err = e as Error & { code?: string }
+    if (err.code === BIZ_NEED_LARAVEL_AUTH || err.message === BIZ_NEED_LARAVEL_AUTH) {
+      uni.showToast({ title: '请先使用微信一键登录', icon: 'none' })
+    } else if (err.code === BIZ_NOT_CONFIGURED || err.message === BIZ_NOT_CONFIGURED) {
+      uni.showToast({ title: '当前环境未开启收藏配置', icon: 'none' })
+    } else {
+      uni.showToast({ title: err.message?.slice(0, 42) || '操作失败', icon: 'none' })
+    }
   } finally {
     galleryFavLoading.value = false
   }

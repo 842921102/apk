@@ -13,6 +13,9 @@ export async function requestTodayEat(body: TodayEatRequestBody): Promise<TodayE
   if (body.context_tags?.length) {
     payload.context_tags = body.context_tags
   }
+  if (body.realtime_context && typeof body.realtime_context === 'object') {
+    payload.realtime_context = body.realtime_context
+  }
   return request<TodayEatResult>({
     url: '/api/ai/today-eat',
     method: 'POST',
@@ -25,6 +28,7 @@ export async function requestTodayEatReroll(body: {
   recommendation_session_id: string
   preferences: TodayEatRequestBody['preferences']
   locale?: string
+  realtime_context?: TodayEatRequestBody['realtime_context']
 }): Promise<TodayEatResult> {
   return request<TodayEatResult>({
     url: '/api/ai/today-eat/reroll',
@@ -33,6 +37,7 @@ export async function requestTodayEatReroll(body: {
       recommendation_session_id: body.recommendation_session_id,
       preferences: body.preferences,
       locale: body.locale ?? 'zh-CN',
+      realtime_context: body.realtime_context,
     },
   })
 }
@@ -43,6 +48,7 @@ export async function requestTodayEatSelectAlternative(body: {
   selected_dish: string
   preferences: TodayEatRequestBody['preferences']
   locale?: string
+  realtime_context?: TodayEatRequestBody['realtime_context']
 }): Promise<TodayEatResult> {
   return request<TodayEatResult>({
     url: '/api/ai/today-eat/select-alternative',
@@ -52,6 +58,7 @@ export async function requestTodayEatSelectAlternative(body: {
       selected_dish: body.selected_dish,
       preferences: body.preferences,
       locale: body.locale ?? 'zh-CN',
+      realtime_context: body.realtime_context,
     },
   })
 }

@@ -33,13 +33,21 @@ final class RecommendationRecordController extends Controller
         $v = $request->validate([
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'keyword' => ['nullable', 'string', 'max:80'],
         ]);
 
         $perPage = min(50, max(1, (int) ($v['per_page'] ?? 20)));
         $page = max(1, (int) ($v['page'] ?? 1));
 
+        $keyword = isset($v['keyword']) ? trim((string) $v['keyword']) : '';
         $paginator = RecommendationRecord::query()
             ->where('user_id', $request->user()->id)
+            ->when($keyword !== '', function ($q) use ($keyword) {
+                $q->where(function ($sq) use ($keyword) {
+                    $sq->where('recommended_dish', 'like', '%'.$keyword.'%')
+                        ->orWhere('reason_text', 'like', '%'.$keyword.'%');
+                });
+            })
             ->orderByDesc('id')
             ->paginate($perPage, ['*'], 'page', $page);
 

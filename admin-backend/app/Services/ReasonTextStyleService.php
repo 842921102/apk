@@ -39,6 +39,7 @@ final class ReasonTextStyleService
             '禁止空洞鸡汤、口号式排比、以及「你就是最棒的」类泛化安慰。',
             '禁止把 reason_text 写成 destiny_text：不要签文体、不要押韵对联式金句；整段应以说明与逻辑为主。',
             '禁止与 destiny_text 复用相同比喻或同一句式；reason 偏理性解释，destiny 偏轻情绪，二者职责不得互换。',
+            '若引用「清明、冬至」等节气，必须明确为节气，不得写成节日或“还在过节”。',
         ];
 
         $systemLines = [

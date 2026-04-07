@@ -153,6 +153,8 @@ function mapMpSourceToHistorySourceType(source: unknown) {
       return 'sauce_design'
     case 'mp-gallery':
       return 'gallery'
+    case 'mp-custom-wizard':
+      return 'today_eat'
     default:
       return 'today_eat'
   }

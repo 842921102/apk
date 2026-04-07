@@ -33,13 +33,29 @@
     <view v-else-if="list.length === 0 && !loadingMore" class="mp-card rh__state">
       <view class="mp-empty">
         <view class="mp-empty__icon">🍜</view>
-        <text class="mp-empty__title">暂无推荐记录</text>
-        <text class="mp-empty__sub">在「吃什么」生成成功后，会按次保留最近推荐，便于回看与分析。</text>
+        <text class="mp-empty__title">{{ keyword.trim() ? '暂无匹配记录' : '暂无推荐记录' }}</text>
+        <text class="mp-empty__sub">
+          {{ keyword.trim() ? '换个关键词试试（支持菜名与推荐理由关键词）。' : '在「吃什么」生成成功后，会按次保留最近推荐，便于回看与分析。' }}
+        </text>
         <button class="mp-btn-primary" @click="goTodayEat">去吃什么</button>
       </view>
     </view>
 
     <scroll-view v-else class="rh__scroll" scroll-y @scrolltolower="onScrollLower">
+      <view class="mp-card rh__search">
+        <view class="rh__search-bar">
+          <text class="rh__search-ico">🔎</text>
+          <input
+            v-model="keyword"
+            class="rh__search-input"
+            type="text"
+            placeholder="搜索菜名或推荐理由"
+            confirm-type="search"
+            @confirm="onSearchConfirm"
+          />
+          <text v-if="keyword.trim()" class="rh__search-clear" @click="onSearchClear">清空</text>
+        </view>
+      </view>
       <view class="mp-list-shell">
         <view v-for="item in list" :key="item.id" class="mp-card rh__row">
           <view class="rh__row-head" @click="openDetail(item.id)">
@@ -100,6 +116,7 @@ const page = ref(1)
 const lastPage = ref(1)
 const loadingMore = ref(false)
 const favBusyId = ref<number | null>(null)
+const keyword = ref('')
 
 const hasApiBase = computed(() => Boolean(API_BASE_URL.trim()))
 const isLaravelSession = computed(() => {
@@ -115,7 +132,17 @@ function sourceLabel(s: string): string {
 }
 
 async function fetchPage(p: number, append: boolean) {
-  const res = await apiListRecommendationRecords({ page: p, per_page: 20 })
+  const kw = keyword.value.trim()
+  const params: { page: number; per_page: number; keyword?: string } = {
+    page: p,
+    per_page: 20,
+  }
+  if (kw) {
+    params.keyword = kw
+  }
+  const res = await apiListRecommendationRecords({
+    ...params,
+  })
   const rows = res.data ?? []
   const pag = res.meta?.pagination
   lastPage.value = pag?.last_page ?? 1
@@ -168,6 +195,7 @@ async function load(fromPull = false, append = false) {
 
 function onScrollLower() {
   if (!isLoggedIn.value || !isLaravelSession.value) return
+  if (keyword.value.trim()) return
   if (loadingMore.value || page.value >= lastPage.value) return
   void load(false, true)
 }
@@ -179,6 +207,15 @@ onShow(() => {
 onPullDownRefresh(() => {
   void load(true, false)
 })
+
+function onSearchConfirm() {
+  void load(false, false)
+}
+
+function onSearchClear() {
+  keyword.value = ''
+  void load(false, false)
+}
 
 function goLogin() {
   const redirect = encodeURIComponent('/pages/recommendation-history/index')
@@ -231,6 +268,42 @@ async function onToggleFavorite(item: RecommendationRecordListItem) {
   max-height: calc(100vh - 24rpx);
   padding: 24rpx 24rpx 32rpx;
   box-sizing: border-box;
+}
+
+.rh__search {
+  margin-bottom: 18rpx;
+  padding: 18rpx 20rpx;
+  border-color: rgba(122, 87, 209, 0.28);
+  background: linear-gradient(180deg, rgba(243, 236, 255, 0.55) 0%, #fff 100%);
+}
+
+.rh__search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 12rpx 16rpx;
+  border-radius: 16rpx;
+  background: #fff;
+  border: 1rpx solid rgba(122, 87, 209, 0.2);
+}
+
+.rh__search-ico {
+  font-size: 24rpx;
+}
+
+.rh__search-input {
+  flex: 1;
+  min-width: 0;
+  height: 56rpx;
+  font-size: 26rpx;
+  color: $mp-text-primary;
+}
+
+.rh__search-clear {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: $mp-accent;
+  padding: 0 6rpx;
 }
 
 .rh__row {

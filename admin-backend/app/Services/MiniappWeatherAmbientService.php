@@ -11,7 +11,7 @@ final class MiniappWeatherAmbientService
     }
 
     /**
-     * @return array{city_name:string,weather_text:string,weather_code:string,weather_icon_emoji:string}
+     * @return array{city_name:string,weather_text:string,weather_code:string,weather_icon_emoji:string,temperature?:string|null}
      */
     public function resolve(?float $latitude = null, ?float $longitude = null): array
     {
@@ -20,7 +20,7 @@ final class MiniappWeatherAmbientService
 
     /**
      * @return array{
-     *   ambient: array{city_name:string,weather_text:string,weather_code:string,weather_icon_emoji:string},
+     *   ambient: array{city_name:string,weather_text:string,weather_code:string,weather_icon_emoji:string,temperature?:string|null},
      *   debug: array<string, mixed>
      * }
      */
@@ -62,7 +62,7 @@ final class MiniappWeatherAmbientService
     /**
      * @param  array<string, mixed>  $cfg
      * @param  array{city_name:string,weather_text:string,weather_code:string,weather_icon_emoji:string}  $fallback
-     * @return array{ambient: array{city_name:string,weather_text:string,weather_code:string,weather_icon_emoji:string}, debug: array<string, mixed>}
+     * @return array{ambient: array{city_name:string,weather_text:string,weather_code:string,weather_icon_emoji:string,temperature?:string}, debug: array<string, mixed>}
      */
     private function resolveViaQWeather(array $cfg, array $fallback, string $apiKey, int $timeout, ?float $latitude, ?float $longitude): array
     {
@@ -136,14 +136,16 @@ final class MiniappWeatherAmbientService
             }
             $code = (string) ($now['icon'] ?? '');
             $text = (string) ($now['text'] ?? '晴');
+            $temp = $this->formatAmbientTemperature($now['temp'] ?? null);
 
             return [
-                'ambient' => [
+                'ambient' => array_filter([
                     'city_name' => $city ?: (string) ($cfg['default_city'] ?? '深圳'),
                     'weather_text' => $text ?: '晴',
                     'weather_code' => $this->normalizeWeatherCode($code, $text),
                     'weather_icon_emoji' => $this->emojiByQWeatherCode($code),
-                ],
+                    'temperature' => $temp,
+                ], static fn ($v) => $v !== null && $v !== ''),
                 'debug' => array_merge($debug, ['ok' => true, 'fallback' => false, 'reason' => 'ok']),
             ];
         } catch (\Throwable $e) {
@@ -157,7 +159,7 @@ final class MiniappWeatherAmbientService
     /**
      * @param  array<string, mixed>  $cfg
      * @param  array{city_name:string,weather_text:string,weather_code:string,weather_icon_emoji:string}  $fallback
-     * @return array{ambient: array{city_name:string,weather_text:string,weather_code:string,weather_icon_emoji:string}, debug: array<string, mixed>}
+     * @return array{ambient: array{city_name:string,weather_text:string,weather_code:string,weather_icon_emoji:string,temperature?:string}, debug: array<string, mixed>}
      */
     private function resolveViaAmap(array $cfg, array $fallback, string $apiKey, int $timeout, ?float $latitude, ?float $longitude): array
     {
@@ -263,14 +265,16 @@ final class MiniappWeatherAmbientService
             }
             $text = trim((string) ($live['weather'] ?? '晴'));
             $cityName = trim((string) ($live['city'] ?? '')) ?: $city;
+            $temp = $this->formatAmbientTemperature($live['temperature'] ?? null);
 
             return [
-                'ambient' => [
+                'ambient' => array_filter([
                     'city_name' => $cityName ?: (string) ($cfg['default_city'] ?? '深圳'),
                     'weather_text' => $text !== '' ? $text : '晴',
                     'weather_code' => $this->normalizeWeatherCode('', $text),
                     'weather_icon_emoji' => $this->emojiByText($text),
-                ],
+                    'temperature' => $temp,
+                ], static fn ($v) => $v !== null && $v !== ''),
                 'debug' => array_merge($debug, ['ok' => true, 'fallback' => false, 'reason' => 'ok']),
             ];
         } catch (\Throwable $e) {
@@ -279,6 +283,22 @@ final class MiniappWeatherAmbientService
                 'debug' => array_merge($debug, ['reason' => 'exception', 'error' => mb_substr($e->getMessage(), 0, 160)]),
             ];
         }
+    }
+
+    private function formatAmbientTemperature(mixed $raw): ?string
+    {
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+        $s = is_numeric($raw) ? (string) $raw : trim((string) $raw);
+        if ($s === '') {
+            return null;
+        }
+        if (str_contains($s, '°')) {
+            return $s;
+        }
+
+        return $s.'°C';
     }
 
     /**

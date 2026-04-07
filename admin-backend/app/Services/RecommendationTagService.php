@@ -271,7 +271,7 @@ final class RecommendationTagService
         }
         $st = $fest['solar_term'] ?? null;
         if (is_array($st) && ! empty($st['name'])) {
-            $out[] = '节气：'.(string) $st['name'];
+            $out[] = '节气：'.(string) $st['name'].'（非节日）';
             if (($st['key'] ?? '') === 'dongzhi') {
                 $out[] = '情境：冬至温补优先';
             }

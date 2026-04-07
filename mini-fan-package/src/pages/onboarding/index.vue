@@ -122,10 +122,10 @@
 
     <BottomActionBar v-if="hasBottomBar" :safe-bottom="safeBottomPx">
       <template #left>
-        <button class="mp-btn-ghost" @click="onStepPrev">上一步</button>
+        <button class="mp-btn-ghost" @click="onStepPrev"><text>上一步</text></button>
       </template>
       <template #right>
-        <button class="mp-btn-primary" @click="onStepNext">下一步</button>
+        <button class="mp-btn-primary" @click="onStepNext"><text>下一步</text></button>
       </template>
     </BottomActionBar>
   </view>

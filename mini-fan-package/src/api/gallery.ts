@@ -111,9 +111,12 @@ export async function fetchGalleryList(): Promise<{ items: GalleryItem[]; hint: 
       url: '/api/gallery/list',
       method: 'GET',
     })
-    const items = normalizeGalleryListPayload(raw)
-    writeLocalGallery(items)
-    return { items, hint: '' }
+    const cloudItems = normalizeGalleryListPayload(raw)
+    const cloudIds = new Set(cloudItems.map((x) => x.id))
+    const localOnly = readLocalGallery().filter((x) => !cloudIds.has(x.id))
+    const merged = [...cloudItems, ...localOnly]
+    writeLocalGallery(merged)
+    return { items: merged, hint: '' }
   } catch (e: unknown) {
     const local = readLocalGallery()
     let hint = '暂时无法拉取云端图鉴，已显示本机保存的图片。'

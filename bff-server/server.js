@@ -1482,6 +1482,10 @@ const server = http.createServer(async (req, res) => {
           ? body.contextTags
           : []
       const contextTags = contextTagsRaw.map(safeString).filter(Boolean).slice(0, 48)
+      const realtimeContext =
+        body?.realtime_context && typeof body.realtime_context === 'object'
+          ? body.realtime_context
+          : null
       try {
         const auth = getAuthHeader(req)
         let result
@@ -1491,6 +1495,7 @@ const server = http.createServer(async (req, res) => {
               preferences,
               locale,
               context_tags: contextTags,
+              realtime_context: realtimeContext,
             })
           } catch (laravelErr) {
             console.warn('[bff today-eat] Laravel recommend failed, fallback to legacy bigmodel', laravelErr)
@@ -1520,7 +1525,7 @@ const server = http.createServer(async (req, res) => {
           sub_type: 'generate',
           status: 'success',
           title: dishTitle,
-          input_payload: { preferences, locale, context_tags: contextTags },
+          input_payload: { preferences, locale, context_tags: contextTags, realtime_context: realtimeContext },
           result_summary: safeString(result?.reason_text || result?.content).slice(0, 200),
           result_payload: {
             cuisine: safeString(result?.cuisine),
@@ -1545,7 +1550,7 @@ const server = http.createServer(async (req, res) => {
           feature_type: 'custom_cuisine',
           sub_type: 'generate',
           status: 'failed',
-          input_payload: { preferences, locale, context_tags: contextTags },
+          input_payload: { preferences, locale, context_tags: contextTags, realtime_context: realtimeContext },
           error_message: e instanceof Error ? e.message : 'generate_failed',
           requested_at: new Date().toISOString(),
         })
@@ -1574,6 +1579,10 @@ const server = http.createServer(async (req, res) => {
       const preferences = body?.preferences ?? {}
       const locale = body?.locale ?? 'zh-CN'
       const recommendationSessionId = safeString(body?.recommendation_session_id)
+      const realtimeContext =
+        body?.realtime_context && typeof body.realtime_context === 'object'
+          ? body.realtime_context
+          : null
       if (!recommendationSessionId) {
         return json(res, 400, { error: { message: 'recommendation_session_id_required' } })
       }
@@ -1586,6 +1595,7 @@ const server = http.createServer(async (req, res) => {
           recommendation_session_id: recommendationSessionId,
           preferences,
           locale,
+          realtime_context: realtimeContext,
         })
         const dishTitle = safeString(result?.title || result?.recommended_dish)
         await postEatMemeRecord({
@@ -1605,7 +1615,7 @@ const server = http.createServer(async (req, res) => {
           sub_type: 'reroll',
           status: 'success',
           title: dishTitle,
-          input_payload: { preferences, locale, recommendation_session_id: recommendationSessionId },
+          input_payload: { preferences, locale, recommendation_session_id: recommendationSessionId, realtime_context: realtimeContext },
           result_summary: safeString(result?.reason_text || result?.content).slice(0, 200),
           result_payload: {
             cuisine: safeString(result?.cuisine),
@@ -1630,7 +1640,7 @@ const server = http.createServer(async (req, res) => {
           feature_type: 'custom_cuisine',
           sub_type: 'reroll',
           status: 'failed',
-          input_payload: { preferences, locale, recommendation_session_id: recommendationSessionId },
+          input_payload: { preferences, locale, recommendation_session_id: recommendationSessionId, realtime_context: realtimeContext },
           error_message: e instanceof Error ? e.message : 'reroll_failed',
           requested_at: new Date().toISOString(),
         })
@@ -1646,6 +1656,10 @@ const server = http.createServer(async (req, res) => {
       const locale = body?.locale ?? 'zh-CN'
       const recommendationSessionId = safeString(body?.recommendation_session_id)
       const selectedDish = safeString(body?.selected_dish)
+      const realtimeContext =
+        body?.realtime_context && typeof body.realtime_context === 'object'
+          ? body.realtime_context
+          : null
       if (!recommendationSessionId) {
         return json(res, 400, { error: { message: 'recommendation_session_id_required' } })
       }
@@ -1662,6 +1676,7 @@ const server = http.createServer(async (req, res) => {
           selected_dish: selectedDish,
           preferences,
           locale,
+          realtime_context: realtimeContext,
         })
         const dishTitle = safeString(result?.title || result?.recommended_dish)
         await postEatMemeRecord({
@@ -1686,6 +1701,7 @@ const server = http.createServer(async (req, res) => {
             locale,
             recommendation_session_id: recommendationSessionId,
             selected_dish: selectedDish,
+            realtime_context: realtimeContext,
           },
           result_summary: safeString(result?.reason_text || result?.content).slice(0, 200),
           result_payload: {
@@ -1716,6 +1732,7 @@ const server = http.createServer(async (req, res) => {
             locale,
             recommendation_session_id: recommendationSessionId,
             selected_dish: selectedDish,
+            realtime_context: realtimeContext,
           },
           error_message: e instanceof Error ? e.message : 'select_alternative_failed',
           requested_at: new Date().toISOString(),
@@ -1829,13 +1846,21 @@ const server = http.createServer(async (req, res) => {
 
       try {
         const result = await proxyToFortune(payload)
+        const fortuneResult =
+          result && typeof result === 'object' && result.result && typeof result.result === 'object'
+            ? result.result
+            : null
+        const fortuneTitle = safeString(fortuneResult?.dishName || fortuneResult?.dish_name || '')
+        const fortuneSummary = safeString(
+          fortuneResult?.description || fortuneResult?.reason || fortuneResult?.mysticalMessage || '',
+        )
         await postFeatureDataRecord({
           feature_type: 'fortune_cooking',
           sub_type: safeString(fortuneType) || 'generate',
           status: 'success',
-          title: safeString(result?.title),
+          title: fortuneTitle,
           input_payload: payload,
-          result_summary: safeString(result?.content).slice(0, 200),
+          result_summary: fortuneSummary.slice(0, 200),
           requested_at: new Date().toISOString(),
         })
         return json(res, 200, result)
@@ -1858,13 +1883,20 @@ const server = http.createServer(async (req, res) => {
       const locale = body?.locale ?? 'zh-CN'
       try {
         const result = await proxyToSauceRecommend({ preferences, locale })
+        const recList = Array.isArray(result?.recommendations) ? result.recommendations : []
+        const recTitle = recList.length ? `酱料推荐（${recList.length}个）` : '酱料推荐'
+        const recSummary = recList
+          .slice(0, 8)
+          .map((x) => safeString(x).trim())
+          .filter(Boolean)
+          .join('、')
         await postFeatureDataRecord({
           feature_type: 'sauce_design',
           sub_type: 'recommend',
           status: 'success',
-          title: safeString(result?.title),
+          title: recTitle,
           input_payload: { preferences, locale },
-          result_summary: safeString(result?.content).slice(0, 200),
+          result_summary: recSummary.slice(0, 200),
           requested_at: new Date().toISOString(),
         })
         return json(res, 200, result)
@@ -1887,13 +1919,27 @@ const server = http.createServer(async (req, res) => {
       const locale = body?.locale ?? 'zh-CN'
       try {
         const result = await proxyToSauceRecipe({ sauce_name, locale })
+        const recipe = result?.recipe && typeof result.recipe === 'object' ? result.recipe : null
+        const recipeName = safeString(recipe?.name || sauce_name)
+        const desc = recipe?.description != null ? safeString(recipe.description) : ''
+        const ingLine = Array.isArray(recipe?.ingredients)
+          ? recipe.ingredients.map(safeString).filter(Boolean).slice(0, 10).join('、')
+          : ''
+        const stepsArr = Array.isArray(recipe?.steps) ? recipe.steps : []
+        let firstStep = ''
+        if (typeof stepsArr[0] === 'string') {
+          firstStep = safeString(stepsArr[0])
+        } else if (stepsArr[0] && typeof stepsArr[0] === 'object' && stepsArr[0].description != null) {
+          firstStep = safeString(stepsArr[0].description)
+        }
+        const recipeSummary = desc || ingLine || firstStep || recipeName
         await postFeatureDataRecord({
           feature_type: 'sauce_design',
           sub_type: 'recipe',
           status: 'success',
-          title: safeString(sauce_name),
+          title: recipeName,
           input_payload: { sauce_name, locale },
-          result_summary: safeString(result?.content).slice(0, 200),
+          result_summary: recipeSummary.slice(0, 200),
           requested_at: new Date().toISOString(),
         })
         return json(res, 200, result)
@@ -1917,13 +1963,27 @@ const server = http.createServer(async (req, res) => {
       const locale = body?.locale ?? 'zh-CN'
       try {
         const result = await proxyToTableMenu({ config, locale })
+        const dishList = Array.isArray(result?.dishes) ? result.dishes : []
+        const n = dishList.length
+        const tableTitle = n ? `一桌好菜（${n}道）` : '一桌好菜'
+        const nameLine = dishList
+          .slice(0, 4)
+          .map(d => safeString(d?.name).trim())
+          .filter(Boolean)
+          .join('、')
+        const firstDesc =
+          dishList[0] && typeof dishList[0].description === 'string'
+            ? safeString(dishList[0].description).trim()
+            : ''
+        const tableSummary =
+          nameLine + (n > 4 ? ` 等共${n}道` : '') || firstDesc
         await postFeatureDataRecord({
           feature_type: 'table_menu',
           sub_type: 'generate',
           status: 'success',
-          title: safeString(result?.title),
+          title: tableTitle,
           input_payload: { config, locale },
-          result_summary: safeString(result?.content).slice(0, 200),
+          result_summary: tableSummary.slice(0, 200),
           requested_at: new Date().toISOString(),
         })
         return json(res, 200, result)
@@ -1950,13 +2010,23 @@ const server = http.createServer(async (req, res) => {
       }
       try {
         const result = await proxyToTableDishRecipe(payload)
+        const recipeName = safeString(result?.name || payload.dish_name)
+        const ingLine = Array.isArray(result?.ingredients)
+          ? result.ingredients.map(safeString).filter(Boolean).slice(0, 8).join('、')
+          : ''
+        const stepsArr = Array.isArray(result?.steps) ? result.steps : []
+        const firstStep =
+          stepsArr[0] && typeof stepsArr[0] === 'object' && stepsArr[0].description != null
+            ? safeString(stepsArr[0].description)
+            : ''
+        const recipeSummary = ingLine || firstStep || recipeName
         await postFeatureDataRecord({
           feature_type: 'table_menu',
           sub_type: 'dish_recipe',
           status: 'success',
-          title: safeString(payload.dish_name),
+          title: recipeName || safeString(payload.dish_name),
           input_payload: payload,
-          result_summary: safeString(result?.content).slice(0, 200),
+          result_summary: recipeSummary.slice(0, 200),
           requested_at: new Date().toISOString(),
         })
         return json(res, 200, result)

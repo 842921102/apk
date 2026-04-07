@@ -14,6 +14,7 @@ export const MOCK_HOME_BANNER_AMBIENT: HomeBannerAmbient = {
   cityName: '深圳',
   weatherText: '晴',
   weatherIcon: '☀️',
+  temperatureText: '26°C',
 }
 
 const WEATHER_ICON_BY_CODE: Record<string, string> = {
@@ -32,6 +33,14 @@ function pickStr(o: Record<string, unknown>, ...keys: string[]): string | undefi
   for (const k of keys) {
     const v = o[k]
     if (typeof v === 'string' && v.trim()) return v.trim()
+  }
+}
+
+function pickStrOrNumber(o: Record<string, unknown>, ...keys: string[]): string | undefined {
+  for (const k of keys) {
+    const v = o[k]
+    if (typeof v === 'string' && v.trim()) return v.trim()
+    if (typeof v === 'number' && Number.isFinite(v)) return String(v)
   }
 }
 
@@ -56,8 +65,28 @@ export function parseHomeBannerAmbient(raw: unknown): HomeBannerAmbient | null {
   const code = codeRaw?.toLowerCase()
   const iconFromCode = code ? WEATHER_ICON_BY_CODE[code] : undefined
   const weatherIcon = emoji || iconFromCode
+  const temperatureRaw = pickStrOrNumber(
+    o,
+    'temperature_text',
+    'temperatureText',
+    'temperature',
+    'temp_text',
+    'tempText',
+    'temp',
+    'temperature_c',
+    'temperatureC',
+    'temp_c',
+    'tempC',
+    'current_temperature',
+    'currentTemperature',
+  )
+  const temperatureText = temperatureRaw
+    ? /°/.test(temperatureRaw)
+      ? temperatureRaw
+      : `${temperatureRaw}°C`
+    : undefined
 
-  if (!cityName && !weatherText && !weatherIcon) {
+  if (!cityName && !weatherText && !weatherIcon && !temperatureText) {
     return null
   }
 
@@ -65,6 +94,8 @@ export function parseHomeBannerAmbient(raw: unknown): HomeBannerAmbient | null {
     cityName: cityName || MOCK_HOME_BANNER_AMBIENT.cityName,
     weatherText: weatherText || MOCK_HOME_BANNER_AMBIENT.weatherText,
     weatherIcon: weatherIcon || MOCK_HOME_BANNER_AMBIENT.weatherIcon,
+    /** 仅使用接口显式返回的温度，避免与城市不匹配的前端占位 */
+    ...(temperatureText ? { temperatureText } : {}),
   }
 }
 

@@ -766,6 +766,10 @@ function onSettingsTap() {
 }
 
 function onRecordTileTap(type: ResultSourceType) {
+  if (type === 'today_eat') {
+    goMenu('/pages/recommendation-history/index')
+    return
+  }
   const h = latestByType.value[type]
   if (h) {
     openResultDetail(toDetailPayloadFromHistory(h))

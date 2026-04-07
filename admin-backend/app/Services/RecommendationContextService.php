@@ -117,6 +117,71 @@ class RecommendationContextService
     }
 
     /**
+     * 将小程序实时环境信号合并到聚合上下文（优先于默认天气抓取）。
+     *
+     * @param  array<string, mixed>  $ctx
+     * @param  array<string, mixed>  $realtime
+     * @return array<string, mixed>
+     */
+    public function mergeMiniRealtimeContext(array $ctx, array $realtime): array
+    {
+        $city = isset($realtime['city']) ? trim((string) $realtime['city']) : '';
+        $weatherText = isset($realtime['weather_text']) ? trim((string) $realtime['weather_text']) : '';
+        $tempRaw = $realtime['temperature_c'] ?? null;
+        $temp = is_numeric($tempRaw) ? (float) $tempRaw : null;
+        $locationAuthorized = (bool) ($realtime['location_authorized'] ?? false);
+
+        if ($city === '' && $weatherText === '' && $temp === null) {
+            return $ctx;
+        }
+
+        $weatherType = 'unknown';
+        $lower = mb_strtolower($weatherText);
+        if (str_contains($lower, '雨') || str_contains($lower, '雷')) {
+            $weatherType = 'rainy';
+        } elseif (str_contains($lower, '雪')) {
+            $weatherType = 'snow';
+        } elseif (str_contains($lower, '晴')) {
+            $weatherType = 'sunny';
+        } elseif (str_contains($lower, '阴') || str_contains($lower, '云')) {
+            $weatherType = 'cloudy';
+        } elseif (str_contains($lower, '雾') || str_contains($lower, '霾')) {
+            $weatherType = 'foggy';
+        }
+
+        $weatherTags = [];
+        if ($weatherText !== '') {
+            $weatherTags[] = $weatherText;
+        }
+        if ($temp !== null) {
+            if ($temp >= 30) {
+                $weatherTags[] = '高温';
+            } elseif ($temp <= 10) {
+                $weatherTags[] = '低温';
+            }
+        }
+
+        $existing = is_array($ctx['weather_context'] ?? null) ? $ctx['weather_context'] : [];
+        $ctx['weather_context'] = array_merge($existing, [
+            'available' => true,
+            'city' => $city !== '' ? $city : ($existing['city'] ?? null),
+            'weather_type' => $weatherType,
+            'temperature' => $temp,
+            'temp_c' => $temp,
+            'description' => $weatherText !== '' ? $weatherText : ($existing['description'] ?? null),
+            'is_precipitation' => str_contains($lower, '雨') || str_contains($lower, '雪'),
+            'weather_tags' => array_values(array_unique(array_filter(array_merge(
+                is_array($existing['weather_tags'] ?? null) ? $existing['weather_tags'] : [],
+                $weatherTags
+            )))),
+            'raw_source' => 'miniapp_realtime',
+            'location_authorized' => $locationAuthorized,
+        ]);
+
+        return $ctx;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function emptyProfileSnapshot(): array
