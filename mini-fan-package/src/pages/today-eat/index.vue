@@ -135,17 +135,34 @@
     </view>
 
     <!-- loading -->
-    <view v-else-if="phase === 'loading'" class="te__phase-wrap">
-      <view class="mp-card te__panel te__panel--state te__panel--loading">
-        <view class="te__state-head">
-          <text class="te__state-kicker">生成中</text>
-          <text class="te__state-title">正在为你搭配方案</text>
+    <view v-else-if="phase === 'loading'" class="te__phase-wrap te__phase-wrap--loading">
+      <view class="te__ai-loading" :class="{ 'te__ai-loading--active': phase === 'loading' }">
+        <view class="te__ai-core">
+          <view class="te__ai-orbit te__ai-orbit--a" />
+          <view class="te__ai-orbit te__ai-orbit--b" />
+          <view class="te__ai-glow te__ai-glow--inner" />
+          <view class="te__ai-glow te__ai-glow--outer" />
+          <view class="te__ai-dot te__ai-dot--1" />
+          <view class="te__ai-dot te__ai-dot--2" />
+          <view class="te__ai-dot te__ai-dot--3" />
+          <view class="te__ai-dot te__ai-dot--4" />
         </view>
-        <view class="mp-state-icon te__loading-icon">✨</view>
-        <view class="te__progress-track">
-          <view class="te__progress-fill" />
+        <view class="te__ai-copy">
+          <text class="te__ai-title">天时食运推衍中...</text>
+          <text class="te__ai-sub">以今日气运与口味为引，正为你卜得当下那一味</text>
         </view>
-        <text class="te__loading-hint">请稍候，服务端正在通过 AI 代理生成内容…</text>
+        <view class="te__ai-skeleton-wrap">
+          <view class="te__ai-skeleton-card">
+            <view class="te__ai-skeleton-line te__ai-skeleton-line--w70" />
+            <view class="te__ai-skeleton-line te__ai-skeleton-line--w92" />
+            <view class="te__ai-skeleton-line te__ai-skeleton-line--w82" />
+            <view class="te__ai-skeleton-line te__ai-skeleton-line--w56" />
+          </view>
+          <view class="te__ai-skeleton-card te__ai-skeleton-card--sub">
+            <view class="te__ai-skeleton-line te__ai-skeleton-line--w48" />
+            <view class="te__ai-skeleton-line te__ai-skeleton-line--w88" />
+          </view>
+        </view>
       </view>
     </view>
 
@@ -1958,6 +1975,293 @@ $te-topbar-h: 88rpx;
   box-sizing: border-box;
   min-height: 100vh;
   background: $te-bg;
+}
+
+.te__phase-wrap--loading {
+  display: flex;
+  align-items: center;
+}
+
+.te__ai-loading {
+  width: 100%;
+  max-width: 690rpx;
+  margin: 0 auto;
+  padding: 10rpx 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0;
+  transform: translate3d(0, 18rpx, 0) scale(0.985);
+  animation: teLoadingEnter 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.te__ai-loading--active .te__ai-core {
+  animation: teCoreBreath 2.9s ease-in-out infinite;
+}
+
+.te__ai-core {
+  position: relative;
+  width: 156rpx;
+  height: 156rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.te__ai-glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.te__ai-glow--inner {
+  width: 104rpx;
+  height: 104rpx;
+  background: radial-gradient(circle at 35% 35%, #f8f5ff 0%, #d8cbff 45%, #8c71ee 100%);
+  box-shadow:
+    0 8rpx 28rpx rgba(123, 87, 228, 0.24),
+    inset 0 8rpx 18rpx rgba(255, 255, 255, 0.5);
+}
+
+.te__ai-glow--outer {
+  width: 156rpx;
+  height: 156rpx;
+  background: radial-gradient(circle, rgba(140, 113, 238, 0.28) 0%, rgba(140, 113, 238, 0.08) 52%, rgba(140, 113, 238, 0) 78%);
+  animation: teHaloPulse 3.2s ease-in-out infinite;
+}
+
+.te__ai-orbit {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2rpx solid rgba(123, 87, 228, 0.16);
+  border-top-color: rgba(123, 87, 228, 0.45);
+  border-right-color: rgba(142, 119, 238, 0.3);
+  pointer-events: none;
+}
+
+.te__ai-orbit--a {
+  animation: teOrbitRotateA 3.4s ease-in-out infinite;
+}
+
+.te__ai-orbit--b {
+  inset: 12rpx;
+  border-color: rgba(123, 87, 228, 0.12);
+  border-top-color: rgba(123, 87, 228, 0.36);
+  border-left-color: rgba(146, 198, 255, 0.34);
+  animation: teOrbitRotateB 2.8s ease-in-out infinite;
+}
+
+.te__ai-dot {
+  position: absolute;
+  width: 9rpx;
+  height: 9rpx;
+  border-radius: 50%;
+  background: rgba(167, 214, 255, 0.95);
+  box-shadow: 0 0 10rpx rgba(138, 183, 255, 0.5);
+  animation: teDotFloat 3.3s ease-in-out infinite;
+}
+
+.te__ai-dot--1 {
+  left: 14rpx;
+  top: 26rpx;
+}
+
+.te__ai-dot--2 {
+  right: 10rpx;
+  top: 48rpx;
+  animation-delay: 0.55s;
+}
+
+.te__ai-dot--3 {
+  left: 34rpx;
+  bottom: 10rpx;
+  animation-delay: 1.1s;
+}
+
+.te__ai-dot--4 {
+  right: 30rpx;
+  bottom: 18rpx;
+  animation-delay: 1.65s;
+}
+
+.te__ai-copy {
+  margin-top: 42rpx;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.te__ai-title {
+  font-size: 38rpx;
+  line-height: 1.3;
+  font-weight: 700;
+  color: #2f234f;
+  letter-spacing: 0.01em;
+}
+
+.te__ai-sub {
+  margin-top: 16rpx;
+  font-size: 26rpx;
+  line-height: 1.6;
+  color: #7d7299;
+}
+
+.te__ai-skeleton-wrap {
+  width: 100%;
+  margin-top: 44rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.te__ai-skeleton-card {
+  position: relative;
+  overflow: hidden;
+  padding: 24rpx;
+  border-radius: 22rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(123, 87, 228, 0.12);
+  box-shadow: 0 8rpx 24rpx rgba(123, 87, 228, 0.08);
+}
+
+.te__ai-skeleton-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 70%;
+  height: 100%;
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0) 0%, rgba(235, 226, 255, 0.58) 52%, rgba(255, 255, 255, 0) 100%);
+  animation: teShimmer 3.1s ease-in-out infinite;
+}
+
+.te__ai-skeleton-card--sub {
+  opacity: 0.94;
+}
+
+.te__ai-skeleton-line {
+  height: 22rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(90deg, #efedf5 0%, #f6f5fa 100%);
+}
+
+.te__ai-skeleton-line + .te__ai-skeleton-line {
+  margin-top: 14rpx;
+}
+
+.te__ai-skeleton-line--w92 {
+  width: 92%;
+}
+
+.te__ai-skeleton-line--w88 {
+  width: 88%;
+}
+
+.te__ai-skeleton-line--w82 {
+  width: 82%;
+}
+
+.te__ai-skeleton-line--w70 {
+  width: 70%;
+}
+
+.te__ai-skeleton-line--w56 {
+  width: 56%;
+}
+
+.te__ai-skeleton-line--w48 {
+  width: 48%;
+}
+
+@keyframes teLoadingEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18rpx, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes teCoreBreath {
+  0%,
+  100% {
+    transform: scale(0.965);
+  }
+  50% {
+    transform: scale(1.035);
+  }
+}
+
+@keyframes teHaloPulse {
+  0%,
+  100% {
+    opacity: 0.66;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes teOrbitRotateA {
+  0% {
+    transform: rotate(0deg);
+    opacity: 0.72;
+  }
+  50% {
+    transform: rotate(140deg);
+    opacity: 0.95;
+  }
+  100% {
+    transform: rotate(360deg);
+    opacity: 0.72;
+  }
+}
+
+@keyframes teOrbitRotateB {
+  0% {
+    transform: rotate(330deg);
+    opacity: 0.58;
+  }
+  50% {
+    transform: rotate(180deg);
+    opacity: 0.88;
+  }
+  100% {
+    transform: rotate(-30deg);
+    opacity: 0.58;
+  }
+}
+
+@keyframes teDotFloat {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.45;
+  }
+  40% {
+    transform: translate3d(0, -7rpx, 0);
+    opacity: 0.9;
+  }
+  70% {
+    transform: translate3d(0, 2rpx, 0);
+    opacity: 0.62;
+  }
+}
+
+@keyframes teShimmer {
+  0% {
+    left: -150%;
+  }
+  100% {
+    left: 140%;
+  }
 }
 
 .te__sheet-mask {

@@ -162,14 +162,34 @@
       </view>
     </scroll-view>
 
-    <view v-else-if="phase === 'loading'" class="mp-card fc__panel fc__panel--state fc__panel--loading">
-      <view class="fc__state-head">
-        <text class="fc__state-kicker">感应中</text>
-        <text class="fc__state-title">{{ processingHint }}</text>
-      </view>
-      <view class="mp-state-icon fc__loading-icon">🔮</view>
-      <view class="fc__progress-track">
-        <view class="fc__progress-fill" />
+    <view v-else-if="phase === 'loading'" class="mp-card fc__panel fc__panel--state fc__panel--loading fc__panel--loading-animated">
+      <view class="fc__ai-loading" :class="{ 'fc__ai-loading--active': phase === 'loading' }">
+        <view class="fc__state-head">
+          <text class="fc__state-kicker">感应中</text>
+          <text class="fc__state-title">{{ processingHint }}</text>
+        </view>
+        <view class="fc__ai-core">
+          <view class="fc__ai-orbit fc__ai-orbit--a" />
+          <view class="fc__ai-orbit fc__ai-orbit--b" />
+          <view class="fc__ai-glow fc__ai-glow--inner" />
+          <view class="fc__ai-glow fc__ai-glow--outer" />
+          <view class="fc__ai-dot fc__ai-dot--1" />
+          <view class="fc__ai-dot fc__ai-dot--2" />
+          <view class="fc__ai-dot fc__ai-dot--3" />
+          <view class="fc__ai-dot fc__ai-dot--4" />
+        </view>
+        <view class="fc__ai-skeleton-wrap">
+          <view class="fc__ai-skeleton-card">
+            <view class="fc__ai-skeleton-line fc__ai-skeleton-line--w70" />
+            <view class="fc__ai-skeleton-line fc__ai-skeleton-line--w92" />
+            <view class="fc__ai-skeleton-line fc__ai-skeleton-line--w82" />
+            <view class="fc__ai-skeleton-line fc__ai-skeleton-line--w56" />
+          </view>
+          <view class="fc__ai-skeleton-card fc__ai-skeleton-card--sub">
+            <view class="fc__ai-skeleton-line fc__ai-skeleton-line--w48" />
+            <view class="fc__ai-skeleton-line fc__ai-skeleton-line--w88" />
+          </view>
+        </view>
       </view>
       <text class="fc__loading-hint">星辰与灶火正在对齐，请稍候…</text>
     </view>
@@ -1022,6 +1042,132 @@ function goLogin() {
   text-align: center;
 }
 
+.fc__panel--loading-animated {
+  overflow: hidden;
+}
+
+.fc__ai-loading {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.fc__ai-loading--active .fc__ai-core {
+  animation: fc-core-breath 2.9s ease-in-out infinite;
+}
+
+.fc__ai-core {
+  position: relative;
+  width: 156rpx;
+  height: 156rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 10rpx 0 22rpx;
+}
+
+.fc__ai-glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.fc__ai-glow--inner {
+  width: 104rpx;
+  height: 104rpx;
+  background: radial-gradient(circle at 35% 35%, #f8f5ff 0%, #d8cbff 45%, #8c71ee 100%);
+  box-shadow:
+    0 8rpx 28rpx rgba(123, 87, 228, 0.24),
+    inset 0 8rpx 18rpx rgba(255, 255, 255, 0.5);
+}
+
+.fc__ai-glow--outer {
+  width: 156rpx;
+  height: 156rpx;
+  background: radial-gradient(circle, rgba(140, 113, 238, 0.28) 0%, rgba(140, 113, 238, 0.08) 52%, rgba(140, 113, 238, 0) 78%);
+  animation: fc-halo-pulse 3.2s ease-in-out infinite;
+}
+
+.fc__ai-orbit {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2rpx solid rgba(123, 87, 228, 0.16);
+  border-top-color: rgba(123, 87, 228, 0.45);
+  border-right-color: rgba(142, 119, 238, 0.3);
+  pointer-events: none;
+}
+
+.fc__ai-orbit--a { animation: fc-orbit-a 3.4s ease-in-out infinite; }
+
+.fc__ai-orbit--b {
+  inset: 12rpx;
+  border-color: rgba(123, 87, 228, 0.12);
+  border-top-color: rgba(123, 87, 228, 0.36);
+  border-left-color: rgba(146, 198, 255, 0.34);
+  animation: fc-orbit-b 2.8s ease-in-out infinite;
+}
+
+.fc__ai-dot {
+  position: absolute;
+  width: 9rpx;
+  height: 9rpx;
+  border-radius: 50%;
+  background: rgba(167, 214, 255, 0.95);
+  box-shadow: 0 0 10rpx rgba(138, 183, 255, 0.5);
+  animation: fc-dot-float 3.3s ease-in-out infinite;
+}
+
+.fc__ai-dot--1 { left: 14rpx; top: 26rpx; }
+.fc__ai-dot--2 { right: 10rpx; top: 48rpx; animation-delay: 0.55s; }
+.fc__ai-dot--3 { left: 34rpx; bottom: 10rpx; animation-delay: 1.1s; }
+.fc__ai-dot--4 { right: 30rpx; bottom: 18rpx; animation-delay: 1.65s; }
+
+.fc__ai-skeleton-wrap {
+  width: 100%;
+  margin-top: 10rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.fc__ai-skeleton-card {
+  position: relative;
+  overflow: hidden;
+  padding: 24rpx;
+  border-radius: 22rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(123, 87, 228, 0.12);
+  box-shadow: 0 8rpx 24rpx rgba(123, 87, 228, 0.08);
+}
+
+.fc__ai-skeleton-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 70%;
+  height: 100%;
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0) 0%, rgba(235, 226, 255, 0.58) 52%, rgba(255, 255, 255, 0) 100%);
+  animation: fc-shimmer 3.1s ease-in-out infinite;
+}
+
+.fc__ai-skeleton-line {
+  height: 22rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(90deg, #efedf5 0%, #f6f5fa 100%);
+}
+
+.fc__ai-skeleton-line + .fc__ai-skeleton-line { margin-top: 14rpx; }
+.fc__ai-skeleton-line--w92 { width: 92%; }
+.fc__ai-skeleton-line--w88 { width: 88%; }
+.fc__ai-skeleton-line--w82 { width: 82%; }
+.fc__ai-skeleton-line--w70 { width: 70%; }
+.fc__ai-skeleton-line--w56 { width: 56%; }
+.fc__ai-skeleton-line--w48 { width: 48%; }
+
 .fc__state-head {
   margin-bottom: 24rpx;
 }
@@ -1076,6 +1222,39 @@ function goLogin() {
   100% {
     transform: translateX(350%);
   }
+}
+
+@keyframes fc-core-breath {
+  0%, 100% { transform: scale(0.965); }
+  50% { transform: scale(1.035); }
+}
+
+@keyframes fc-halo-pulse {
+  0%, 100% { opacity: 0.66; transform: scale(0.94); }
+  50% { opacity: 0.9; transform: scale(1.05); }
+}
+
+@keyframes fc-orbit-a {
+  0% { transform: rotate(0deg); opacity: 0.72; }
+  50% { transform: rotate(140deg); opacity: 0.95; }
+  100% { transform: rotate(360deg); opacity: 0.72; }
+}
+
+@keyframes fc-orbit-b {
+  0% { transform: rotate(330deg); opacity: 0.58; }
+  50% { transform: rotate(180deg); opacity: 0.88; }
+  100% { transform: rotate(-30deg); opacity: 0.58; }
+}
+
+@keyframes fc-dot-float {
+  0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.45; }
+  40% { transform: translate3d(0, -7rpx, 0); opacity: 0.9; }
+  70% { transform: translate3d(0, 2rpx, 0); opacity: 0.62; }
+}
+
+@keyframes fc-shimmer {
+  0% { left: -150%; }
+  100% { left: 140%; }
 }
 
 .fc__loading-hint {

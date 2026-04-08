@@ -24,6 +24,7 @@ class SaveAiSceneConfigRequest extends FormRequest
             'base_url_override' => ['nullable', 'string', 'max:512'],
             'temperature' => ['nullable', 'numeric', 'min:0', 'max:2'],
             'timeout_ms' => ['nullable', 'integer', 'min:1000', 'max:120000'],
+            'fallback_model_codes' => ['nullable', 'string', 'max:2000'],
             'is_enabled' => ['nullable', 'boolean'],
             'is_default' => ['nullable', 'boolean'],
             'remark' => ['nullable', 'string', 'max:2000'],

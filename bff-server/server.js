@@ -110,6 +110,48 @@ function tryParseJsonFromText(text) {
   return null
 }
 
+function extractTextFromModelResponse(data) {
+  // Chat Completions shape
+  const chatContent = data?.choices?.[0]?.message?.content
+  if (typeof chatContent === 'string' && chatContent.trim()) return chatContent
+  if (Array.isArray(chatContent)) {
+    const txt = chatContent
+      .map((p) => (typeof p?.text === 'string' ? p.text : ''))
+      .filter(Boolean)
+      .join('\n')
+      .trim()
+    if (txt) return txt
+  }
+
+  // Responses API shape
+  if (typeof data?.output_text === 'string' && data.output_text.trim()) return data.output_text
+  if (Array.isArray(data?.output)) {
+    const txt = data.output
+      .flatMap((item) => (Array.isArray(item?.content) ? item.content : []))
+      .map((p) => (typeof p?.text === 'string' ? p.text : ''))
+      .filter(Boolean)
+      .join('\n')
+      .trim()
+    if (txt) return txt
+  }
+
+  return ''
+}
+
+function fallbackModelCandidates(modelCode, configuredFallbacks) {
+  const current = safeString(modelCode).trim()
+  const cfg = Array.isArray(configuredFallbacks)
+    ? configuredFallbacks.map((v) => safeString(v).trim()).filter(Boolean)
+    : []
+  const defaults = cfg.length ? cfg : ['gpt-5-mini', 'gpt-4o-mini']
+  const out = []
+  if (current) out.push(current)
+  defaults.forEach((m) => {
+    if (m && m !== current) out.push(m)
+  })
+  return [...new Set(out)]
+}
+
 function normalizeIngredients(x) {
   if (Array.isArray(x)) {
     return x.map(i => safeString(i)).filter(Boolean).slice(0, 12)
@@ -215,31 +257,53 @@ async function callChatCompletionByScene(sceneCode, { systemPrompt, userPrompt, 
     : Number(runtime?.temperature ?? 0.7)
 
   const requestUrl = buildModelRequestUrl(baseUrl, apiPath)
-  const resp = await fetch(requestUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    signal: AbortSignal.timeout(timeoutSec * 1000),
-    body: JSON.stringify({
-      model: modelCode,
-      temperature: resolvedTemperature,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-    }),
-  })
+  const isResponsesApi = /\/responses$/i.test(requestUrl)
+  const modelCandidates = fallbackModelCandidates(modelCode, runtime?.fallback_model_codes)
+  let lastErr = new Error('model_request_failed')
 
-  const status = resp.status || 0
-  const data = await resp.json().catch(() => ({}))
-  if (!resp.ok) {
+  for (const candidateModel of modelCandidates) {
+    const requestBody = isResponsesApi
+      ? {
+          model: candidateModel,
+          temperature: resolvedTemperature,
+          input: [
+            {
+              role: 'system',
+              content: [{ type: 'input_text', text: safeString(systemPrompt) }],
+            },
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: safeString(userPrompt) }],
+            },
+          ],
+        }
+      : {
+          model: candidateModel,
+          temperature: resolvedTemperature,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+        }
+    const resp = await fetch(requestUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      signal: AbortSignal.timeout(timeoutSec * 1000),
+      body: JSON.stringify(requestBody),
+    })
+
+    const status = resp.status || 0
+    const data = await resp.json().catch(() => ({}))
+    if (resp.ok) return data
+
     const msg = data?.error?.message || data?.message || `model_request_failed(${status})`
-    throw new Error(msg)
+    lastErr = new Error(`[${candidateModel}] ${msg}`)
   }
 
-  return data
+  throw lastErr
 }
 
 async function callMessagesByScene(sceneCode, { messages, temperature }) {
@@ -260,28 +324,64 @@ async function callMessagesByScene(sceneCode, { messages, temperature }) {
     : Number(runtime?.temperature ?? 0.3)
 
   const requestUrl = buildModelRequestUrl(baseUrl, apiPath)
-  const resp = await fetch(requestUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    signal: AbortSignal.timeout(timeoutSec * 1000),
-    body: JSON.stringify({
-      model: modelCode,
-      temperature: resolvedTemperature,
-      messages,
-    }),
-  })
+  const isResponsesApi = /\/responses$/i.test(requestUrl)
+  const modelCandidates = fallbackModelCandidates(modelCode, runtime?.fallback_model_codes)
+  let lastErr = new Error('model_request_failed')
 
-  const status = resp.status || 0
-  const data = await resp.json().catch(() => ({}))
-  if (!resp.ok) {
+  for (const candidateModel of modelCandidates) {
+    const requestBody = isResponsesApi
+      ? {
+          model: candidateModel,
+          temperature: resolvedTemperature,
+          input: Array.isArray(messages)
+            ? messages.map((m) => {
+                const role = safeString(m?.role) || 'user'
+                const content = m?.content
+                if (typeof content === 'string') {
+                  return { role, content: [{ type: 'input_text', text: content }] }
+                }
+                if (Array.isArray(content)) {
+                  const mapped = content
+                    .map((c) => {
+                      if (c?.type === 'text' && typeof c?.text === 'string') {
+                        return { type: 'input_text', text: c.text }
+                      }
+                      if (c?.type === 'image_url' && typeof c?.image_url?.url === 'string') {
+                        return { type: 'input_image', image_url: c.image_url.url }
+                      }
+                      return null
+                    })
+                    .filter(Boolean)
+                  return { role, content: mapped.length ? mapped : [{ type: 'input_text', text: '' }] }
+                }
+                return { role, content: [{ type: 'input_text', text: safeString(content) }] }
+              })
+            : [],
+        }
+      : {
+          model: candidateModel,
+          temperature: resolvedTemperature,
+          messages,
+        }
+    const resp = await fetch(requestUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      signal: AbortSignal.timeout(timeoutSec * 1000),
+      body: JSON.stringify(requestBody),
+    })
+
+    const status = resp.status || 0
+    const data = await resp.json().catch(() => ({}))
+    if (resp.ok) return data
+
     const msg = data?.error?.message || data?.message || `model_request_failed(${status})`
-    throw new Error(msg)
+    lastErr = new Error(`[${candidateModel}] ${msg}`)
   }
 
-  return data
+  throw lastErr
 }
 
 async function callImageGenerationByScene(sceneCode, { prompt, size = '1024x1024' }) {
@@ -401,7 +501,7 @@ async function proxyToBigModel({ preferences, locale, contextTags }) {
     temperature: 0.7,
   })
 
-  const content = data?.choices?.[0]?.message?.content
+  const content = extractTextFromModelResponse(data)
   const jsonObj = tryParseJsonFromText(content)
   if (!jsonObj || typeof jsonObj !== 'object') {
     throw new Error('bigmodel_response_not_json')
@@ -436,16 +536,33 @@ function normalizeLegacyTodayEatResult(raw, contextTags) {
   if (!title || !content) {
     return raw
   }
+  const cuisine = safeString(raw?.cuisine).trim()
+  const ingredients = Array.isArray(raw?.ingredients)
+    ? raw.ingredients.map((x) => safeString(x)).filter(Boolean).slice(0, 12)
+    : []
+  const tagCandidates = [
+    cuisine || '',
+    ingredients.length <= 6 ? '快手' : '',
+    ingredients.length >= 8 ? '营养均衡' : '',
+    '今日推荐',
+  ].map((x) => safeString(x).trim()).filter(Boolean)
+  const normalizedTags = [...new Set([...(tags.length ? tags : []), ...tagCandidates])].slice(0, 6)
+  const ingredientPreview = ingredients.slice(0, 4).join('、')
+  const reasonText =
+    `结合你这次的口味与场景，今天更适合做「${title}」：` +
+    `${cuisine ? `${cuisine}风味，` : ''}` +
+    `${ingredientPreview ? `食材以${ingredientPreview}为主，` : ''}` +
+    '步骤清晰、落地性强，做完就能稳稳开饭。'
+
   return {
     recommended_dish: title,
-    tags: tags.length ? tags : ['今日推荐'],
-    reason_text:
-      '结合你本次的口味与上下文标签，为你搭配了这道晚餐方案，可直接参考食材与步骤。',
-    destiny_text: '好好吃饭，就是今日的小确幸。',
+    tags: normalizedTags.length ? normalizedTags : ['今日推荐'],
+    reason_text: reasonText,
+    destiny_text: '把这一餐认真做好，今天就算过得很不错。',
     alternatives: [],
     title,
-    cuisine: raw?.cuisine || undefined,
-    ingredients: Array.isArray(raw?.ingredients) ? raw.ingredients : [],
+    cuisine: cuisine || undefined,
+    ingredients,
     content,
     history_saved: Boolean(raw?.history_saved),
   }
@@ -648,7 +765,7 @@ async function proxyToSauceRecommend({ preferences, locale }) {
     temperature: 0.7,
   })
 
-  const content = data?.choices?.[0]?.message?.content
+  const content = extractTextFromModelResponse(data)
   const jsonObj = tryParseJsonFromText(content)
   if (!jsonObj || typeof jsonObj !== 'object') throw new Error('bigmodel_response_not_json')
 
@@ -694,7 +811,7 @@ async function proxyToSauceRecipe({ sauce_name, locale }) {
     temperature: 0.7,
   })
 
-  const content = data?.choices?.[0]?.message?.content
+  const content = extractTextFromModelResponse(data)
   const jsonObj = tryParseJsonFromText(content)
   if (!jsonObj || typeof jsonObj !== 'object') throw new Error('bigmodel_response_not_json')
 
@@ -805,7 +922,7 @@ async function proxyToFortune({ fortuneType, daily, mood, couple, number, locale
     temperature: 0.7,
   })
 
-  const content = data?.choices?.[0]?.message?.content
+  const content = extractTextFromModelResponse(data)
   const jsonObj = tryParseJsonFromText(content)
   if (!jsonObj || typeof jsonObj !== 'object') {
     throw new Error('bigmodel_response_not_json')
@@ -898,7 +1015,7 @@ async function proxyToTableMenu({ config, locale }) {
     temperature: 0.7,
   })
 
-  const content = data?.choices?.[0]?.message?.content
+  const content = extractTextFromModelResponse(data)
   const jsonObj = tryParseJsonFromText(content)
   if (!jsonObj || typeof jsonObj !== 'object') {
     throw new Error('bigmodel_response_not_json')
@@ -955,7 +1072,7 @@ async function proxyToTableDishRecipe({ dish_name, dish_description, category, l
     temperature: 0.7,
   })
 
-  const content = data?.choices?.[0]?.message?.content
+  const content = extractTextFromModelResponse(data)
   const jsonObj = tryParseJsonFromText(content)
   if (!jsonObj || typeof jsonObj !== 'object') {
     throw new Error('bigmodel_response_not_json')
@@ -1019,8 +1136,8 @@ async function proxyToRecognizeIngredients({ imageBase64 }) {
     ],
   })
 
-  const content = data?.choices?.[0]?.message?.content
-  const jsonObj = tryParseJsonFromText(typeof content === 'string' ? content : '')
+  const content = extractTextFromModelResponse(data)
+  const jsonObj = tryParseJsonFromText(content)
   if (!jsonObj || typeof jsonObj !== 'object') {
     throw new Error('ingredients_recognize_not_json')
   }

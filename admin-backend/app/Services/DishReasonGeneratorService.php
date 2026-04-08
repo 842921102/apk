@@ -123,7 +123,13 @@ final class DishReasonGeneratorService
                 'temperature' => $temperature,
             ];
 
-            $parsed = $this->requestAndParseSafe($requestUrl, $payload, $timeoutSec, $apiKey);
+            $parsed = $this->requestAndParseSafe(
+                $requestUrl,
+                $payload,
+                $timeoutSec,
+                $apiKey,
+                $runtime['fallback_model_codes'] ?? []
+            );
             $dish = is_array($parsed)
                 ? Str::limit(trim((string) ($parsed['recommended_dish'] ?? '')), 80, '')
                 : '';
@@ -138,7 +144,13 @@ final class DishReasonGeneratorService
                         ['role' => 'user', 'content' => $userRetry],
                     ];
                     $payload['temperature'] = min(0.95, $temperature + 0.05);
-                    $parsed = $this->requestAndParseSafe($requestUrl, $payload, $timeoutSec, $apiKey);
+                    $parsed = $this->requestAndParseSafe(
+                        $requestUrl,
+                        $payload,
+                        $timeoutSec,
+                        $apiKey,
+                        $runtime['fallback_model_codes'] ?? []
+                    );
                     $dish = is_array($parsed)
                         ? Str::limit(trim((string) ($parsed['recommended_dish'] ?? '')), 80, '')
                         : '';
@@ -272,7 +284,13 @@ final class DishReasonGeneratorService
                 'temperature' => $temperature,
             ];
 
-            $parsed = $this->requestAndParseSafe($requestUrl, $payload, $timeoutSec, $apiKey);
+            $parsed = $this->requestAndParseSafe(
+                $requestUrl,
+                $payload,
+                $timeoutSec,
+                $apiKey,
+                $runtime['fallback_model_codes'] ?? []
+            );
             $dish = is_array($parsed)
                 ? Str::limit(trim((string) ($parsed['recommended_dish'] ?? '')), 80, '')
                 : '';
@@ -284,7 +302,13 @@ final class DishReasonGeneratorService
                     ['role' => 'user', 'content' => $userRetry],
                 ];
                 $payload['temperature'] = min(0.92, $temperature + 0.05);
-                $parsed = $this->requestAndParseSafe($requestUrl, $payload, $timeoutSec, $apiKey);
+                $parsed = $this->requestAndParseSafe(
+                    $requestUrl,
+                    $payload,
+                    $timeoutSec,
+                    $apiKey,
+                    $runtime['fallback_model_codes'] ?? []
+                );
                 $dish = is_array($parsed)
                     ? Str::limit(trim((string) ($parsed['recommended_dish'] ?? '')), 80, '')
                     : '';
@@ -358,6 +382,10 @@ final class DishReasonGeneratorService
                 '- reason_text：理性解释层，回答「为什么今天推荐这道菜」，以因果与可核对线索为主，不要签文体或押韵金句。',
                 '- destiny_text：情绪价值层，一条短句，负责轻松陪伴感；不得承担长篇解释。',
                 '- 二者禁止互换职责，禁止复用同一比喻、同一句式或互相复述。',
+                '【表达约束】',
+                '- 禁止复述系统输入参数原文：不要出现字段名/键名，不要逐条复读日期、温度、分值、标签名等原始参数。',
+                '- 可以表达为自然结论，但不要写成「今天是周X、XX℃、你胃口XX」这类参数播报体。',
+                '- 语气要像真实推荐文案，避免「根据参数/上下文/标签」等技术口吻。',
                 'JSON 字段要求：',
                 '- recommended_dish: string，主推荐菜名',
                 '- tags: string[]，可填若干短词自检用；用户看到的推荐标签由服务端按规则统一生成，勿把 destiny_text/reason_text 拆成标签，勿写冗长句。',
@@ -402,6 +430,21 @@ final class DishReasonGeneratorService
         }
 
         return $singleSpaced;
+    }
+
+    private function deparameterizeReasonText(string $reason): string
+    {
+        if ($reason === '') {
+            return $reason;
+        }
+
+        $normalized = $reason;
+        $normalized = (string) preg_replace('/^今天是[^，。；]{0,24}[，。；]\s*/u', '', $normalized);
+        $normalized = (string) preg_replace('/(?:阴|晴|多云|小雨|中雨|大雨|阵雨|雷阵雨)?\s*\d{1,2}\s*℃/u', '这样的天气', $normalized);
+        $normalized = str_replace(['根据你本次参数', '根据参数', '根据上下文标签', '根据系统标签'], '结合你今天的状态', $normalized);
+        $normalized = trim((string) preg_replace('/\s+/u', ' ', $normalized));
+
+        return $normalized !== '' ? $normalized : $reason;
     }
 
     private function finalizeDestinyText(string $raw, int $maxChars): string
@@ -513,6 +556,7 @@ final class DishReasonGeneratorService
             (string) ($parsed['reason_text'] ?? ''),
             (int) ($copyControl['reason_max_chars'] ?? 200)
         );
+        $reason = $this->deparameterizeReasonText($reason);
         $destiny = $this->finalizeDestinyText(
             (string) ($parsed['destiny_text'] ?? ''),
             (int) ($copyControl['destiny_max_chars'] ?? 32)
@@ -751,27 +795,106 @@ final class DishReasonGeneratorService
     /**
      * @return array<string, mixed>|null
      */
-    private function requestAndParseSafe(string $requestUrl, array $payload, int $timeoutSec, string $apiKey): ?array
+    private function requestAndParseSafe(
+        string $requestUrl,
+        array $payload,
+        int $timeoutSec,
+        string $apiKey,
+        mixed $fallbackModelCodes = []
+    ): ?array
     {
         if ($requestUrl === '' || $apiKey === '') {
             return null;
         }
         try {
-            $resp = Http::timeout($timeoutSec)
-                ->acceptJson()
-                ->withToken($apiKey)
-                ->post($requestUrl, $payload);
-
-            if (! $resp->successful()) {
-                return null;
+            $modelRaw = (string) ($payload['model'] ?? '');
+            $cfgFallbacks = [];
+            if (is_array($fallbackModelCodes)) {
+                foreach ($fallbackModelCodes as $item) {
+                    if (! is_string($item)) {
+                        continue;
+                    }
+                    $code = trim($item);
+                    if ($code !== '') {
+                        $cfgFallbacks[] = $code;
+                    }
+                }
+            }
+            if ($cfgFallbacks === []) {
+                $cfgFallbacks = ['gpt-5-mini', 'gpt-4o-mini'];
             }
 
-            $data = $resp->json();
-            $content = $data['choices'][0]['message']['content'] ?? null;
-            $content = is_string($content) ? $content : null;
-            $parsed = $this->tryParseJsonFromText($content);
+            $modelCandidates = array_values(array_unique(array_filter([
+                $modelRaw,
+                ...$cfgFallbacks,
+            ], fn ($m): bool => is_string($m) && trim($m) !== '')));
 
-            return is_array($parsed) ? $parsed : null;
+            foreach ($modelCandidates as $candidateModel) {
+                $candidatePayload = $payload;
+                $candidatePayload['model'] = $candidateModel;
+
+                $isResponsesApi = str_ends_with(strtolower($requestUrl), '/responses');
+                if ($isResponsesApi) {
+                    $messages = is_array($candidatePayload['messages'] ?? null) ? $candidatePayload['messages'] : [];
+                    $input = [];
+                    foreach ($messages as $msg) {
+                        $role = is_array($msg) ? (string) ($msg['role'] ?? 'user') : 'user';
+                        $content = is_array($msg) ? ($msg['content'] ?? '') : '';
+                        $text = is_string($content) ? $content : '';
+                        $input[] = [
+                            'role' => $role !== '' ? $role : 'user',
+                            'content' => [
+                                ['type' => 'input_text', 'text' => $text],
+                            ],
+                        ];
+                    }
+                    $candidatePayload = [
+                        'model' => $candidateModel,
+                        'temperature' => $candidatePayload['temperature'] ?? null,
+                        'input' => $input,
+                    ];
+                }
+
+                $resp = Http::timeout($timeoutSec)
+                    ->acceptJson()
+                    ->withToken($apiKey)
+                    ->post($requestUrl, $candidatePayload);
+
+                if (! $resp->successful()) {
+                    continue;
+                }
+
+                $data = $resp->json();
+                $content = null;
+                $chatContent = $data['choices'][0]['message']['content'] ?? null;
+                if (is_string($chatContent) && trim($chatContent) !== '') {
+                    $content = $chatContent;
+                } elseif (is_string($data['output_text'] ?? null) && trim((string) $data['output_text']) !== '') {
+                    $content = (string) $data['output_text'];
+                } elseif (isset($data['output']) && is_array($data['output'])) {
+                    $segments = [];
+                    foreach ($data['output'] as $item) {
+                        if (! is_array($item) || ! isset($item['content']) || ! is_array($item['content'])) {
+                            continue;
+                        }
+                        foreach ($item['content'] as $part) {
+                            if (is_array($part) && isset($part['text']) && is_string($part['text']) && trim($part['text']) !== '') {
+                                $segments[] = $part['text'];
+                            }
+                        }
+                    }
+                    if ($segments !== []) {
+                        $content = implode("\n", $segments);
+                    }
+                }
+
+                $parsed = $this->tryParseJsonFromText($content);
+                if (is_array($parsed)) {
+                    return $parsed;
+                }
+            }
+
+            return null;
         } catch (\Throwable) {
             return null;
         }

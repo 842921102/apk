@@ -55,6 +55,11 @@ class AiModelConfigForm
                 ->minValue(1000)
                 ->maxValue(120000)
                 ->step(1000),
+            Textarea::make('fallback_model_codes')
+                ->label('降级模型链')
+                ->rows(3)
+                ->placeholder("gpt-5-mini\ngpt-4o-mini")
+                ->helperText('可空；逗号或换行分隔。主模型失败时按顺序重试这些模型。'),
             Toggle::make('is_enabled')
                 ->label('启用')
                 ->default(true),

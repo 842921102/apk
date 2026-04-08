@@ -26,7 +26,6 @@ onHide(() => {
 </script>
 
 <style lang="scss">
-@import './uni.scss';
 @import './styles/mp-ui.scss';
 
 .uni-app-host {

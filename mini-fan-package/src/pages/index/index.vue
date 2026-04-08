@@ -127,10 +127,20 @@
           <text class="home__wizard-step-num">4</text>
           <view class="home__wizard-body">
             <text class="home__wizard-title">菜谱结果</text>
-            <view v-if="wizardLoading" class="home__wizard-loading">
+            <view v-if="wizardLoading" class="home__wizard-loading home__wizard-loading--animated">
+              <view class="home__ai-core">
+                <view class="home__ai-orbit home__ai-orbit--a" />
+                <view class="home__ai-orbit home__ai-orbit--b" />
+                <view class="home__ai-glow home__ai-glow--inner" />
+                <view class="home__ai-glow home__ai-glow--outer" />
+                <view class="home__ai-dot home__ai-dot--1" />
+                <view class="home__ai-dot home__ai-dot--2" />
+                <view class="home__ai-dot home__ai-dot--3" />
+                <view class="home__ai-dot home__ai-dot--4" />
+              </view>
               <text class="home__wizard-loading-text">{{ wizardStageText }}</text>
               <view class="home__wizard-progress-track">
-                <view class="home__wizard-progress-fill" :style="{ width: `${wizardProgress}%` }" />
+                <view class="home__wizard-progress-fill" />
               </view>
               <text class="home__wizard-progress-val">{{ Math.round(wizardProgress) }}%</text>
             </view>
@@ -960,7 +970,72 @@ async function generateWizardImage() {
   border: 1rpx solid $mp-border;
   border-radius: 14rpx;
   background: #fafbfc;
+  position: relative;
+  overflow: hidden;
 }
+
+.home__wizard-loading--animated {
+  text-align: center;
+}
+
+.home__ai-core {
+  position: relative;
+  width: 112rpx;
+  height: 112rpx;
+  margin: 6rpx auto 12rpx;
+}
+
+.home__ai-glow {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.home__ai-glow--inner {
+  width: 76rpx;
+  height: 76rpx;
+  left: 18rpx;
+  top: 18rpx;
+  background: radial-gradient(circle at 35% 35%, #f8f5ff 0%, #d8cbff 45%, #8c71ee 100%);
+}
+
+.home__ai-glow--outer {
+  width: 112rpx;
+  height: 112rpx;
+  background: radial-gradient(circle, rgba(140, 113, 238, 0.28) 0%, rgba(140, 113, 238, 0.08) 52%, rgba(140, 113, 238, 0) 78%);
+  animation: home-halo-pulse 3.2s ease-in-out infinite;
+}
+
+.home__ai-orbit {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2rpx solid rgba(123, 87, 228, 0.16);
+  border-top-color: rgba(123, 87, 228, 0.45);
+}
+
+.home__ai-orbit--a { animation: home-orbit-a 3.4s ease-in-out infinite; }
+
+.home__ai-orbit--b {
+  inset: 10rpx;
+  border-color: rgba(123, 87, 228, 0.12);
+  border-top-color: rgba(123, 87, 228, 0.36);
+  border-left-color: rgba(146, 198, 255, 0.34);
+  animation: home-orbit-b 2.8s ease-in-out infinite;
+}
+
+.home__ai-dot {
+  position: absolute;
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: rgba(167, 214, 255, 0.95);
+  animation: home-dot-float 3.3s ease-in-out infinite;
+}
+
+.home__ai-dot--1 { left: 10rpx; top: 18rpx; }
+.home__ai-dot--2 { right: 9rpx; top: 34rpx; animation-delay: .55s; }
+.home__ai-dot--3 { left: 26rpx; bottom: 9rpx; animation-delay: 1.1s; }
+.home__ai-dot--4 { right: 24rpx; bottom: 14rpx; animation-delay: 1.65s; }
 
 .home__wizard-loading-text {
   display: block;
@@ -980,6 +1055,9 @@ async function generateWizardImage() {
 .home__wizard-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, #9575e8 0%, #7a57d1 50%, #6743bf 100%);
+  width: 40%;
+  border-radius: 999rpx;
+  animation: home-pulse 1.2s ease-in-out infinite;
 }
 
 .home__wizard-progress-val {
@@ -987,6 +1065,30 @@ async function generateWizardImage() {
   margin-top: 6rpx;
   font-size: 22rpx;
   color: $mp-text-muted;
+}
+
+@keyframes home-pulse {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+@keyframes home-halo-pulse {
+  0%,100% { opacity:.66; transform: scale(.94); }
+  50% { opacity:.9; transform: scale(1.05); }
+}
+@keyframes home-orbit-a {
+  0% { transform: rotate(0deg); opacity:.72; }
+  50% { transform: rotate(140deg); opacity:.95; }
+  100% { transform: rotate(360deg); opacity:.72; }
+}
+@keyframes home-orbit-b {
+  0% { transform: rotate(330deg); opacity:.58; }
+  50% { transform: rotate(180deg); opacity:.88; }
+  100% { transform: rotate(-30deg); opacity:.58; }
+}
+@keyframes home-dot-float {
+  0%,100% { transform: translate3d(0,0,0); opacity:.45; }
+  40% { transform: translate3d(0,-7rpx,0); opacity:.9; }
+  70% { transform: translate3d(0,2rpx,0); opacity:.62; }
 }
 
 .home__wizard-result {

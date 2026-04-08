@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'base_url_override',
     'temperature',
     'timeout_ms',
+    'fallback_model_codes',
     'is_enabled',
     'is_default',
     'remark',

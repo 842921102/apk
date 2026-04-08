@@ -195,14 +195,34 @@
     </scroll-view>
 
     <!-- loading -->
-    <view v-else-if="phase === 'loading'" class="mp-card tm__panel tm__panel--state tm__panel--loading">
-      <view class="tm__state-head">
-        <text class="tm__state-kicker">生成中</text>
-        <text class="tm__state-title">正在搭配整桌菜单</text>
-      </view>
-      <view class="mp-state-icon tm__loading-icon">✨</view>
-      <view class="tm__progress-track">
-        <view class="tm__progress-fill" />
+    <view v-else-if="phase === 'loading'" class="mp-card tm__panel tm__panel--state tm__panel--loading tm__panel--loading-animated">
+      <view class="tm__ai-loading" :class="{ 'tm__ai-loading--active': phase === 'loading' }">
+        <view class="tm__state-head">
+          <text class="tm__state-kicker">生成中</text>
+          <text class="tm__state-title">正在搭配整桌菜单</text>
+        </view>
+        <view class="tm__ai-core">
+          <view class="tm__ai-orbit tm__ai-orbit--a" />
+          <view class="tm__ai-orbit tm__ai-orbit--b" />
+          <view class="tm__ai-glow tm__ai-glow--inner" />
+          <view class="tm__ai-glow tm__ai-glow--outer" />
+          <view class="tm__ai-dot tm__ai-dot--1" />
+          <view class="tm__ai-dot tm__ai-dot--2" />
+          <view class="tm__ai-dot tm__ai-dot--3" />
+          <view class="tm__ai-dot tm__ai-dot--4" />
+        </view>
+        <view class="tm__ai-skeleton-wrap">
+          <view class="tm__ai-skeleton-card">
+            <view class="tm__ai-skeleton-line tm__ai-skeleton-line--w70" />
+            <view class="tm__ai-skeleton-line tm__ai-skeleton-line--w92" />
+            <view class="tm__ai-skeleton-line tm__ai-skeleton-line--w82" />
+            <view class="tm__ai-skeleton-line tm__ai-skeleton-line--w56" />
+          </view>
+          <view class="tm__ai-skeleton-card tm__ai-skeleton-card--sub">
+            <view class="tm__ai-skeleton-line tm__ai-skeleton-line--w48" />
+            <view class="tm__ai-skeleton-line tm__ai-skeleton-line--w88" />
+          </view>
+        </view>
       </view>
       <text class="tm__loading-hint">请稍候，服务端通过 AI 代理生成中…</text>
     </view>
@@ -1113,6 +1133,132 @@ function goLogin() {
   text-align: center;
 }
 
+.tm__panel--loading-animated {
+  overflow: hidden;
+}
+
+.tm__ai-loading {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tm__ai-loading--active .tm__ai-core {
+  animation: tm-core-breath 2.9s ease-in-out infinite;
+}
+
+.tm__ai-core {
+  position: relative;
+  width: 156rpx;
+  height: 156rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 10rpx 0 22rpx;
+}
+
+.tm__ai-glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.tm__ai-glow--inner {
+  width: 104rpx;
+  height: 104rpx;
+  background: radial-gradient(circle at 35% 35%, #f8f5ff 0%, #d8cbff 45%, #8c71ee 100%);
+  box-shadow:
+    0 8rpx 28rpx rgba(123, 87, 228, 0.24),
+    inset 0 8rpx 18rpx rgba(255, 255, 255, 0.5);
+}
+
+.tm__ai-glow--outer {
+  width: 156rpx;
+  height: 156rpx;
+  background: radial-gradient(circle, rgba(140, 113, 238, 0.28) 0%, rgba(140, 113, 238, 0.08) 52%, rgba(140, 113, 238, 0) 78%);
+  animation: tm-halo-pulse 3.2s ease-in-out infinite;
+}
+
+.tm__ai-orbit {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2rpx solid rgba(123, 87, 228, 0.16);
+  border-top-color: rgba(123, 87, 228, 0.45);
+  border-right-color: rgba(142, 119, 238, 0.3);
+  pointer-events: none;
+}
+
+.tm__ai-orbit--a { animation: tm-orbit-a 3.4s ease-in-out infinite; }
+
+.tm__ai-orbit--b {
+  inset: 12rpx;
+  border-color: rgba(123, 87, 228, 0.12);
+  border-top-color: rgba(123, 87, 228, 0.36);
+  border-left-color: rgba(146, 198, 255, 0.34);
+  animation: tm-orbit-b 2.8s ease-in-out infinite;
+}
+
+.tm__ai-dot {
+  position: absolute;
+  width: 9rpx;
+  height: 9rpx;
+  border-radius: 50%;
+  background: rgba(167, 214, 255, 0.95);
+  box-shadow: 0 0 10rpx rgba(138, 183, 255, 0.5);
+  animation: tm-dot-float 3.3s ease-in-out infinite;
+}
+
+.tm__ai-dot--1 { left: 14rpx; top: 26rpx; }
+.tm__ai-dot--2 { right: 10rpx; top: 48rpx; animation-delay: 0.55s; }
+.tm__ai-dot--3 { left: 34rpx; bottom: 10rpx; animation-delay: 1.1s; }
+.tm__ai-dot--4 { right: 30rpx; bottom: 18rpx; animation-delay: 1.65s; }
+
+.tm__ai-skeleton-wrap {
+  width: 100%;
+  margin-top: 10rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.tm__ai-skeleton-card {
+  position: relative;
+  overflow: hidden;
+  padding: 24rpx;
+  border-radius: 22rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(123, 87, 228, 0.12);
+  box-shadow: 0 8rpx 24rpx rgba(123, 87, 228, 0.08);
+}
+
+.tm__ai-skeleton-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 70%;
+  height: 100%;
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0) 0%, rgba(235, 226, 255, 0.58) 52%, rgba(255, 255, 255, 0) 100%);
+  animation: tm-shimmer 3.1s ease-in-out infinite;
+}
+
+.tm__ai-skeleton-line {
+  height: 22rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(90deg, #efedf5 0%, #f6f5fa 100%);
+}
+
+.tm__ai-skeleton-line + .tm__ai-skeleton-line { margin-top: 14rpx; }
+.tm__ai-skeleton-line--w92 { width: 92%; }
+.tm__ai-skeleton-line--w88 { width: 88%; }
+.tm__ai-skeleton-line--w82 { width: 82%; }
+.tm__ai-skeleton-line--w70 { width: 70%; }
+.tm__ai-skeleton-line--w56 { width: 56%; }
+.tm__ai-skeleton-line--w48 { width: 48%; }
+
 .tm__state-head {
   margin-bottom: 24rpx;
 }
@@ -1166,6 +1312,39 @@ function goLogin() {
   100% {
     transform: translateX(350%);
   }
+}
+
+@keyframes tm-core-breath {
+  0%, 100% { transform: scale(0.965); }
+  50% { transform: scale(1.035); }
+}
+
+@keyframes tm-halo-pulse {
+  0%, 100% { opacity: 0.66; transform: scale(0.94); }
+  50% { opacity: 0.9; transform: scale(1.05); }
+}
+
+@keyframes tm-orbit-a {
+  0% { transform: rotate(0deg); opacity: 0.72; }
+  50% { transform: rotate(140deg); opacity: 0.95; }
+  100% { transform: rotate(360deg); opacity: 0.72; }
+}
+
+@keyframes tm-orbit-b {
+  0% { transform: rotate(330deg); opacity: 0.58; }
+  50% { transform: rotate(180deg); opacity: 0.88; }
+  100% { transform: rotate(-30deg); opacity: 0.58; }
+}
+
+@keyframes tm-dot-float {
+  0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.45; }
+  40% { transform: translate3d(0, -7rpx, 0); opacity: 0.9; }
+  70% { transform: translate3d(0, 2rpx, 0); opacity: 0.62; }
+}
+
+@keyframes tm-shimmer {
+  0% { left: -150%; }
+  100% { left: 140%; }
 }
 
 .tm__loading-hint {

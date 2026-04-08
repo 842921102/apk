@@ -85,8 +85,17 @@
         <view class="sc__badge">
           <text class="sc__badge-txt">为您推荐</text>
         </view>
-        <view v-if="loadingRec" class="sc__mini-loading">
-          <text class="sc__mini-loading-ico">🤖</text>
+        <view v-if="loadingRec" class="sc__mini-loading sc__loading-animated">
+          <view class="sc__ai-core">
+            <view class="sc__ai-orbit sc__ai-orbit--a" />
+            <view class="sc__ai-orbit sc__ai-orbit--b" />
+            <view class="sc__ai-glow sc__ai-glow--inner" />
+            <view class="sc__ai-glow sc__ai-glow--outer" />
+            <view class="sc__ai-dot sc__ai-dot--1" />
+            <view class="sc__ai-dot sc__ai-dot--2" />
+            <view class="sc__ai-dot sc__ai-dot--3" />
+            <view class="sc__ai-dot sc__ai-dot--4" />
+          </view>
           <text class="sc__mini-loading-txt">AI 正在匹配酱料灵感…</text>
         </view>
         <view v-else>
@@ -141,8 +150,17 @@
           <text class="sc__empty-line">· 或直接搜索想做的酱料名称</text>
         </view>
 
-        <view v-if="recipeLoading" class="sc__state-loading">
-          <text class="sc__state-ico">👨‍🍳</text>
+        <view v-if="recipeLoading" class="sc__state-loading sc__loading-animated">
+          <view class="sc__ai-core">
+            <view class="sc__ai-orbit sc__ai-orbit--a" />
+            <view class="sc__ai-orbit sc__ai-orbit--b" />
+            <view class="sc__ai-glow sc__ai-glow--inner" />
+            <view class="sc__ai-glow sc__ai-glow--outer" />
+            <view class="sc__ai-dot sc__ai-dot--1" />
+            <view class="sc__ai-dot sc__ai-dot--2" />
+            <view class="sc__ai-dot sc__ai-dot--3" />
+            <view class="sc__ai-dot sc__ai-dot--4" />
+          </view>
           <text class="sc__state-title">酱料大师正在调配配方…</text>
           <text class="sc__state-sub">请稍候</text>
         </view>
@@ -801,9 +819,70 @@ function goLogin() {
   text-align: center;
 }
 
-.sc__mini-loading-ico {
-  font-size: 56rpx;
+.sc__loading-animated {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
+
+.sc__ai-core {
+  position: relative;
+  width: 112rpx;
+  height: 112rpx;
+  margin: 6rpx auto 12rpx;
+}
+
+.sc__ai-glow {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.sc__ai-glow--inner {
+  width: 76rpx;
+  height: 76rpx;
+  left: 18rpx;
+  top: 18rpx;
+  background: radial-gradient(circle at 35% 35%, #f8f5ff 0%, #d8cbff 45%, #8c71ee 100%);
+}
+
+.sc__ai-glow--outer {
+  width: 112rpx;
+  height: 112rpx;
+  background: radial-gradient(circle, rgba(140, 113, 238, 0.28) 0%, rgba(140, 113, 238, 0.08) 52%, rgba(140, 113, 238, 0) 78%);
+  animation: sc-halo-pulse 3.2s ease-in-out infinite;
+}
+
+.sc__ai-orbit {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2rpx solid rgba(123, 87, 228, 0.16);
+  border-top-color: rgba(123, 87, 228, 0.45);
+}
+
+.sc__ai-orbit--a { animation: sc-orbit-a 3.4s ease-in-out infinite; }
+
+.sc__ai-orbit--b {
+  inset: 10rpx;
+  border-color: rgba(123, 87, 228, 0.12);
+  border-top-color: rgba(123, 87, 228, 0.36);
+  border-left-color: rgba(146, 198, 255, 0.34);
+  animation: sc-orbit-b 2.8s ease-in-out infinite;
+}
+
+.sc__ai-dot {
+  position: absolute;
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: rgba(167, 214, 255, 0.95);
+  animation: sc-dot-float 3.3s ease-in-out infinite;
+}
+
+.sc__ai-dot--1 { left: 10rpx; top: 18rpx; }
+.sc__ai-dot--2 { right: 9rpx; top: 34rpx; animation-delay: .55s; }
+.sc__ai-dot--3 { left: 26rpx; bottom: 9rpx; animation-delay: 1.1s; }
+.sc__ai-dot--4 { right: 24rpx; bottom: 14rpx; animation-delay: 1.65s; }
 
 .sc__mini-loading-txt {
   display: block;
@@ -913,10 +992,6 @@ function goLogin() {
 .sc__state-loading {
   padding: 56rpx 24rpx;
   text-align: center;
-}
-
-.sc__state-ico {
-  font-size: 64rpx;
 }
 
 .sc__state-title {
@@ -1203,5 +1278,25 @@ function goLogin() {
   color: #dc2626;
   text-decoration: underline;
   padding: 12rpx;
+}
+
+@keyframes sc-halo-pulse {
+  0%,100% { opacity:.66; transform: scale(.94); }
+  50% { opacity:.9; transform: scale(1.05); }
+}
+@keyframes sc-orbit-a {
+  0% { transform: rotate(0deg); opacity:.72; }
+  50% { transform: rotate(140deg); opacity:.95; }
+  100% { transform: rotate(360deg); opacity:.72; }
+}
+@keyframes sc-orbit-b {
+  0% { transform: rotate(330deg); opacity:.58; }
+  50% { transform: rotate(180deg); opacity:.88; }
+  100% { transform: rotate(-30deg); opacity:.58; }
+}
+@keyframes sc-dot-float {
+  0%,100% { transform: translate3d(0,0,0); opacity:.45; }
+  40% { transform: translate3d(0,-7rpx,0); opacity:.9; }
+  70% { transform: translate3d(0,2rpx,0); opacity:.62; }
 }
 </style>

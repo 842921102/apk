@@ -21,6 +21,7 @@ class AiModelConfigInfolist
                     TextEntry::make('base_url_override')->label('基础地址覆盖')->placeholder('—'),
                     TextEntry::make('temperature')->label('温度参数')->placeholder('—'),
                     TextEntry::make('timeout_ms')->label('超时时间（毫秒）')->placeholder('—'),
+                    TextEntry::make('fallback_model_codes')->label('降级模型链')->placeholder('—'),
                     TextEntry::make('is_enabled')
                         ->label('启用')
                         ->formatStateUsing(fn (?bool $state): string => $state ? '是' : '否')

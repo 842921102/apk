@@ -58,6 +58,7 @@ final class AiModelCenterService
                 'base_url_override' => $payload['base_url_override'] ?? null,
                 'temperature' => $payload['temperature'] ?? null,
                 'timeout_ms' => $payload['timeout_ms'] ?? null,
+                'fallback_model_codes' => $this->normalizeFallbackModelCodes($payload['fallback_model_codes'] ?? null),
                 'is_enabled' => (bool) ($payload['is_enabled'] ?? true),
                 'is_default' => (bool) ($payload['is_default'] ?? true),
                 'remark' => $payload['remark'] ?? null,
@@ -192,6 +193,7 @@ final class AiModelCenterService
             'key_masked' => $config->key_masked,
             'temperature' => $config->temperature !== null ? (float) $config->temperature : null,
             'timeout' => $config->timeout_ms,
+            'fallback_model_codes' => $this->parseFallbackModelCodes($config->fallback_model_codes),
             'is_enabled' => (bool) $config->is_enabled,
             'is_default' => (bool) $config->is_default,
             'remark' => $config->remark,
@@ -266,7 +268,58 @@ final class AiModelCenterService
             'api_key' => (string) $config->getAttribute('api_key'),
             'temperature' => $config->temperature !== null ? (float) $config->temperature : null,
             'timeout_ms' => $config->timeout_ms,
+            'fallback_model_codes' => $this->parseFallbackModelCodes($config->fallback_model_codes),
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function parseFallbackModelCodes(?string $raw): array
+    {
+        if (! is_string($raw) || trim($raw) === '') {
+            return [];
+        }
+
+        $items = preg_split('/[\r\n,]+/', $raw) ?: [];
+        $out = [];
+        foreach ($items as $item) {
+            $code = trim((string) $item);
+            if ($code === '') {
+                continue;
+            }
+            $out[] = $code;
+            if (count($out) >= 8) {
+                break;
+            }
+        }
+
+        return array_values(array_unique($out));
+    }
+
+    private function normalizeFallbackModelCodes(mixed $raw): ?string
+    {
+        $list = [];
+        if (is_string($raw)) {
+            $list = $this->parseFallbackModelCodes($raw);
+        } elseif (is_array($raw)) {
+            $list = [];
+            foreach ($raw as $item) {
+                if (! is_string($item)) {
+                    continue;
+                }
+                $code = trim($item);
+                if ($code !== '') {
+                    $list[] = $code;
+                }
+                if (count($list) >= 8) {
+                    break;
+                }
+            }
+            $list = array_values(array_unique($list));
+        }
+
+        return $list === [] ? null : implode("\n", $list);
     }
 }
 
