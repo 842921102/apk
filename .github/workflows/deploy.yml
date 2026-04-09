@@ -9,6 +9,9 @@ on:
 jobs:
     build-and-test:
         runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: mini-fan-package
 
         steps:
             - name: Checkout code
@@ -19,6 +22,7 @@ jobs:
               with:
                   node-version: '18'
                   cache: 'npm'
+                  cache-dependency-path: mini-fan-package/package-lock.json
 
             - name: Install dependencies
               run: npm ci
@@ -27,7 +31,7 @@ jobs:
               run: npm run type-check
 
             - name: Build project
-              run: npm run build
+              run: npm run build:mp-weixin
               env:
                   VITE_TEXT_GENERATION_BASE_URL: ${{ secrets.VITE_TEXT_GENERATION_BASE_URL }}
                   VITE_TEXT_GENERATION_API_KEY: ${{ secrets.VITE_TEXT_GENERATION_API_KEY }}
