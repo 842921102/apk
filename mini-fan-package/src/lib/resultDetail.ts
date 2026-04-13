@@ -1,7 +1,14 @@
+import type { FavoriteSourceTypeApi } from '@/api/favorites'
 import type { FavoriteRow, HistoryRow } from '@/types/dto'
 import { favoriteContentDigest } from '@/lib/favoriteDigest'
 
-export type ResultSourceType = 'today_eat' | 'table_design' | 'fortune_cooking' | 'sauce_design' | 'gallery'
+export type ResultSourceType =
+  | 'today_eat'
+  | 'custom_wizard'
+  | 'table_design'
+  | 'fortune_cooking'
+  | 'sauce_design'
+  | 'gallery'
 
 export interface ResultDetailPayload {
   kind: 'favorite' | 'history'
@@ -21,14 +28,25 @@ export interface ResultDetailPayload {
 const STORAGE_PREFIX = 'mp_result_detail_payload_'
 
 export function normalizeSourceType(raw: unknown, requestPayload?: unknown): ResultSourceType {
+  const mpSource = (requestPayload as Record<string, unknown> | null)?.source
+  if (mpSource === 'mp-custom-wizard') {
+    return 'custom_wizard'
+  }
+
   if (typeof raw === 'string') {
-    if (raw === 'today_eat' || raw === 'table_design' || raw === 'fortune_cooking' || raw === 'sauce_design' || raw === 'gallery') {
+    if (raw === 'custom_wizard') return 'custom_wizard'
+    if (
+      raw === 'today_eat' ||
+      raw === 'table_design' ||
+      raw === 'fortune_cooking' ||
+      raw === 'sauce_design' ||
+      raw === 'gallery'
+    ) {
       return raw
     }
   }
 
-  const source = (requestPayload as Record<string, unknown> | null)?.source
-  switch (source) {
+  switch (mpSource) {
     case 'mp-today-eat':
       return 'today_eat'
     case 'mp-table-menu':
@@ -42,6 +60,11 @@ export function normalizeSourceType(raw: unknown, requestPayload?: unknown): Res
     default:
       return 'today_eat'
   }
+}
+
+/** 与 Laravel `FavoriteSourceType` 对齐，用于收藏读写 API */
+export function favoriteApiSourceType(source: ResultSourceType): FavoriteSourceTypeApi {
+  return source
 }
 
 export function toDetailPayloadFromFavorite(row: FavoriteRow): ResultDetailPayload {
@@ -105,13 +128,15 @@ export function getResultDetailByKey(key: string): ResultDetailPayload | null {
 export function sourceLabel(sourceType: ResultSourceType): string {
   switch (sourceType) {
     case 'today_eat':
-      return '吃什么'
+      return '今日菜单'
+    case 'custom_wizard':
+      return '自由搭配'
     case 'table_design':
-      return '一桌好菜'
+      return '家常好菜'
     case 'fortune_cooking':
-      return '玄学厨房'
+      return '灵感厨房'
     case 'sauce_design':
-      return '酱料大师'
+      return '灵魂蘸料'
     case 'gallery':
       return '图鉴'
   }
@@ -121,6 +146,8 @@ export function sourcePagePath(sourceType: ResultSourceType): string {
   switch (sourceType) {
     case 'today_eat':
       return '/pages/today-eat/index'
+    case 'custom_wizard':
+      return '/pages/index/index'
     case 'table_design':
       return '/pages/table-menu/index'
     case 'fortune_cooking':

@@ -1,13 +1,5 @@
 <template>
   <view class="mp-page fav has-bottom-nav">
-    <view
-      v-if="ready && isLoggedIn && backendReady && config.favorites_subtitle"
-      class="mp-card mp-card--inset fav__lead"
-    >
-      <text class="mp-kicker mp-kicker--accent">说明</text>
-      <text class="fav__lead-text">{{ config.favorites_subtitle }}</text>
-    </view>
-
     <view v-if="!ready" class="mp-card fav__state">
       <text class="fav__muted">加载中…</text>
     </view>
@@ -48,12 +40,36 @@
     </view>
 
     <template v-else>
-      <view v-if="recentList.length > 0" class="mp-card mp-card--accent-soft fav__recent">
+      <scroll-view class="fav__tabs-scroll" scroll-x :show-scrollbar="false">
+        <view class="fav__tabs">
+          <view
+            v-for="tab in tabs"
+            :key="tab.key"
+            class="fav__tab"
+            :class="{ 'fav__tab--active': activeTab === tab.key }"
+            @click="activeTab = tab.key"
+          >
+            <text class="fav__tab-label">{{ tab.label }}</text>
+            <text class="fav__tab-count">{{ tabCount(tab.key) }}</text>
+          </view>
+        </view>
+      </scroll-view>
+
+      <view v-if="filteredList.length === 0" class="mp-card fav__state fav__state--tab-empty">
+        <view class="mp-empty">
+          <view class="mp-empty__icon">📂</view>
+          <text class="mp-empty__title">该分类暂无收藏</text>
+          <text class="mp-empty__sub">换个分类看看，或去「今日菜单」生成并收藏内容。</text>
+          <button class="mp-btn-primary" @click="goTodayEat">去今日菜单</button>
+        </view>
+      </view>
+
+      <view v-else-if="recentList.length > 0" class="mp-card mp-card--accent-soft fav__recent">
         <view class="fav__recent-head">
           <text class="mp-kicker mp-kicker--accent">最近</text>
           <text class="fav__recent-title">最近收藏</text>
         </view>
-        <text class="fav__recent-hint">可在远端配置 show_recent_favorites 关闭本区块</text>
+        <text class="fav__recent-hint">最近收藏优先展示，方便快速回看。</text>
         <view
           v-for="(item, idx) in recentList"
           :key="'r' + item.id"
@@ -67,13 +83,16 @@
       </view>
 
       <scroll-view v-if="mainList.length > 0" class="fav__scroll" scroll-y>
-        <view class="mp-list-shell">
-          <view v-for="item in mainList" :key="item.id" class="mp-list-row fav__row">
+        <view class="fav__list">
+          <view v-for="item in mainList" :key="item.id" class="mp-card fav__row">
             <view class="fav__row-main" @click="openFavorite(item)">
-              <text class="fav__row-title">{{ item.title || '未命名' }}</text>
-              <text class="fav__row-meta">{{ item.cuisine || '—' }} · {{ formatListTime(item.created_at) }}</text>
+              <view class="fav__row-ico">★</view>
+              <view class="fav__row-copy">
+                <text class="fav__row-title">{{ item.title || '未命名' }}</text>
+                <text class="fav__row-meta">{{ item.cuisine || '—' }} · {{ formatListTime(item.created_at) }}</text>
+              </view>
             </view>
-            <button class="mp-btn-danger-plain" @click.stop="onDelete(item)">删除</button>
+            <button class="mp-btn-danger-plain fav__del" @click.stop="onDelete(item)">删除</button>
           </view>
         </view>
       </scroll-view>
@@ -97,7 +116,6 @@ import MpIcoTabBar from '@/components/MpIcoTabBar.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useAppConfig } from '@/composables/useAppConfig'
 import { useNavigationBarTitleFromConfig } from '@/composables/useNavigationBarTitleFromConfig'
-import { useRecentPartitionedList } from '@/composables/useRecentPartitionedList'
 import { useAppMessages } from '@/composables/useAppMessages'
 import { API_BASE_URL } from '@/constants'
 import { LARAVEL_ACCESS_TOKEN_PREFIX } from '@/composables/useAuth'
@@ -107,7 +125,7 @@ import {
   BIZ_UNAUTHORIZED,
   BIZ_NEED_LARAVEL_AUTH,
 } from '@/api/biz'
-import { openResultDetail, toDetailPayloadFromFavorite } from '@/lib/resultDetail'
+import { normalizeSourceType, openResultDetail, toDetailPayloadFromFavorite } from '@/lib/resultDetail'
 import { formatListTime } from '@/utils/dateFormat'
 import type { FavoriteRow } from '@/types/dto'
 
@@ -119,18 +137,58 @@ useNavigationBarTitleFromConfig(config, 'favorites_title')
 
 const ready = ref(false)
 const list = ref<FavoriteRow[]>([])
+type FavoriteTabKey =
+  | 'all'
+  | 'today_eat'
+  | 'custom_wizard'
+  | 'fortune_cooking'
+  | 'table_design'
+  | 'gallery'
+  | 'sauce_design'
+const activeTab = ref<FavoriteTabKey>('all')
+const tabs: ReadonlyArray<{ key: FavoriteTabKey; label: string }> = [
+  { key: 'all', label: '全部' },
+  { key: 'today_eat', label: '今日菜单' },
+  { key: 'custom_wizard', label: '自由搭配' },
+  { key: 'fortune_cooking', label: '灵感厨房' },
+  { key: 'table_design', label: '家常好菜' },
+  { key: 'gallery', label: '图鉴' },
+  { key: 'sauce_design', label: '灵魂蘸料' },
+]
 const hasApiBase = computed(() => Boolean(API_BASE_URL.trim()))
 const isLaravelSession = computed(() => {
   const t = accessToken.value
   return typeof t === 'string' && t.startsWith(LARAVEL_ACCESS_TOKEN_PREFIX)
 })
-const backendReady = computed(() => hasApiBase.value && isLaravelSession.value)
 
-const { recentList, mainList } = useRecentPartitionedList(
-  list,
-  () => config.value.show_recent_favorites,
-  3,
-)
+function favoriteSourceType(item: FavoriteRow): Exclude<FavoriteTabKey, 'all'> {
+  const t = normalizeSourceType(item.source_type, null)
+  return t as Exclude<FavoriteTabKey, 'all'>
+}
+
+const filteredList = computed(() => {
+  if (activeTab.value === 'all') return list.value
+  return list.value.filter((item) => favoriteSourceType(item) === activeTab.value)
+})
+
+const recentList = computed(() => {
+  if (!config.value.show_recent_favorites) return []
+  return filteredList.value.slice(0, Math.min(3, filteredList.value.length))
+})
+
+const mainList = computed(() => {
+  if (!config.value.show_recent_favorites) return filteredList.value
+  return filteredList.value.slice(3)
+})
+
+function tabCount(tab: FavoriteTabKey): number {
+  if (tab === 'all') return list.value.length
+  let count = 0
+  for (const item of list.value) {
+    if (favoriteSourceType(item) === tab) count += 1
+  }
+  return count
+}
 
 async function load(fromPull = false) {
   if (!fromPull) {
@@ -210,20 +268,60 @@ function onDelete(item: FavoriteRow) {
 <style lang="scss" scoped>
 @import '@/uni.scss';
 
+.fav {
+  min-height: 100vh;
+  padding: 24rpx 24rpx 0;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #f6f4fc 0%, #f9fafb 120rpx);
+}
+
 .has-bottom-nav {
   padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
 
-.fav__lead {
-  margin-bottom: 8rpx;
+.fav__tabs-scroll {
+  margin: 0 0 20rpx;
+  white-space: nowrap;
 }
 
-.fav__lead-text {
-  display: block;
-  margin-top: 10rpx;
-  font-size: 26rpx;
-  line-height: 1.55;
-  color: $mp-text-secondary;
+.fav__tabs {
+  display: inline-flex;
+  flex-direction: row;
+  gap: 14rpx;
+  padding-right: 12rpx;
+}
+
+.fav__tab {
+  min-width: 132rpx;
+  padding: 14rpx 18rpx;
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1rpx solid rgba(122, 87, 209, 0.14);
+  box-shadow: 0 4rpx 14rpx rgba(122, 87, 209, 0.06);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+}
+
+.fav__tab--active {
+  background: linear-gradient(145deg, rgba(122, 87, 209, 0.18) 0%, #fff 78%);
+  border-color: rgba(122, 87, 209, 0.4);
+  box-shadow: 0 10rpx 20rpx rgba(122, 87, 209, 0.12);
+}
+
+.fav__tab-label {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: $mp-text-primary;
+  line-height: 1.2;
+}
+
+.fav__tab-count {
+  font-size: 20rpx;
+  color: $mp-text-muted;
+  line-height: 1;
 }
 
 .fav__state {
@@ -233,6 +331,10 @@ function onDelete(item: FavoriteRow) {
   justify-content: center;
 }
 
+.fav__state--tab-empty {
+  margin-bottom: 16rpx;
+}
+
 .fav__muted {
   font-size: 28rpx;
   color: $mp-text-muted;
@@ -240,6 +342,8 @@ function onDelete(item: FavoriteRow) {
 
 .fav__recent {
   margin-bottom: 24rpx;
+  border-color: rgba(122, 87, 209, 0.25);
+  background: linear-gradient(170deg, rgba(243, 236, 255, 0.88) 0%, #fff 58%);
 }
 
 .fav__recent-head {
@@ -265,8 +369,9 @@ function onDelete(item: FavoriteRow) {
 
 .fav__recent-row {
   margin-top: 16rpx;
-  padding-top: 16rpx;
-  border-top: 1rpx solid rgba(232, 221, 245, 0.9);
+  padding: 16rpx 14rpx 14rpx;
+  border-top: 1rpx solid rgba(232, 221, 245, 0.72);
+  border-radius: 16rpx;
 }
 
 .fav__recent-row--first {
@@ -292,11 +397,47 @@ function onDelete(item: FavoriteRow) {
   max-height: calc(100vh - 120rpx);
 }
 
+.fav__list {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
 .fav__row {
-  align-items: flex-start;
+  padding: 20rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16rpx;
+  border-color: rgba(122, 87, 209, 0.2);
+  background: #fff;
+  box-shadow: 0 8rpx 24rpx rgba(122, 87, 209, 0.07);
 }
 
 .fav__row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.fav__row-ico {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 16rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  color: $mp-accent;
+  background: rgba(122, 87, 209, 0.1);
+  border: 1rpx solid rgba(122, 87, 209, 0.22);
+}
+
+.fav__row-copy {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -305,15 +446,21 @@ function onDelete(item: FavoriteRow) {
 
 .fav__row-title {
   font-size: 30rpx;
-  font-weight: 600;
+  font-weight: 700;
   color: $mp-text-primary;
-  word-break: break-all;
+  word-break: break-word;
 }
 
 .fav__row-meta {
   margin-top: 8rpx;
   font-size: 24rpx;
   color: $mp-text-secondary;
+}
+
+.fav__del {
+  margin: 0;
+  flex-shrink: 0;
+  align-self: center;
 }
 
 .fav__hint-only {

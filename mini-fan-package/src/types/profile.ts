@@ -75,4 +75,10 @@ export interface MeProfileResponse {
   today_status: UserDailyStatusDto | null
   recommendation_context_tags: string[]
   needs_onboarding: boolean
+  /** 与 Laravel `users.name` 一致；默认可能为「微信用户」 */
+  nickname?: string
+  /** 赞助用户：个人中心展示「赞助用户」标签；与 sponsor_until、支付 sponsor_love 联动 */
+  is_sponsor?: boolean
+  /** 爱心赞助当前有效期结束时间（ISO8601）；未赞助或非有效期则无 */
+  sponsor_until?: string | null
 }

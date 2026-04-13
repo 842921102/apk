@@ -243,7 +243,7 @@ function openDetail(id: string) {
 function goMall() {
   uni.navigateBack({
     fail: () => {
-      /* 「自定义」页不在 tabBar；首页 tab 为今日灵感 */
+      /* 「自由搭配」页不在 tabBar；首页 tab 为今日灵感 */
       uni.switchTab({ url: '/pages/today-eat/index' })
     },
   })

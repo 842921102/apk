@@ -11,7 +11,7 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "自定义"
+        "navigationBarTitleText": "自由搭配"
       }
     },
     {
@@ -85,19 +85,19 @@
     {
       "path": "pages/table-menu/index",
       "style": {
-        "navigationBarTitleText": "一桌好菜"
+        "navigationBarTitleText": "家常好菜"
       }
     },
     {
       "path": "pages/fortune-cooking/index",
       "style": {
-        "navigationBarTitleText": "玄学厨房"
+        "navigationBarTitleText": "灵感厨房"
       }
     },
     {
       "path": "pages/sauce-design/index",
       "style": {
-        "navigationBarTitleText": "酱料大师"
+        "navigationBarTitleText": "灵魂蘸料"
       }
     },
     {
@@ -152,9 +152,16 @@
       }
     },
     {
+      "path": "pages/me/sponsorship",
+      "style": {
+        "navigationBarTitleText": "赞助饭否",
+        "navigationBarBackgroundColor": "#f6f7fb"
+      }
+    },
+    {
       "path": "pages/me/recommendation-preferences",
       "style": {
-        "navigationBarTitleText": "推荐偏好"
+        "navigationBarTitleText": "我的口味画像"
       }
     },
     {

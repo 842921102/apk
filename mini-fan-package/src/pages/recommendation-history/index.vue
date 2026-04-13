@@ -17,7 +17,7 @@
       <view class="mp-empty">
         <view class="mp-empty__icon">⚙️</view>
         <text class="mp-empty__title">未配置接口地址</text>
-        <text class="mp-empty__sub">请配置 VITE_API_BASE_URL（与微信登录、吃什么一致）</text>
+        <text class="mp-empty__sub">请配置 VITE_API_BASE_URL（与微信登录、今日菜单一致）</text>
       </view>
     </view>
 
@@ -35,9 +35,9 @@
         <view class="mp-empty__icon">🍜</view>
         <text class="mp-empty__title">{{ keyword.trim() ? '暂无匹配记录' : '暂无推荐记录' }}</text>
         <text class="mp-empty__sub">
-          {{ keyword.trim() ? '换个关键词试试（支持菜名与推荐理由关键词）。' : '在「吃什么」生成成功后，会按次保留最近推荐，便于回看与分析。' }}
+          {{ keyword.trim() ? '换个关键词试试（支持菜名与推荐理由关键词）。' : '在「今日菜单」生成成功后，会按次保留最近推荐，便于回看与分析。' }}
         </text>
-        <button class="mp-btn-primary" @click="goTodayEat">去吃什么</button>
+        <button class="mp-btn-primary" @click="goTodayEat">去今日菜单</button>
       </view>
     </view>
 

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 140" fill="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="tb-dish" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ddd6fe"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="tb-glow" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ede9fe" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#f5f3ff" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="120" cy="78" rx="108" ry="52" fill="url(#tb-glow)"/>
+  <!-- table ellipse -->
+  <ellipse cx="120" cy="96" rx="88" ry="22" fill="#faf5ff" stroke="#e9d5ff" stroke-width="2"/>
+  <!-- lazy susan -->
+  <ellipse cx="120" cy="90" rx="36" ry="10" fill="#f3e8ff" stroke="#ddd6fe" stroke-width="1.5"/>
+  <!-- three bowls -->
+  <ellipse cx="78" cy="82" rx="22" ry="7" fill="#ffffff" stroke="#c4b5fd" stroke-width="1.5"/>
+  <path d="M62 82c0-10 7-18 16-18s16 8 16 18v2H62v-2z" fill="url(#tb-dish)" opacity="0.85"/>
+  <ellipse cx="120" cy="72" rx="26" ry="8" fill="#ffffff" stroke="#c4b5fd" stroke-width="1.5"/>
+  <path d="M100 72c0-12 9-22 20-22s20 10 20 22v2h-40v-2z" fill="url(#tb-dish)"/>
+  <ellipse cx="162" cy="82" rx="22" ry="7" fill="#ffffff" stroke="#c4b5fd" stroke-width="1.5"/>
+  <path d="M146 82c0-10 7-18 16-18s16 8 16 18v2h-32v-2z" fill="url(#tb-dish)" opacity="0.85"/>
+  <!-- steam -->
+  <path d="M112 52c3-6 1-12-2-16" stroke="#c4b5fd" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+  <path d="M128 50c4-7 2-12-2-16" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" opacity="0.55"/>
+  <!-- small garnish -->
+  <circle cx="118" cy="68" r="2.5" fill="#86efac"/>
+  <circle cx="128" cy="70" r="2" fill="#fde68a"/>
+  <circle cx="76" cy="76" r="2" fill="#fca5a5"/>
+  <circle cx="164" cy="76" r="2" fill="#fde68a"/>
+</svg>

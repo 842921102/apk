@@ -115,7 +115,7 @@ export function normalizeFortuneApiResponse(
 }
 
 /**
- * 玄学厨房：POST /api/ai/fortune
+ * 灵感厨房：POST /api/ai/fortune
  */
 export async function requestFortune(
   body: FortuneRequestBody,

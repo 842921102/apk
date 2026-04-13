@@ -5,6 +5,7 @@ import { request } from '@/api/http'
 
 export type FavoriteSourceTypeApi =
   | 'today_eat'
+  | 'custom_wizard'
   | 'table_design'
   | 'fortune_cooking'
   | 'sauce_design'

@@ -1,16 +1,5 @@
 <template>
-  <view class="mp-page tm has-bottom-nav">
-    <view class="mp-hero tm__hero">
-      <view class="tm__hero-inner">
-        <text class="mp-hero__kicker mp-kicker--on-dark">满汉全席</text>
-        <text class="mp-hero__title tm__hero-title">一桌好菜</text>
-        <text class="mp-hero__sub tm__hero-sub">
-          配置用餐场景与口味，由 BFF 代理生成整桌菜单；单道菜可再请求详细菜谱。
-        </text>
-        <view class="tm__hero-rule" />
-      </view>
-    </view>
-
+  <view class="mp-page tm has-bottom-nav" :class="{ 'tm--loading-phase': phase === 'loading' }">
     <!-- 表单 -->
     <scroll-view v-if="phase === 'idle'" class="tm__scroll-idle" scroll-y>
       <view class="mp-card tm__panel tm__panel--idle">
@@ -21,7 +10,7 @@
           <text class="tm__hero-icon-emoji">🍽️</text>
         </view>
         <text class="tm__panel-title">设计一桌菜</text>
-        <text class="tm__panel-desc">与 Web 端结构一致：先选模式与菜品，再调偏好（均可选）。</text>
+        <text class="tm__panel-desc">先选模式与菜品，再按需调整口味与场景（均可选）。</text>
 
         <view class="tm__step-tag">
           <text class="tm__step-tag-txt">1 · 菜品配置</text>
@@ -190,17 +179,12 @@
           <text class="tm__submit-txt">交给大师生成菜单</text>
           <text class="tm__submit-go">→</text>
         </button>
-        <text class="tm__idle-foot">需 BFF 开放 POST /api/ai/table-menu；菜谱详情为 POST /api/ai/table-dish-recipe</text>
       </view>
     </scroll-view>
 
     <!-- loading -->
-    <view v-else-if="phase === 'loading'" class="mp-card tm__panel tm__panel--state tm__panel--loading tm__panel--loading-animated">
+    <view v-else-if="phase === 'loading'" class="tm__phase-wrap tm__phase-wrap--loading">
       <view class="tm__ai-loading" :class="{ 'tm__ai-loading--active': phase === 'loading' }">
-        <view class="tm__state-head">
-          <text class="tm__state-kicker">生成中</text>
-          <text class="tm__state-title">正在搭配整桌菜单</text>
-        </view>
         <view class="tm__ai-core">
           <view class="tm__ai-orbit tm__ai-orbit--a" />
           <view class="tm__ai-orbit tm__ai-orbit--b" />
@@ -210,6 +194,10 @@
           <view class="tm__ai-dot tm__ai-dot--2" />
           <view class="tm__ai-dot tm__ai-dot--3" />
           <view class="tm__ai-dot tm__ai-dot--4" />
+        </view>
+        <view class="tm__ai-copy">
+          <text class="tm__ai-title">正在搭配整桌菜单</text>
+          <text class="tm__ai-sub">请稍候，正在生成菜品与搭配…</text>
         </view>
         <view class="tm__ai-skeleton-wrap">
           <view class="tm__ai-skeleton-card">
@@ -224,7 +212,6 @@
           </view>
         </view>
       </view>
-      <text class="tm__loading-hint">请稍候，服务端通过 AI 代理生成中…</text>
     </view>
 
     <!-- error -->
@@ -555,12 +542,12 @@ async function maybeSaveHistory(data: { history_saved?: boolean }, payload: Tabl
     return
   }
   if (!isLoggedIn.value) {
-    historyNote.value = '未登录：本次未写入历史；登录后可在 BFF 支持自动写入或客户端补写'
+    historyNote.value = '未登录：本次结果未保存到历史记录；登录后可自动保存'
     return
   }
   try {
     await insertRecipeHistoryFromTodayEat({
-      title: `一桌好菜（${list.length}道）`,
+      title: `家常好菜（${list.length}道）`,
       cuisine: null,
       ingredients: list.map((d) => d.name),
       response_content: formatMenuText(list),
@@ -584,7 +571,7 @@ function mapHttpError(e: unknown): string {
   if (e instanceof HttpError) {
     if (e.statusCode === 401) return '__NEED_LOGIN__'
     if (e.statusCode === 404) {
-      return '一桌好菜接口未部署或路径不匹配。请在 BFF 实现 POST /api/ai/table-menu（及可选 POST /api/ai/table-dish-recipe）后重试。'
+      return '家常好菜服务暂不可用，请稍后再试。'
     }
     return e.message || `请求失败 (${e.statusCode})`
   }
@@ -638,7 +625,7 @@ async function onDishRecipe(dish: DisplayDish, index: number) {
       locale: 'zh-CN',
     })
     if (!r.name && !r.steps.length && !r.ingredients.length) {
-      throw new Error('菜谱接口返回为空，请确认 BFF 已实现 POST /api/ai/table-dish-recipe')
+      throw new Error('菜谱详情暂不可用，请稍后再试')
     }
     row.recipe = r
     recipeOverlay.value = r
@@ -680,32 +667,31 @@ function goLogin() {
   padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
 
-.tm__hero-inner {
-  text-align: center;
+.tm--loading-phase {
+  padding: 0 !important;
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom)) !important;
+  box-sizing: border-box;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: $mp-bg-page;
 }
 
-.tm__hero-title {
-  max-width: 640rpx;
-  margin-left: auto;
-  margin-right: auto;
+.tm__phase-wrap {
+  box-sizing: border-box;
+  padding: 24rpx;
+  flex: 1;
+  width: 100%;
 }
 
-.tm__hero-sub {
-  max-width: 600rpx;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.tm__hero-rule {
-  width: 72rpx;
-  height: 6rpx;
-  margin: 28rpx auto 0;
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.45);
+.tm__phase-wrap--loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tm__scroll-idle {
-  max-height: calc(100vh - 200rpx);
+  max-height: calc(100vh - 120rpx);
   padding-bottom: 48rpx;
 }
 
@@ -1119,29 +1105,22 @@ function goLogin() {
   font-size: 32rpx;
 }
 
-.tm__idle-foot {
-  display: block;
-  margin-top: 20rpx;
-  text-align: center;
-  font-size: 22rpx;
-  color: $mp-text-muted;
-  line-height: 1.45;
-}
-
 .tm__panel--state {
   padding: 48rpx 32rpx;
   text-align: center;
 }
 
-.tm__panel--loading-animated {
-  overflow: hidden;
-}
-
 .tm__ai-loading {
   width: 100%;
+  max-width: 690rpx;
+  margin: 0 auto;
+  padding: 10rpx 0 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  opacity: 0;
+  transform: translate3d(0, 18rpx, 0) scale(0.985);
+  animation: tmLoadingEnter 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .tm__ai-loading--active .tm__ai-core {
@@ -1218,10 +1197,10 @@ function goLogin() {
 
 .tm__ai-skeleton-wrap {
   width: 100%;
-  margin-top: 10rpx;
+  margin-top: 44rpx;
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
+  gap: 18rpx;
 }
 
 .tm__ai-skeleton-card {
@@ -1261,6 +1240,7 @@ function goLogin() {
 
 .tm__state-head {
   margin-bottom: 24rpx;
+  text-align: center;
 }
 
 .tm__state-kicker {
@@ -1347,10 +1327,15 @@ function goLogin() {
   100% { left: 140%; }
 }
 
-.tm__loading-hint {
-  font-size: 26rpx;
-  color: $mp-text-secondary;
-  line-height: 1.5;
+@keyframes tmLoadingEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18rpx, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
 }
 
 .tm__err-icon {

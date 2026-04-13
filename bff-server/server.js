@@ -36,7 +36,24 @@ const PORT = Number(process.env.PORT || 8787)
 /** 绑定到所有网卡，手机真机才能访问电脑的局域网 IP（勿用默认仅本机回环） */
 const HOST = process.env.HOST || '0.0.0.0'
 
-const ADMIN_BACKEND_BASE_URL = process.env.ADMIN_BACKEND_BASE_URL || process.env.LARAVEL_ADMIN_BASE_URL || ''
+const RAW_ADMIN_BACKEND_URL = process.env.ADMIN_BACKEND_BASE_URL || process.env.LARAVEL_ADMIN_BASE_URL || ''
+
+/**
+ * Laravel 根地址（无末尾 /、无 /api 后缀）。常见误配 `http://127.0.0.1:8000/api`：
+ * 再拼 pathname `/api/pay/orders` 会得到 `/api/api/pay/orders` → 404。
+ */
+function normalizeAdminBackendBaseUrl(raw) {
+  const s = String(raw ?? '').trim()
+  if (!s) return ''
+  let b = s.replace(/\/$/, '')
+  if (b.endsWith('/api')) b = b.slice(0, -4)
+  return b
+}
+
+/** 本地开发常忘配该项；生产环境须显式设置 ADMIN_BACKEND_BASE_URL（NODE_ENV=production 时不使用默认值） */
+const ADMIN_BACKEND_BASE_URL = normalizeAdminBackendBaseUrl(
+  RAW_ADMIN_BACKEND_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://127.0.0.1:8000'),
+)
 const INTERNAL_SERVICE_TOKEN = process.env.INTERNAL_SERVICE_TOKEN || ''
 
 const SUPABASE_URL = process.env.SUPABASE_URL || ''
@@ -71,6 +88,8 @@ function json(res, statusCode, payload) {
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
+    // 小程序端可据此区分「本 Node BFF」与「前面 Nginx/其它进程返回的空 502」
+    'X-Wte-Bff': '1',
   })
   res.end(body)
 }
@@ -995,7 +1014,7 @@ async function proxyToTableMenu({ config, locale }) {
   ].join('\n').replace('{{count}}', String(count))
 
   const user = [
-    '请生成一桌好菜（总计约 count 道）。',
+    '请生成家常好菜（总计约 count 道）。',
     '',
     `口味偏好 tastes: ${tastes.length ? tastes.join('、') : '无'}`,
     `菜系/风格 cuisineStyle: ${cuisineStyle || '无'}`,
@@ -1349,7 +1368,10 @@ const server = http.createServer(async (req, res) => {
               },
             }
           }
-          return json(res, resp.status || 500, data)
+          // 微信端对 HTTP 502/503 常不返回 response data，小程序只能看到「无响应体」；统一用 500 保留 JSON
+          let outStatus = resp.status || 500
+          if (outStatus === 502 || outStatus === 503) outStatus = 500
+          return json(res, outStatus, data)
         }
 
         return json(res, 200, data)
@@ -1357,7 +1379,7 @@ const server = http.createServer(async (req, res) => {
         const msg = e instanceof Error ? e.message : 'internal_error'
         console.error('[bff] /api/auth/wechat fetch error', msg)
         const upstream = isLikelyUpstreamNetworkError(msg)
-        return json(res, upstream ? 502 : 500, {
+        return json(res, 500, {
           error: {
             message: upstream ? 'laravel_unreachable' : 'bff_auth_error',
             detail: msg,
@@ -1431,6 +1453,47 @@ const server = http.createServer(async (req, res) => {
       }
       let body
       if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+        const jsonBody = await readJsonBody(req)
+        headers['Content-Type'] = 'application/json'
+        body = JSON.stringify(jsonBody ?? {})
+      }
+      try {
+        const resp = await fetch(target, { method: req.method, headers, body })
+        const text = await resp.text()
+        res.writeHead(resp.status, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        })
+        res.end(text)
+        return
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'proxy_failed'
+        return json(res, 502, { error: { message: msg } })
+      }
+    }
+
+    // 微信支付：透传 Laravel /api/pay/*（创建订单、预支付、查询）
+    if (pathname.startsWith('/api/pay')) {
+      if (!ADMIN_BACKEND_BASE_URL) {
+        return json(res, 500, {
+          error: { message: 'ADMIN_BACKEND_BASE_URL missing' },
+        })
+      }
+      if (!['GET', 'POST'].includes(req.method)) {
+        return json(res, 405, { error: { message: 'method_not_allowed' } })
+      }
+      const uFull = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`)
+      const search = uFull.search || ''
+      const target = `${ADMIN_BACKEND_BASE_URL.replace(/\/$/, '')}${pathname}${search}`
+      const headers = {
+        Accept: 'application/json',
+      }
+      const auth = req.headers.authorization
+      if (auth) {
+        headers.Authorization = auth
+      }
+      let body
+      if (req.method === 'POST') {
         const jsonBody = await readJsonBody(req)
         headers['Content-Type'] = 'application/json'
         body = JSON.stringify(jsonBody ?? {})
@@ -2082,7 +2145,7 @@ const server = http.createServer(async (req, res) => {
         const result = await proxyToTableMenu({ config, locale })
         const dishList = Array.isArray(result?.dishes) ? result.dishes : []
         const n = dishList.length
-        const tableTitle = n ? `一桌好菜（${n}道）` : '一桌好菜'
+        const tableTitle = n ? `家常好菜（${n}道）` : '家常好菜'
         const nameLine = dishList
           .slice(0, 4)
           .map(d => safeString(d?.name).trim())
@@ -2202,5 +2265,42 @@ server.listen(PORT, HOST, () => {
       ? `（局域网可访问，例 http://<本机IP>:${PORT}）`
       : ''
   console.log(`[bff today-eat] listening on http://${HOST}:${PORT} ${tip}`)
+  if (RAW_ADMIN_BACKEND_URL) {
+    const trimmed = String(RAW_ADMIN_BACKEND_URL).trim().replace(/\/$/, '')
+    if (trimmed.endsWith('/api')) {
+      console.warn(
+        '[bff] ADMIN_BACKEND_BASE_URL 不应以 /api 结尾（应为 Laravel 根地址），已自动去掉 /api：',
+        ADMIN_BACKEND_BASE_URL,
+      )
+    }
+  }
+  if (!RAW_ADMIN_BACKEND_URL && ADMIN_BACKEND_BASE_URL) {
+    console.log(
+      '[bff] ADMIN_BACKEND_BASE_URL 未配置，已使用本地默认',
+      ADMIN_BACKEND_BASE_URL,
+      '（生产环境请设置 .env 并设 NODE_ENV=production）',
+    )
+  }
+  void (async () => {
+    try {
+      const admin = await probeAdminBackend()
+      if (!admin.configured) {
+        console.warn('[bff] ADMIN_BACKEND_BASE_URL 未设置，微信登录与 /api/me 代理不可用')
+        return
+      }
+      if (!admin.up_ok) {
+        console.warn(
+          '[bff] 无法访问 Laravel:',
+          admin.laravel_base_url,
+          admin.error ? `(${admin.error})` : `HTTP ${admin.up_http_status}`,
+          '— 请先: cd admin-backend && php artisan serve（默认 http://127.0.0.1:8000）',
+        )
+        return
+      }
+      console.log('[bff] Laravel 探测成功', admin.laravel_base_url)
+    } catch (e) {
+      console.warn('[bff] Laravel 启动探测异常', e)
+    }
+  })()
 })
 

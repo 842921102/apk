@@ -60,3 +60,12 @@ export async function getPayOrder(orderId: string): Promise<PayOrder> {
   return raw.data
 }
 
+/** 当前用户爱心赞助且支付成功的订单列表 */
+export async function listSponsorPayOrders(): Promise<PayOrder[]> {
+  const raw = await request<{ data?: PayOrder[] }>({
+    url: '/api/pay/orders',
+    method: 'GET',
+  })
+  return Array.isArray(raw?.data) ? raw.data : []
+}
+

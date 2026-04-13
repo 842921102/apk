@@ -18,6 +18,8 @@
 /public/hot
 /public/storage
 /storage/*.key
+# 后台「支付设置」上传的微信证书（勿提交）
+/storage/app/private/wechat-pay/*.pem
 /storage/pail
 /vendor
 Homestead.json

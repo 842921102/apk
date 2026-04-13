@@ -85,9 +85,9 @@ class WechatAuthController
             $user = User::query()->firstOrNew(['email' => $email]);
             if (! $user->exists) {
                 $user->password = Hash::make(Str::random(32));
+                $user->name = '微信用户（开发兜底）';
             }
 
-            $user->name = '微信用户（开发兜底）';
             $user->role = 'user';
             $user->wechat_openid = $openid;
             $user->wechat_unionid = null;
@@ -183,13 +183,12 @@ class WechatAuthController
 
         $uniqueKey = $unionid !== '' ? $unionid : $openid;
         $email = $uniqueKey.'@wechat.local';
-        $nickname = '微信用户';
 
         $user = User::query()->firstOrNew(['email' => $email]);
         if (! $user->exists) {
             $user->password = Hash::make(Str::random(32));
+            $user->name = '微信用户';
         }
-        $user->name = $nickname;
         $user->role = 'user';
         $user->wechat_openid = $openid;
         $user->wechat_unionid = $unionid !== '' ? $unionid : null;

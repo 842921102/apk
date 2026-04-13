@@ -19,6 +19,25 @@ final class PaymentOrderController extends Controller
         private WechatPayService $wechatPayService,
     ) {}
 
+    /**
+     * 当前用户爱心赞助且已支付成功的订单，供小程序赞助页「赞助记录」展示。
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $orders = PaymentOrder::query()
+            ->where('user_id', $user->id)
+            ->where('business_type', 'sponsor_love')
+            ->where('status', 'paid')
+            ->orderByDesc('id')
+            ->limit(80)
+            ->get();
+
+        return response()->json([
+            'data' => $orders->map(fn (PaymentOrder $o): array => $this->toApiArray($o))->values()->all(),
+        ]);
+    }
+
     public function store(CreatePaymentOrderRequest $request): JsonResponse
     {
         $user = $request->user();
@@ -67,8 +86,21 @@ final class PaymentOrderController extends Controller
             abort(404, 'Not found.');
         }
 
+        if ($order->status === 'pending') {
+            try {
+                $this->paymentOrderService->trySyncPaidStatusFromWechatQuery($order, $this->wechatPayService);
+            } catch (Throwable) {
+                // 查单失败不阻塞读单；轮询会重试
+            }
+            $order->refresh();
+        }
+
+        if ($order->status === 'paid') {
+            $this->paymentOrderService->ensureSponsorGrantForPaidOrder($order);
+        }
+
         return response()->json([
-            'data' => $this->toApiArray($order),
+            'data' => $this->toApiArray($order->fresh()),
         ]);
     }
 

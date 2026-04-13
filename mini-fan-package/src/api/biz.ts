@@ -13,7 +13,12 @@ import {
   type FavoriteSourceTypeApi,
   type FavoriteApiItem,
 } from '@/api/favorites'
-import { apiCreateHistory, apiDeleteHistory, apiListHistories } from '@/api/histories'
+import {
+  apiCreateHistory,
+  apiDeleteHistory,
+  apiListHistories,
+  type HistorySourceTypeApi,
+} from '@/api/histories'
 
 export const BIZ_UNAUTHORIZED = 'UNAUTHORIZED'
 export const BIZ_NOT_CONFIGURED = 'NOT_CONFIGURED'
@@ -154,7 +159,7 @@ function mapMpSourceToHistorySourceType(source: unknown) {
     case 'mp-gallery':
       return 'gallery'
     case 'mp-custom-wizard':
-      return 'today_eat'
+      return 'custom_wizard'
     default:
       return 'today_eat'
   }
@@ -177,9 +182,13 @@ function mapApiToHistoryRow(it: import('@/api/histories').HistoryApiItem): Histo
   }
 }
 
-export async function fetchHistories(): Promise<HistoryRow[]> {
+export async function fetchHistories(params?: { source_type?: HistorySourceTypeApi }): Promise<HistoryRow[]> {
   assertLaravelFavoriteSession()
-  const { data } = await apiListHistories({ per_page: 100, page: 1 })
+  const { data } = await apiListHistories({
+    per_page: 100,
+    page: 1,
+    ...(params?.source_type ? { source_type: params.source_type } : {}),
+  })
   return data.map(mapApiToHistoryRow)
 }
 

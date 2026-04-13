@@ -13,6 +13,14 @@ export async function fetchMeProfile(): Promise<MeProfileResponse> {
   })
 }
 
+/** 取消赞助身份（恢复「普通用户」标签，不涉及退款） */
+export async function postMeSponsorCancel(): Promise<{ is_sponsor: boolean; sponsor_until?: string | null }> {
+  return request<{ is_sponsor: boolean; sponsor_until?: string | null }>({
+    url: '/api/me/sponsor/cancel',
+    method: 'POST',
+  })
+}
+
 /** 与 GET /api/me/profile 等价，路径为 /api/user/profile */
 export async function fetchUserProfile(): Promise<MeProfileResponse> {
   return request<MeProfileResponse>({
@@ -51,7 +59,7 @@ export async function putMeProfile(
       | 'accepts_product_recommendation'
       | 'onboarding_version'
     >
-  > & { complete_onboarding?: boolean },
+  > & { complete_onboarding?: boolean; nickname?: string | null },
 ): Promise<MeProfileResponse> {
   return request<MeProfileResponse>({
     url: '/api/me/profile',

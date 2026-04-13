@@ -8,6 +8,8 @@ namespace App\Support;
 enum FavoriteSourceType: string
 {
     case TodayEat = 'today_eat';
+    /** 小程序「自由搭配」食材向导（recipe_histories / favorites 与 today_eat 区分） */
+    case CustomWizard = 'custom_wizard';
     case TableDesign = 'table_design';
     case FortuneCooking = 'fortune_cooking';
     case SauceDesign = 'sauce_design';

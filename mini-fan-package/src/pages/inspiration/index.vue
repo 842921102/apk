@@ -84,7 +84,7 @@ const loading = ref(false)
 const leftList = computed(() => list.value.filter((_, i) => i % 2 === 0))
 const rightList = computed(() => list.value.filter((_, i) => i % 2 === 1))
 
-/** 与「吃什么」一致：不用 100vh 估高（小程序里 100vh 常含 Tab 区，会多出底部白条） */
+/** 与「今日菜单」一致：不用 100vh 估高（小程序里 100vh 常含 Tab 区，会多出底部白条） */
 const insScrollHeightPx = ref(400)
 const insScrollStyle = computed(() => ({
   height: `${insScrollHeightPx.value}px`,

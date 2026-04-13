@@ -1,24 +1,31 @@
 <template>
   <view class="mp-page home">
-    <!-- 1. 顶部标题区：运营 Banner（配置）或默认品牌头图 -->
-    <view v-if="config.show_home_banner" class="mp-hero home__banner">
-      <text class="mp-hero__kicker mp-kicker--on-dark">生活厨房</text>
-      <text class="mp-hero__title home__banner-title">{{ config.home_banner_title }}</text>
-      <text class="mp-hero__sub home__banner-sub">{{ config.home_banner_subtitle }}</text>
-    </view>
-
-    <view v-else class="mp-hero home__masthead">
-      <text class="mp-hero__kicker mp-kicker--on-dark">饭否</text>
-      <text class="mp-hero__title home__masthead-title">{{ config.home_title }}</text>
-      <text class="mp-hero__sub home__masthead-sub">{{ config.home_subtitle }}</text>
+    <view v-if="wizardLoading" class="home__gen-overlay">
+      <view class="home__phase-wrap home__phase-wrap--loading">
+        <view class="home__ai-loading-full" :class="{ 'home__ai-loading-full--active': wizardLoading }">
+          <view class="home__ai-core home__ai-core--overlay">
+            <view class="home__ai-orbit home__ai-orbit--a" />
+            <view class="home__ai-orbit home__ai-orbit--b" />
+            <view class="home__ai-glow home__ai-glow--inner" />
+            <view class="home__ai-glow home__ai-glow--outer" />
+            <view class="home__ai-dot home__ai-dot--1" />
+            <view class="home__ai-dot home__ai-dot--2" />
+            <view class="home__ai-dot home__ai-dot--3" />
+            <view class="home__ai-dot home__ai-dot--4" />
+          </view>
+          <view class="home__ai-copy">
+            <text class="home__ai-title">{{ wizardStageText }}</text>
+            <text class="home__ai-sub">请稍候，正在为你生成菜谱…</text>
+          </view>
+          <view class="home__wizard-progress-track">
+            <view class="home__wizard-progress-fill" />
+          </view>
+          <text class="home__wizard-progress-val">{{ Math.round(wizardProgress) }}%</text>
+        </view>
+      </view>
     </view>
 
     <view class="home__section home__wizard">
-      <view class="home__section-rail">
-        <text class="home__section-rail-k home__section-rail-k--accent">吃什么工作区</text>
-        <text class="home__section-rail-h">逻辑与 UI 对齐 PC 端</text>
-      </view>
-
       <view class="mp-card home__wizard-card">
         <view class="home__wizard-step">
           <text class="home__wizard-step-num">1</text>
@@ -127,23 +134,6 @@
           <text class="home__wizard-step-num">4</text>
           <view class="home__wizard-body">
             <text class="home__wizard-title">菜谱结果</text>
-            <view v-if="wizardLoading" class="home__wizard-loading home__wizard-loading--animated">
-              <view class="home__ai-core">
-                <view class="home__ai-orbit home__ai-orbit--a" />
-                <view class="home__ai-orbit home__ai-orbit--b" />
-                <view class="home__ai-glow home__ai-glow--inner" />
-                <view class="home__ai-glow home__ai-glow--outer" />
-                <view class="home__ai-dot home__ai-dot--1" />
-                <view class="home__ai-dot home__ai-dot--2" />
-                <view class="home__ai-dot home__ai-dot--3" />
-                <view class="home__ai-dot home__ai-dot--4" />
-              </view>
-              <text class="home__wizard-loading-text">{{ wizardStageText }}</text>
-              <view class="home__wizard-progress-track">
-                <view class="home__wizard-progress-fill" />
-              </view>
-              <text class="home__wizard-progress-val">{{ Math.round(wizardProgress) }}%</text>
-            </view>
             <text v-if="wizardError" class="home__wizard-err">{{ wizardError }}</text>
             <view v-else-if="wizardRecipe" class="home__wizard-result">
               <text class="home__wizard-r-title">{{ wizardRecipe.title }}</text>
@@ -163,23 +153,7 @@
               </button>
               <image v-if="wizardImageUrl" class="home__wizard-image" :src="wizardImageUrl" mode="widthFix" />
             </view>
-            <text v-else class="home__wizard-empty">等待生成结果…</text>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <view class="home__section home__section--last">
-      <view class="home__section-rail">
-        <text class="home__section-rail-k home__section-rail-k--accent">新手</text>
-        <text class="home__section-rail-h">新手指引</text>
-      </view>
-      <view class="mp-card mp-card--accent-soft home__newbie-card">
-        <text class="home__card-kicker home__card-kicker--accent">上手三步</text>
-        <view class="home__steps">
-          <view v-for="(s, i) in newbieSteps" :key="s" class="home__step">
-            <text class="home__step-num">{{ i + 1 }}</text>
-            <text class="home__step-text">{{ s }}</text>
+            <text v-else-if="!wizardLoading" class="home__wizard-empty">等待生成结果…</text>
           </view>
         </view>
       </view>
@@ -190,7 +164,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { useAppConfig } from '@/composables/useAppConfig'
 import { useAppMessages } from '@/composables/useAppMessages'
 import { useAuth } from '@/composables/useAuth'
 import { requestTodayEat, requestRecipeImage, requestRecognizeIngredients } from '@/api/ai'
@@ -205,10 +178,8 @@ import {
 } from '@/api/biz'
 import { upsertLocalGalleryItem } from '@/api/gallery'
 import { favoriteContentDigest } from '@/lib/favoriteDigest'
-import { NEWBIE_GUIDE_STEPS } from '@/config/newbieGuide'
 import type { TodayEatResult } from '@/types/ai'
 
-const { config } = useAppConfig()
 const msg = useAppMessages()
 const { syncAuthFromSupabase, isLoggedIn } = useAuth()
 const currentIngredient = ref('')
@@ -266,8 +237,6 @@ const tastePresets = [
   { id: 'fresh', name: '鲜香', prompt: '突出鲜味，层次清晰' },
   { id: 'sweet', name: '微甜', prompt: '口味温和，带一点甜' },
 ] as const
-
-const newbieSteps = NEWBIE_GUIDE_STEPS
 
 onShow(() => {
   void syncAuthFromSupabase()
@@ -446,7 +415,7 @@ async function syncFavoriteState() {
   try {
     const sid = favoriteContentDigest(r.title, r.content)
     isFavorited.value = await isFavoriteRecipe({
-      source_type: 'today_eat',
+      source_type: 'custom_wizard',
       source_id: sid,
     })
   } catch {
@@ -468,7 +437,7 @@ async function onToggleFavorite() {
   try {
     const sid = favoriteContentDigest(r.title, r.content)
     const { favorited } = await toggleFavoriteRecipe({
-      source_type: 'today_eat',
+      source_type: 'custom_wizard',
       source_id: sid,
       title: r.title,
       cuisine: r.cuisine ?? null,
@@ -605,119 +574,157 @@ async function generateWizardImage() {
 <style lang="scss" scoped>
 @import '@/uni.scss';
 
-/* 顶部 Banner / 头图：居中层级，贴近 Web 运营头图 */
-.home__banner,
-.home__masthead {
-  text-align: center;
-}
-
-.home__banner-title,
-.home__masthead-title {
-  max-width: 620rpx;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.home__banner-sub,
-.home__masthead-sub {
-  max-width: 600rpx;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* 分区块：左侧轨 + 卡片，层级更清晰 */
-.home__section {
-  margin-top: 36rpx;
-}
-
-.home__section--last {
-  margin-bottom: 8rpx;
-}
-
-.home__section-rail {
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
-  gap: 12rpx;
-  margin-bottom: 16rpx;
-  padding-left: 8rpx;
-}
-
-.home__section-rail-k {
-  font-size: 20rpx;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  color: $mp-text-muted;
-  text-transform: uppercase;
-}
-
-.home__section-rail-k--accent {
-  color: $mp-accent;
-}
-
-.home__section-rail-h {
-  font-size: 28rpx;
-  font-weight: 700;
-  color: $mp-text-primary;
-}
-
-.home__card-kicker {
-  display: block;
-  font-size: 22rpx;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: $mp-text-muted;
-}
-
-.home__card-kicker--muted {
-  color: $mp-text-secondary;
-  letter-spacing: 0.08em;
-}
-
-.home__card-kicker--accent {
-  color: $mp-accent;
-}
-
-/* 新手 */
-.home__newbie-card {
-  padding-bottom: 32rpx;
-}
-
-.home__steps {
-  margin-top: 20rpx;
+.home__gen-overlay {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: calc(120rpx + env(safe-area-inset-bottom));
+  z-index: 200;
+  background: rgba(245, 245, 247, 0.97);
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 24rpx;
 }
 
-.home__step {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 16rpx;
-}
-
-.home__step-num {
-  flex-shrink: 0;
-  width: 40rpx;
-  height: 40rpx;
-  line-height: 40rpx;
-  text-align: center;
-  font-size: 22rpx;
-  font-weight: 700;
-  color: $mp-accent;
-  background: #fff;
-  border-radius: 999rpx;
-  border: 1rpx solid #dccdf7;
-}
-
-.home__step-text {
+.home__phase-wrap {
+  width: 100%;
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.home__phase-wrap--loading {
+  min-height: 0;
+}
+
+.home__ai-loading-full {
+  width: 100%;
+  max-width: 690rpx;
+  margin: 0 auto;
+  padding: 10rpx 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0;
+  transform: translate3d(0, 18rpx, 0) scale(0.985);
+  animation: homeLoadingEnter 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.home__ai-loading-full--active .home__ai-core--overlay {
+  animation: home-core-breath 2.9s ease-in-out infinite;
+}
+
+.home__ai-core--overlay {
+  position: relative;
+  width: 156rpx;
+  height: 156rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home__ai-core--overlay .home__ai-glow--inner {
+  width: 104rpx;
+  height: 104rpx;
+  left: 26rpx;
+  top: 26rpx;
+  box-shadow:
+    0 8rpx 28rpx rgba(123, 87, 228, 0.24),
+    inset 0 8rpx 18rpx rgba(255, 255, 255, 0.5);
+}
+
+.home__ai-core--overlay .home__ai-glow--outer {
+  width: 156rpx;
+  height: 156rpx;
+}
+
+.home__ai-core--overlay .home__ai-orbit--b {
+  inset: 12rpx;
+}
+
+.home__ai-core--overlay .home__ai-dot--1 {
+  left: 14rpx;
+  top: 26rpx;
+}
+.home__ai-core--overlay .home__ai-dot--2 {
+  right: 10rpx;
+  top: 48rpx;
+  animation-delay: 0.55s;
+}
+.home__ai-core--overlay .home__ai-dot--3 {
+  left: 34rpx;
+  bottom: 10rpx;
+  animation-delay: 1.1s;
+}
+.home__ai-core--overlay .home__ai-dot--4 {
+  right: 30rpx;
+  bottom: 18rpx;
+  animation-delay: 1.65s;
+}
+
+.home__ai-copy {
+  margin-top: 42rpx;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.home__ai-title {
+  font-size: 38rpx;
+  line-height: 1.3;
+  font-weight: 700;
+  color: #2f234f;
+  letter-spacing: 0.01em;
+}
+
+.home__ai-sub {
+  margin-top: 16rpx;
   font-size: 26rpx;
-  line-height: 1.55;
-  color: #5a3ba8;
-  padding-top: 4rpx;
+  line-height: 1.6;
+  color: #7d7299;
+}
+
+.home__ai-loading-full .home__wizard-progress-track {
+  margin-top: 36rpx;
+  width: 100%;
+  max-width: 520rpx;
+}
+
+.home__ai-loading-full .home__wizard-progress-val {
+  margin-top: 10rpx;
+}
+
+@keyframes homeLoadingEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18rpx, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes home-core-breath {
+  0%,
+  100% {
+    transform: scale(0.965);
+  }
+  50% {
+    transform: scale(1.035);
+  }
+}
+
+.home__section {
+  margin-top: 0;
 }
 
 .home__wizard-card {
@@ -964,20 +971,6 @@ async function generateWizardImage() {
   margin-top: 10rpx;
 }
 
-.home__wizard-loading {
-  margin-top: 10rpx;
-  padding: 14rpx;
-  border: 1rpx solid $mp-border;
-  border-radius: 14rpx;
-  background: #fafbfc;
-  position: relative;
-  overflow: hidden;
-}
-
-.home__wizard-loading--animated {
-  text-align: center;
-}
-
 .home__ai-core {
   position: relative;
   width: 112rpx;
@@ -1036,12 +1029,6 @@ async function generateWizardImage() {
 .home__ai-dot--2 { right: 9rpx; top: 34rpx; animation-delay: .55s; }
 .home__ai-dot--3 { left: 26rpx; bottom: 9rpx; animation-delay: 1.1s; }
 .home__ai-dot--4 { right: 24rpx; bottom: 14rpx; animation-delay: 1.65s; }
-
-.home__wizard-loading-text {
-  display: block;
-  font-size: 24rpx;
-  color: $mp-text-primary;
-}
 
 .home__wizard-progress-track {
   margin-top: 10rpx;

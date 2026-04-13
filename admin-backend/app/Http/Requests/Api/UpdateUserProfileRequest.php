@@ -73,6 +73,8 @@ class UpdateUserProfileRequest extends FormRequest
             'accepts_product_recommendation' => ['nullable', 'boolean'],
             'complete_onboarding' => ['nullable', 'boolean'],
             'onboarding_version' => ['nullable', 'integer', 'min:1', 'max:65535'],
+            /** 同步至 `users.name`（展示昵称），与 user_profiles 无关 */
+            'nickname' => ['nullable', 'string', 'max:64'],
         ];
     }
 }

@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\InternalMiniappWeatherController;
 use App\Http\Controllers\Api\InternalRecommendationRecordController;
 use App\Http\Controllers\Api\MeDailyStatusController;
 use App\Http\Controllers\Api\MeProfileController;
+use App\Http\Controllers\Api\MeSponsorController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentOrderController;
 use App\Http\Controllers\Api\ProductController;
@@ -57,6 +58,7 @@ Route::middleware([AuthenticateLaravelAccessToken::class])->group(function (): v
     Route::get('/me/profile', [MeProfileController::class, 'show']);
     Route::put('/me/profile', [MeProfileController::class, 'update']);
     Route::post('/me/profile/onboarding', [MeProfileController::class, 'submitOnboarding']);
+    Route::post('/me/sponsor/cancel', [MeSponsorController::class, 'cancel']);
     Route::get('/user/profile', [MeProfileController::class, 'show']);
     Route::put('/user/profile', [MeProfileController::class, 'update']);
     Route::post('/user/profile/onboarding', [MeProfileController::class, 'submitOnboarding']);
@@ -88,6 +90,7 @@ Route::middleware([AuthenticateLaravelAccessToken::class])->group(function (): v
     Route::get('/mall/orders', [OrderController::class, 'index']);
     Route::get('/mall/orders/{order}', [OrderController::class, 'show']);
     Route::post('/mall/orders', [OrderController::class, 'store']);
+    Route::get('/pay/orders', [PaymentOrderController::class, 'index']);
     Route::post('/pay/orders', [PaymentOrderController::class, 'store']);
     Route::post('/pay/orders/{id}/wechat-prepay', [PaymentOrderController::class, 'wechatPrepay']);
     Route::get('/pay/orders/{id}', [PaymentOrderController::class, 'show']);

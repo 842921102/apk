@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role', 'phone', 'avatar_url', 'is_active', 'wechat_openid', 'wechat_unionid'])]
+#[Fillable(['name', 'email', 'password', 'role', 'phone', 'avatar_url', 'is_active', 'is_sponsor', 'sponsor_until', 'wechat_openid', 'wechat_unionid'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -76,6 +76,18 @@ class User extends Authenticatable implements FilamentUser
         );
     }
 
+    /**
+     * 是否在赞助有效期内（小程序「赞助用户」标签）。有 sponsor_until 时以时间为准；否则回退 is_sponsor（历史数据）。
+     */
+    public function isSponsorEffective(): bool
+    {
+        if ($this->sponsor_until !== null) {
+            return $this->sponsor_until->isFuture();
+        }
+
+        return (bool) $this->is_sponsor;
+    }
+
     protected function role(): Attribute
     {
         return Attribute::make(
@@ -93,6 +105,8 @@ class User extends Authenticatable implements FilamentUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'is_sponsor' => 'boolean',
+            'sponsor_until' => 'datetime',
             'last_login_at' => 'datetime',
         ];
     }

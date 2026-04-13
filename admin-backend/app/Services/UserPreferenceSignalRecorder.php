@@ -50,7 +50,9 @@ final class UserPreferenceSignalRecorder
             return;
         }
 
-        if ($type === FavoriteSourceType::RecommendationRecord->value || $type === FavoriteSourceType::TodayEat->value) {
+        if ($type === FavoriteSourceType::RecommendationRecord->value
+            || $type === FavoriteSourceType::TodayEat->value
+            || $type === FavoriteSourceType::CustomWizard->value) {
             $this->bumpDish($uid, (string) $favorite->title, 10.0, PreferenceSignalSource::Favorite);
             $this->bumpCuisineForDish($uid, (string) $favorite->title, $favorite->cuisine, 7.5, PreferenceSignalSource::Favorite);
             $this->bumpIngredientsAsFlavorHints($uid, $favorite->ingredients ?? [], 3.5, PreferenceSignalSource::Favorite, 5);

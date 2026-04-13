@@ -83,6 +83,15 @@ class UserForm
                     ->helperText(fn (?Model $record): ?string => $record instanceof User && (int) auth()->id() === (int) $record->id
                         ? '不能修改自己的角色，请使用其他管理员账号。'
                         : null),
+                Toggle::make('is_sponsor')
+                    ->label('赞助用户')
+                    ->helperText('开启后小程序展示「赞助用户」。爱心赞助支付成功会顺延 1 个月有效期（可叠加）；单笔最高 3000 元。用户可在小程序取消身份（不涉及退款）。')
+                    ->default(false),
+                DateTimePicker::make('sponsor_until')
+                    ->label('赞助有效期至')
+                    ->seconds(false)
+                    ->native(false)
+                    ->helperText('到期后定时任务会将「赞助用户」关闭；再次赞助从当前有效结束日顺延 1 个月。'),
                 Toggle::make('is_active')
                     ->label('账号启用')
                     ->helperText('禁用后可在业务层拒绝登录（需在接口中校验账号启用状态；微信登录接口建议后续接入校验）。')

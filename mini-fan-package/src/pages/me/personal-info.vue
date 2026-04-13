@@ -240,6 +240,11 @@ async function loadRemoteProfile() {
     const res = await fetchMeProfile()
     birthday.value = res.profile.birthday || ''
     gender.value = res.profile.gender || 'unknown'
+    const u = currentUser.value
+    if (u && typeof res.nickname === 'string') {
+      const nick = res.nickname.trim()
+      setCurrentUser({ ...u, nickname: nick || undefined })
+    }
   } catch {
     uni.showToast({ title: '资料加载失败', icon: 'none' })
   }
@@ -303,10 +308,19 @@ function closeNicknameSheet() {
   nickSheetVisible.value = false
 }
 
-function saveNickname() {
+async function saveNickname() {
   const u = currentUser.value
   if (!u) return
   const v = nicknameDraft.value.trim()
+  if (apiReady.value) {
+    try {
+      await putMeProfile({ nickname: v || null })
+    } catch (e) {
+      const msg = e instanceof HttpError ? e.message.slice(0, 240) : '保存失败'
+      uni.showToast({ title: msg, icon: 'none' })
+      return
+    }
+  }
   setCurrentUser({
     ...u,
     nickname: v || undefined,

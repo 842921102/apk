@@ -106,6 +106,15 @@ class UsersTable
                     })
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                IconColumn::make('is_sponsor')
+                    ->label('赞助')
+                    ->boolean()
+                    ->trueIcon(Heroicon::OutlinedHeart)
+                    ->falseIcon(Heroicon::OutlinedNoSymbol)
+                    ->trueColor('warning')
+                    ->falseColor('gray')
+                    ->sortable()
+                    ->toggleable(),
                 IconColumn::make('is_active')
                     ->label('账号启用')
                     ->boolean()
@@ -188,6 +197,12 @@ class UsersTable
                     ->label('角色')
                     ->options($roleOptions)
                     ->attribute('role'),
+                TernaryFilter::make('is_sponsor')
+                    ->label('赞助用户')
+                    ->attribute('is_sponsor')
+                    ->boolean()
+                    ->trueLabel('是')
+                    ->falseLabel('否'),
                 TernaryFilter::make('is_active')
                     ->label('账号状态')
                     ->attribute('is_active')

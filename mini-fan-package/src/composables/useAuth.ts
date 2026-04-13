@@ -166,6 +166,7 @@ export async function syncLaravelMeSummaryIfNeeded(): Promise<void> {
     patchCurrentUser({
       needsOnboarding: res.needs_onboarding === true,
       periodFeatureEnabled: Boolean(res.profile?.period_feature_enabled),
+      ...(typeof res.nickname === 'string' ? { nickname: res.nickname.trim() || undefined } : {}),
     })
     if (res.needs_onboarding === false) {
       const { markLocalOnboardingCompleted } = await import('@/composables/useOnboardingFlow')

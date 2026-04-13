@@ -1,13 +1,35 @@
 <template>
   <view class="mp-page sc has-bottom-nav">
-    <view class="mp-hero sc__hero">
-      <view class="sc__hero-inner">
-        <text class="mp-hero__kicker mp-kicker--on-dark">调味灵感</text>
-        <text class="mp-hero__title sc__hero-title">酱料大师</text>
-        <text class="mp-hero__sub sc__hero-sub">
-          先按口味与场景拿 AI 推荐酱名，再生成详细配方；或直接搜索酱名。均由 BFF 代理。
-        </text>
-        <view class="sc__hero-rule" />
+    <view v-if="loadingRec || recipeLoading" class="sc__gen-overlay">
+      <view class="sc__phase-wrap sc__phase-wrap--loading">
+        <view class="sc__ai-loading-full" :class="{ 'sc__ai-loading-full--active': loadingRec || recipeLoading }">
+          <view class="sc__ai-core sc__ai-core--overlay">
+            <view class="sc__ai-orbit sc__ai-orbit--a" />
+            <view class="sc__ai-orbit sc__ai-orbit--b" />
+            <view class="sc__ai-glow sc__ai-glow--inner" />
+            <view class="sc__ai-glow sc__ai-glow--outer" />
+            <view class="sc__ai-dot sc__ai-dot--1" />
+            <view class="sc__ai-dot sc__ai-dot--2" />
+            <view class="sc__ai-dot sc__ai-dot--3" />
+            <view class="sc__ai-dot sc__ai-dot--4" />
+          </view>
+          <view class="sc__ai-copy">
+            <text class="sc__ai-title">{{ sauceOverlayTitle }}</text>
+            <text class="sc__ai-sub">请稍候…</text>
+          </view>
+          <view v-if="recipeLoading" class="sc__ai-skeleton-wrap">
+            <view class="sc__ai-skeleton-card">
+              <view class="sc__ai-skeleton-line sc__ai-skeleton-line--w70" />
+              <view class="sc__ai-skeleton-line sc__ai-skeleton-line--w92" />
+              <view class="sc__ai-skeleton-line sc__ai-skeleton-line--w82" />
+              <view class="sc__ai-skeleton-line sc__ai-skeleton-line--w56" />
+            </view>
+            <view class="sc__ai-skeleton-card sc__ai-skeleton-card--sub">
+              <view class="sc__ai-skeleton-line sc__ai-skeleton-line--w48" />
+              <view class="sc__ai-skeleton-line sc__ai-skeleton-line--w88" />
+            </view>
+          </view>
+        </view>
       </view>
     </view>
 
@@ -81,24 +103,11 @@
       </view>
 
       <!-- 推荐列表 -->
-      <view v-if="loadingRec || recommendations.length" class="mp-card sc__panel">
+      <view v-if="recommendations.length" class="mp-card sc__panel">
         <view class="sc__badge">
           <text class="sc__badge-txt">为您推荐</text>
         </view>
-        <view v-if="loadingRec" class="sc__mini-loading sc__loading-animated">
-          <view class="sc__ai-core">
-            <view class="sc__ai-orbit sc__ai-orbit--a" />
-            <view class="sc__ai-orbit sc__ai-orbit--b" />
-            <view class="sc__ai-glow sc__ai-glow--inner" />
-            <view class="sc__ai-glow sc__ai-glow--outer" />
-            <view class="sc__ai-dot sc__ai-dot--1" />
-            <view class="sc__ai-dot sc__ai-dot--2" />
-            <view class="sc__ai-dot sc__ai-dot--3" />
-            <view class="sc__ai-dot sc__ai-dot--4" />
-          </view>
-          <text class="sc__mini-loading-txt">AI 正在匹配酱料灵感…</text>
-        </view>
-        <view v-else>
+        <view>
           <text class="sc__rec-head">根据偏好推荐以下酱料（点选生成配方）</text>
           <view class="sc__rec-grid">
             <view
@@ -150,22 +159,7 @@
           <text class="sc__empty-line">· 或直接搜索想做的酱料名称</text>
         </view>
 
-        <view v-if="recipeLoading" class="sc__state-loading sc__loading-animated">
-          <view class="sc__ai-core">
-            <view class="sc__ai-orbit sc__ai-orbit--a" />
-            <view class="sc__ai-orbit sc__ai-orbit--b" />
-            <view class="sc__ai-glow sc__ai-glow--inner" />
-            <view class="sc__ai-glow sc__ai-glow--outer" />
-            <view class="sc__ai-dot sc__ai-dot--1" />
-            <view class="sc__ai-dot sc__ai-dot--2" />
-            <view class="sc__ai-dot sc__ai-dot--3" />
-            <view class="sc__ai-dot sc__ai-dot--4" />
-          </view>
-          <text class="sc__state-title">酱料大师正在调配配方…</text>
-          <text class="sc__state-sub">请稍候</text>
-        </view>
-
-        <view v-else-if="recipeError" class="sc__state-err">
+        <view v-if="recipeError" class="sc__state-err">
           <text class="sc__err-title">未能生成配方</text>
           <text class="sc__err-msg">{{ recipeError }}</text>
           <button v-if="recipeNeedLogin" class="mp-btn-primary sc__err-btn" @click="goLogin">
@@ -337,6 +331,10 @@ const flavorLine = computed(() => {
   return parts.length ? `口味：${parts.join(' · ')}` : ''
 })
 
+const sauceOverlayTitle = computed(() =>
+  recipeLoading.value ? '灵魂蘸料正在调配配方…' : '正在匹配酱料灵感…',
+)
+
 function loadHistory() {
   try {
     const raw = uni.getStorageSync(STORAGE_KEY) as string | undefined
@@ -400,7 +398,7 @@ function mapRecipeError(e: unknown): { msg: string; needLogin: boolean } {
     if (e.statusCode === 401) return { msg: '需要登录后才能生成，或登录已过期', needLogin: true }
     if (e.statusCode === 404) {
       return {
-        msg: '酱料配方接口未部署。请在 BFF 实现 POST /api/ai/sauce-recipe（及推荐接口 sauce-recommend）后重试。',
+        msg: '酱料服务暂不可用，请稍后再试。',
         needLogin: false,
       }
     }
@@ -435,7 +433,7 @@ async function maybeSaveRecipeHistory(
     return
   }
   if (!isLoggedIn.value) {
-    historyNote.value = '未登录：本次未写入历史；登录后可在 BFF 支持自动写入或客户端补写'
+    historyNote.value = '未登录：本次结果未保存到历史记录；登录后可自动保存'
     return
   }
   try {
@@ -615,32 +613,219 @@ function goLogin() {
   padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
 
-.sc__hero-inner {
+.sc__gen-overlay {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: calc(120rpx + env(safe-area-inset-bottom));
+  z-index: 80;
+  background: rgba(245, 245, 247, 0.97);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 24rpx;
+}
+
+.sc__phase-wrap {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.sc__phase-wrap--loading {
+  min-height: 0;
+}
+
+.sc__ai-loading-full {
+  width: 100%;
+  max-width: 690rpx;
+  margin: 0 auto;
+  padding: 10rpx 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0;
+  transform: translate3d(0, 18rpx, 0) scale(0.985);
+  animation: scLoadingEnter 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.sc__ai-loading-full--active .sc__ai-core--overlay {
+  animation: sc-core-breath 2.9s ease-in-out infinite;
+}
+
+.sc__ai-core--overlay {
+  position: relative;
+  width: 156rpx;
+  height: 156rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sc__ai-core--overlay .sc__ai-glow--inner {
+  width: 104rpx;
+  height: 104rpx;
+  left: 26rpx;
+  top: 26rpx;
+  box-shadow:
+    0 8rpx 28rpx rgba(123, 87, 228, 0.24),
+    inset 0 8rpx 18rpx rgba(255, 255, 255, 0.5);
+}
+
+.sc__ai-core--overlay .sc__ai-glow--outer {
+  width: 156rpx;
+  height: 156rpx;
+  animation: sc-halo-pulse 3.2s ease-in-out infinite;
+}
+
+.sc__ai-core--overlay .sc__ai-orbit--b {
+  inset: 12rpx;
+}
+
+.sc__ai-core--overlay .sc__ai-dot--1 {
+  left: 14rpx;
+  top: 26rpx;
+}
+.sc__ai-core--overlay .sc__ai-dot--2 {
+  right: 10rpx;
+  top: 48rpx;
+  animation-delay: 0.55s;
+}
+.sc__ai-core--overlay .sc__ai-dot--3 {
+  left: 34rpx;
+  bottom: 10rpx;
+  animation-delay: 1.1s;
+}
+.sc__ai-core--overlay .sc__ai-dot--4 {
+  right: 30rpx;
+  bottom: 18rpx;
+  animation-delay: 1.65s;
+}
+
+.sc__ai-copy {
+  margin-top: 42rpx;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.sc__hero-title {
-  max-width: 640rpx;
-  margin-left: auto;
-  margin-right: auto;
+.sc__ai-title {
+  font-size: 38rpx;
+  line-height: 1.3;
+  font-weight: 700;
+  color: #2f234f;
+  letter-spacing: 0.01em;
 }
 
-.sc__hero-sub {
-  max-width: 600rpx;
-  margin-left: auto;
-  margin-right: auto;
+.sc__ai-sub {
+  margin-top: 16rpx;
+  font-size: 26rpx;
+  line-height: 1.6;
+  color: #7d7299;
 }
 
-.sc__hero-rule {
-  width: 72rpx;
-  height: 6rpx;
-  margin: 28rpx auto 0;
+.sc__ai-skeleton-wrap {
+  width: 100%;
+  margin-top: 44rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.sc__ai-skeleton-card {
+  position: relative;
+  overflow: hidden;
+  padding: 24rpx;
+  border-radius: 22rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(123, 87, 228, 0.12);
+  box-shadow: 0 8rpx 24rpx rgba(123, 87, 228, 0.08);
+}
+
+.sc__ai-skeleton-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 70%;
+  height: 100%;
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0) 0%, rgba(235, 226, 255, 0.58) 52%, rgba(255, 255, 255, 0) 100%);
+  animation: sc-shimmer 3.1s ease-in-out infinite;
+}
+
+.sc__ai-skeleton-card--sub {
+  opacity: 0.94;
+}
+
+.sc__ai-skeleton-line {
+  height: 22rpx;
   border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.45);
+  background: linear-gradient(90deg, #efedf5 0%, #f6f5fa 100%);
+}
+
+.sc__ai-skeleton-line + .sc__ai-skeleton-line {
+  margin-top: 14rpx;
+}
+
+.sc__ai-skeleton-line--w92 {
+  width: 92%;
+}
+.sc__ai-skeleton-line--w88 {
+  width: 88%;
+}
+.sc__ai-skeleton-line--w82 {
+  width: 82%;
+}
+.sc__ai-skeleton-line--w70 {
+  width: 70%;
+}
+.sc__ai-skeleton-line--w56 {
+  width: 56%;
+}
+.sc__ai-skeleton-line--w48 {
+  width: 48%;
+}
+
+@keyframes scLoadingEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18rpx, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sc-core-breath {
+  0%,
+  100% {
+    transform: scale(0.965);
+  }
+  50% {
+    transform: scale(1.035);
+  }
+}
+
+@keyframes sc-shimmer {
+  0% {
+    left: -150%;
+  }
+  100% {
+    left: 140%;
+  }
 }
 
 .sc__scroll {
-  max-height: calc(100vh - 200rpx);
+  max-height: calc(100vh - 120rpx);
   padding-bottom: 48rpx;
 }
 

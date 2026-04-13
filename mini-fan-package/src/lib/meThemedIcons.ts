@@ -5,6 +5,7 @@ export type MeThemedIconName =
   | 'settings'
   | 'order'
   | 'eat'
+  | 'custom'
   | 'table'
   | 'fortune'
   | 'sauce'
@@ -19,6 +20,7 @@ const ICON_SRC: Record<MeThemedIconName, string> = {
   settings: '/static/me-icons/settings.svg',
   order: '/static/me-icons/order.svg',
   eat: '/static/me-icons/eat.svg',
+  custom: '/static/me-icons/custom.svg',
   table: '/static/me-icons/table.svg',
   fortune: '/static/me-icons/fortune.svg',
   sauce: '/static/me-icons/sauce.svg',

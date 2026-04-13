@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 140" fill="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="tm-bowl" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="tm-glow" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ede9fe" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#f5f3ff" stop-opacity="0.4"/>
+    </linearGradient>
+    <linearGradient id="tm-steam" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#c4b5fd" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#a78bfa" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#ddd6fe" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <!-- soft backdrop -->
+  <ellipse cx="120" cy="78" rx="108" ry="52" fill="url(#tm-glow)"/>
+  <!-- plate -->
+  <ellipse cx="120" cy="96" rx="72" ry="18" fill="#faf5ff" stroke="#e9d5ff" stroke-width="2"/>
+  <ellipse cx="120" cy="92" rx="56" ry="12" fill="#ffffff" stroke="#ede9fe" stroke-width="1.5"/>
+  <!-- bowl -->
+  <path d="M78 72c0-18 16-32 42-32s42 14 42 32v6H78v-6z" fill="url(#tm-bowl)"/>
+  <ellipse cx="120" cy="72" rx="42" ry="10" fill="#f5f3ff" opacity="0.35"/>
+  <path d="M84 78h72c-4 14-18 24-36 24s-32-10-36-24z" fill="#6d28d9" opacity="0.25"/>
+  <!-- garnish dots -->
+  <circle cx="104" cy="68" r="3" fill="#fde68a"/>
+  <circle cx="128" cy="64" r="2.5" fill="#86efac"/>
+  <circle cx="118" cy="70" r="2" fill="#fca5a5"/>
+  <!-- steam -->
+  <path d="M98 38c6-10 2-18-2-24" stroke="url(#tm-steam)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M120 34c8-12 3-20-2-26" stroke="url(#tm-steam)" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
+  <path d="M142 38c6-10 2-18-2-24" stroke="url(#tm-steam)" stroke-width="3" stroke-linecap="round" opacity="0.75"/>
+  <!-- sparkles -->
+  <path d="M168 52l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" fill="#c4b5fd"/>
+  <path d="M52 64l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z" fill="#ddd6fe"/>
+</svg>

@@ -1,11 +1,11 @@
 <template>
   <view class="mp-page hist has-bottom-nav">
     <view
-      v-if="ready && isLoggedIn && backendReady && config.histories_subtitle"
+      v-if="ready && isLoggedIn && backendReady && filterLeadText"
       class="mp-card mp-card--inset hist__lead"
     >
       <text class="mp-kicker mp-kicker--accent">说明</text>
-      <text class="hist__lead-text">{{ config.histories_subtitle }}</text>
+      <text class="hist__lead-text">{{ filterLeadText }}</text>
     </view>
 
     <view v-if="!ready" class="mp-card hist__state">
@@ -42,8 +42,8 @@
       <view class="mp-empty">
         <view class="mp-empty__icon">📜</view>
         <text class="mp-empty__title">{{ config.histories_empty_title }}</text>
-        <text class="mp-empty__sub">{{ config.histories_empty_subtitle }}</text>
-        <button class="mp-btn-primary" @click="goTodayEat">{{ config.histories_empty_button_text }}</button>
+        <text class="mp-empty__sub">{{ emptySub }}</text>
+        <button class="mp-btn-primary" @click="goEmptyCta">{{ emptyButtonLabel }}</button>
       </view>
     </view>
 
@@ -92,11 +92,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
+import { onLoad, onShow, onPullDownRefresh } from '@dcloudio/uni-app'
 import MpIcoTabBar from '@/components/MpIcoTabBar.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useAppConfig } from '@/composables/useAppConfig'
-import { useNavigationBarTitleFromConfig } from '@/composables/useNavigationBarTitleFromConfig'
 import { useRecentPartitionedList } from '@/composables/useRecentPartitionedList'
 import { useAppMessages } from '@/composables/useAppMessages'
 import {
@@ -105,7 +104,13 @@ import {
   BIZ_UNAUTHORIZED,
   BIZ_NEED_LARAVEL_AUTH,
 } from '@/api/biz'
-import { openResultDetail, toDetailPayloadFromHistory } from '@/lib/resultDetail'
+import {
+  openResultDetail,
+  sourceLabel,
+  toDetailPayloadFromHistory,
+  type ResultSourceType,
+} from '@/lib/resultDetail'
+import type { HistorySourceTypeApi } from '@/api/histories'
 import { formatListTime } from '@/utils/dateFormat'
 import type { HistoryRow } from '@/types/dto'
 import { API_BASE_URL } from '@/constants'
@@ -115,7 +120,21 @@ const { config } = useAppConfig()
 const msg = useAppMessages()
 const { syncAuthFromSupabase, isLoggedIn, accessToken } = useAuth()
 
-useNavigationBarTitleFromConfig(config, 'histories_title')
+const ME_MODULE_HISTORY_TYPES = ['custom_wizard', 'table_design', 'fortune_cooking', 'sauce_design'] as const
+type MeModuleHistoryType = (typeof ME_MODULE_HISTORY_TYPES)[number]
+
+function isMeModuleHistoryType(s: string): s is MeModuleHistoryType {
+  return (ME_MODULE_HISTORY_TYPES as readonly string[]).includes(s)
+}
+
+const filterSourceType = ref<HistorySourceTypeApi | null>(null)
+
+onLoad((query) => {
+  const st = typeof query?.source_type === 'string' ? query.source_type.trim() : ''
+  if (st && isMeModuleHistoryType(st)) {
+    filterSourceType.value = st
+  }
+})
 
 const ready = ref(false)
 const list = ref<HistoryRow[]>([])
@@ -131,6 +150,32 @@ const { recentList, mainList } = useRecentPartitionedList(
   () => config.value.show_recent_histories,
   3,
 )
+
+const filterAsResultSource = computed((): ResultSourceType | null => {
+  const f = filterSourceType.value
+  if (!f) return null
+  return f as ResultSourceType
+})
+
+const filterLeadText = computed(() => {
+  if (!ready.value || !isLoggedIn.value || !backendReady.value) return ''
+  if (filterSourceType.value && filterAsResultSource.value) {
+    return `以下为「${sourceLabel(filterAsResultSource.value)}」在云端保存的生成记录；点击条目可查看详情。`
+  }
+  return config.value.histories_subtitle || ''
+})
+
+const emptySub = computed(() => {
+  if (filterSourceType.value && filterAsResultSource.value) {
+    return `还没有「${sourceLabel(filterAsResultSource.value)}」记录，去对应玩法生成一次后会出现在这里。`
+  }
+  return config.value.histories_empty_subtitle
+})
+
+const emptyButtonLabel = computed(() => {
+  if (filterSourceType.value) return '去生成'
+  return config.value.histories_empty_button_text
+})
 
 async function load(fromPull = false) {
   if (!fromPull) {
@@ -150,7 +195,14 @@ async function load(fromPull = false) {
   }
 
   try {
-    list.value = await fetchHistories()
+    list.value = await fetchHistories(
+      filterSourceType.value ? { source_type: filterSourceType.value } : undefined,
+    )
+    if (filterSourceType.value && filterAsResultSource.value) {
+      uni.setNavigationBarTitle({ title: `${sourceLabel(filterAsResultSource.value)}记录` })
+    } else {
+      uni.setNavigationBarTitle({ title: config.value.histories_title || '历史' })
+    }
   } catch (e: unknown) {
     const err = e as Error & { code?: string }
     if (err.code === BIZ_UNAUTHORIZED || err.message === BIZ_UNAUTHORIZED) {
@@ -175,11 +227,31 @@ onPullDownRefresh(() => {
 })
 
 function goLogin() {
-  const redirect = encodeURIComponent('/pages/histories/index')
+  let path = '/pages/histories/index'
+  if (filterSourceType.value) {
+    path += `?source_type=${encodeURIComponent(filterSourceType.value)}`
+  }
+  const redirect = encodeURIComponent(path)
   uni.navigateTo({ url: `/pages/login/index?redirect=${redirect}` })
 }
 
-function goTodayEat() {
+function goEmptyCta() {
+  if (filterSourceType.value === 'custom_wizard') {
+    uni.navigateTo({ url: '/pages/index/index' })
+    return
+  }
+  if (filterSourceType.value === 'table_design') {
+    uni.navigateTo({ url: '/pages/table-menu/index' })
+    return
+  }
+  if (filterSourceType.value === 'fortune_cooking') {
+    uni.navigateTo({ url: '/pages/fortune-cooking/index' })
+    return
+  }
+  if (filterSourceType.value === 'sauce_design') {
+    uni.navigateTo({ url: '/pages/sauce-design/index' })
+    return
+  }
   uni.switchTab({ url: '/pages/today-eat/index' })
 }
 

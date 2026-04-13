@@ -63,6 +63,35 @@ final class WechatPayService
     }
 
     /**
+     * 微信支付 v3 查单：按商户订单号查询 JSAPI 订单（用于回调未到时对齐状态）。
+     *
+     * @return array<string, mixed>|null
+     */
+    public function queryJsapiTransactionByOutTradeNo(string $outTradeNo): ?array
+    {
+        $config = $this->paymentConfigService->getWechatPayConfigOrFail();
+        $mchid = (string) $config['wx_pay_mchid'];
+        $encodedNo = rawurlencode($outTradeNo);
+        $encodedMch = rawurlencode($mchid);
+        $urlPath = "/v3/pay/transactions/out-trade-no/{$encodedNo}?mchid={$encodedMch}";
+
+        $response = $this->wechatApiRequestGet(
+            urlPath: $urlPath,
+            mchId: $mchid,
+            serialNo: (string) $config['wx_pay_serial_no'],
+            privateKeyPem: $this->loadPrivateKeyPem($config),
+        );
+
+        if (! $response->successful()) {
+            return null;
+        }
+
+        $json = $response->json();
+
+        return is_array($json) ? $json : null;
+    }
+
+    /**
      * @param  array<string, mixed>  $headers
      * @return array<string, mixed>
      */
@@ -161,6 +190,34 @@ final class WechatPayService
         ])->send(strtoupper($method), 'https://api.mch.weixin.qq.com'.$urlPath, [
             'body' => $json,
         ]);
+    }
+
+    private function wechatApiRequestGet(
+        string $urlPath,
+        string $mchId,
+        string $serialNo,
+        string $privateKeyPem,
+    ): Response {
+        $timestamp = (string) time();
+        $nonce = Str::random(32);
+        $message = "GET\n{$urlPath}\n{$timestamp}\n{$nonce}\n\n";
+        $signature = $this->signMessage($message, $privateKeyPem);
+        $token = sprintf(
+            'WECHATPAY2-SHA256-RSA2048 mchid="%s",nonce_str="%s",timestamp="%s",serial_no="%s",signature="%s"',
+            $mchId,
+            $nonce,
+            $timestamp,
+            $serialNo,
+            $signature,
+        );
+
+        return Http::withHeaders([
+            'Accept' => 'application/json',
+            'Authorization' => $token,
+            'User-Agent' => 'what-to-eat-mini-pay/1.0',
+        ])->timeout(15)->withOptions([
+            'proxy' => null,
+        ])->get('https://api.mch.weixin.qq.com'.$urlPath);
     }
 
     private function signMessage(string $message, string $privateKeyPem): string

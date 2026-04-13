@@ -120,7 +120,7 @@ export const APP_CONFIG_BOOLEAN_KEYS: (keyof AppConfig)[] = [
 
 export const APP_CONFIG_DEFAULT: AppConfig = {
   home_title: '饭否',
-  home_subtitle: '今天吃什么，让 AI 帮你出主意',
+  home_subtitle: '今日菜单，让 AI 帮你出主意',
 
   home_banner_title: '今日灵感',
   home_banner_subtitle: '用 AI 搭配一顿好饭',
@@ -145,14 +145,14 @@ export const APP_CONFIG_DEFAULT: AppConfig = {
   favorites_title: '收藏',
   favorites_subtitle: '收藏已同步至饭否服务器，可与管理后台联查',
   favorites_empty_title: '暂无收藏',
-  favorites_empty_subtitle: '在吃什么、满汉全席等结果页加入收藏后会显示在这里',
-  favorites_empty_button_text: '去吃什么',
+  favorites_empty_subtitle: '在今日菜单、家常好菜等结果页加入收藏后会显示在这里',
+  favorites_empty_button_text: '去今日菜单',
 
   histories_title: '历史',
   histories_subtitle: '与 Web 同步的生成记录',
   histories_empty_title: '暂无历史',
   histories_empty_subtitle: '在 Web 端生成菜谱后会写入历史',
-  histories_empty_button_text: '去吃什么',
+  histories_empty_button_text: '去今日菜单',
 
   show_recent_favorites: true,
   show_recent_histories: true,

@@ -31,7 +31,7 @@ export const PLAZA_ENTRIES_DEFAULT: PlazaEntryConfig[] = [
   },
   {
     key: 'table-design',
-    title: '一桌好菜',
+    title: '家常好菜',
     subtitle: '满汉全席',
     route: '/pages/table-menu/index',
     enabled: true,
@@ -40,7 +40,7 @@ export const PLAZA_ENTRIES_DEFAULT: PlazaEntryConfig[] = [
   },
   {
     key: 'fortune',
-    title: '玄学厨房',
+    title: '灵感厨房',
     subtitle: '运势·心情·数字·缘分',
     route: '/pages/fortune-cooking/index',
     enabled: true,
@@ -49,7 +49,7 @@ export const PLAZA_ENTRIES_DEFAULT: PlazaEntryConfig[] = [
   },
   {
     key: 'sauce',
-    title: '酱料大师',
+    title: '灵魂蘸料',
     subtitle: '推荐与配方',
     route: '/pages/sauce-design/index',
     enabled: true,

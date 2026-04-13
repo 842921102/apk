@@ -4,6 +4,8 @@ namespace App\Filament\Pages;
 
 use App\Services\PaymentConfigService;
 use BackedEnum;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -13,6 +15,7 @@ use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Storage;
 use UnitEnum;
 
 class PaymentSettings extends Page implements HasForms
@@ -37,7 +40,10 @@ class PaymentSettings extends Page implements HasForms
     public function mount(PaymentConfigService $service): void
     {
         $config = $service->getWechatPayConfig();
-        $this->form->fill($this->toFormData($config));
+        $this->form->fill(array_merge($this->toFormData($config), [
+            'upload_private_key_pem' => null,
+            'upload_platform_public_key_pem' => null,
+        ]));
     }
 
     public function form(Schema $schema): Schema
@@ -45,7 +51,7 @@ class PaymentSettings extends Page implements HasForms
         return $schema
             ->schema([
                 Section::make('微信小程序支付（JSAPI）')
-                    ->description('一期最小闭环配置：仅覆盖下单、拉起支付、回调验签。')
+                    ->description('证书请使用下方「上传」或「粘贴 PEM」配置；部署到服务器后勿再填写本机绝对路径。回调地址须为公网可访问的 HTTPS（微信要求）。')
                     ->schema([
                         Toggle::make('is_enabled')->label('启用微信支付'),
                         TextInput::make('order_expire_minutes')
@@ -57,25 +63,75 @@ class PaymentSettings extends Page implements HasForms
                         TextInput::make('wx_mini_appid')->label('小程序 AppID')->required()->maxLength(64),
                         TextInput::make('wx_pay_mchid')->label('商户号 MchID')->required()->maxLength(64),
                         TextInput::make('wx_pay_serial_no')->label('商户证书序列号 SerialNo')->required()->maxLength(128),
-                        TextInput::make('wx_pay_notify_url')->label('支付回调地址 Notify URL')->required()->url()->maxLength(255)->columnSpanFull(),
+                        TextInput::make('wx_pay_notify_url')
+                            ->label('支付回调地址 Notify URL')
+                            ->required()
+                            ->url()
+                            ->maxLength(512)
+                            ->columnSpanFull()
+                            ->helperText('示例：https://你的域名/api/pay/wechat/notify。未改 APP_URL 时默认由 .env 的 APP_URL 拼接；上线后请改为正式域名并保存。'),
                         TextInput::make('wx_pay_api_v3_key')
                             ->label('API v3 Key')
                             ->password()
                             ->revealable()
                             ->required()
                             ->maxLength(64),
-                        TextInput::make('wx_pay_private_key_path')->label('商户私钥文件路径')->maxLength(255)->columnSpanFull(),
-                        TextInput::make('wx_pay_private_key_content')
-                            ->label('商户私钥内容 PEM（可选，优先于路径）')
-                            ->placeholder('-----BEGIN PRIVATE KEY----- ...')
-                            ->columnSpanFull(),
-                        TextInput::make('wx_pay_platform_public_key_path')->label('微信平台公钥文件路径')->maxLength(255)->columnSpanFull(),
-                        TextInput::make('wx_pay_platform_public_key_content')
-                            ->label('微信平台公钥内容 PEM（可选，优先于路径）')
-                            ->placeholder('-----BEGIN PUBLIC KEY----- ...')
-                            ->columnSpanFull(),
                     ])
                     ->columns(2),
+
+                Section::make('商户证书（推荐：上传至服务器）')
+                    ->description('文件会保存到 storage/app/private/wechat-pay/，随项目部署留在服务器上；与「粘贴 PEM」二选一即可，保存时以上传为准。')
+                    ->schema([
+                        FileUpload::make('upload_private_key_pem')
+                            ->label('上传商户私钥 apiclient_key.pem')
+                            ->disk('local')
+                            ->directory('private/wechat-pay')
+                            ->visibility('private')
+                            ->acceptedFileTypes(['application/x-x509-ca-cert', 'application/pkcs8', 'text/plain', '.pem'])
+                            ->maxSize(64)
+                            ->downloadable(false)
+                            ->openable(false)
+                            ->getUploadedFileNameForStorageUsing(fn () => 'apiclient_key.pem')
+                            ->helperText('覆盖同名文件；保存后会写入「服务器上的绝对路径」到配置。')
+                            ->columnSpanFull(),
+                        Textarea::make('wx_pay_private_key_content')
+                            ->label('或直接粘贴商户私钥 PEM')
+                            ->placeholder('-----BEGIN PRIVATE KEY----- ...')
+                            ->rows(6)
+                            ->columnSpanFull(),
+
+                        FileUpload::make('upload_platform_public_key_pem')
+                            ->label('上传微信平台公钥 wechatpay_platform.pem')
+                            ->disk('local')
+                            ->directory('private/wechat-pay')
+                            ->visibility('private')
+                            ->acceptedFileTypes(['application/x-x509-ca-cert', 'text/plain', '.pem'])
+                            ->maxSize(64)
+                            ->downloadable(false)
+                            ->openable(false)
+                            ->getUploadedFileNameForStorageUsing(fn () => 'wechatpay_platform.pem')
+                            ->helperText('用于回调验签；与下方粘贴二选一。')
+                            ->columnSpanFull(),
+                        Textarea::make('wx_pay_platform_public_key_content')
+                            ->label('或直接粘贴微信平台公钥 PEM')
+                            ->placeholder('-----BEGIN PUBLIC KEY----- ...')
+                            ->rows(6)
+                            ->columnSpanFull(),
+                    ]),
+
+                Section::make('高级：仅当证书已在服务器固定路径时')
+                    ->description('Docker / 运维把 pem 放到固定目录时可填；多数情况请用上方上传。')
+                    ->collapsed()
+                    ->schema([
+                        TextInput::make('wx_pay_private_key_path')
+                            ->label('商户私钥文件绝对路径')
+                            ->maxLength(512)
+                            ->columnSpanFull(),
+                        TextInput::make('wx_pay_platform_public_key_path')
+                            ->label('微信平台公钥文件绝对路径')
+                            ->maxLength(512)
+                            ->columnSpanFull(),
+                    ]),
             ])
             ->statePath('data');
     }
@@ -83,19 +139,51 @@ class PaymentSettings extends Page implements HasForms
     public function save(PaymentConfigService $service): void
     {
         $state = is_array($this->form->getState()) ? $this->form->getState() : [];
+
+        $privatePath = (string) ($state['wx_pay_private_key_path'] ?? '');
+        $privateContent = (string) ($state['wx_pay_private_key_content'] ?? '');
+        $platformPath = (string) ($state['wx_pay_platform_public_key_path'] ?? '');
+        $platformContent = (string) ($state['wx_pay_platform_public_key_content'] ?? '');
+
+        $uploadPrivate = $state['upload_private_key_pem'] ?? null;
+        if (is_string($uploadPrivate) && $uploadPrivate !== '') {
+            $abs = Storage::disk('local')->path($uploadPrivate);
+            if (is_file($abs)) {
+                $privatePath = $abs;
+                $privateContent = '';
+            }
+        }
+
+        $uploadPlatform = $state['upload_platform_public_key_pem'] ?? null;
+        if (is_string($uploadPlatform) && $uploadPlatform !== '') {
+            $abs = Storage::disk('local')->path($uploadPlatform);
+            if (is_file($abs)) {
+                $platformPath = $abs;
+                $platformContent = '';
+            }
+        }
+
         $service->saveWechatPayConfig([
             'is_enabled' => (bool) ($state['is_enabled'] ?? false),
             'wx_mini_appid' => (string) ($state['wx_mini_appid'] ?? ''),
             'wx_pay_mchid' => (string) ($state['wx_pay_mchid'] ?? ''),
             'wx_pay_api_v3_key' => (string) ($state['wx_pay_api_v3_key'] ?? ''),
-            'wx_pay_private_key_path' => (string) ($state['wx_pay_private_key_path'] ?? ''),
-            'wx_pay_private_key_content' => (string) ($state['wx_pay_private_key_content'] ?? ''),
+            'wx_pay_private_key_path' => $privatePath,
+            'wx_pay_private_key_content' => $privateContent,
             'wx_pay_serial_no' => (string) ($state['wx_pay_serial_no'] ?? ''),
             'wx_pay_notify_url' => (string) ($state['wx_pay_notify_url'] ?? ''),
-            'wx_pay_platform_public_key_path' => (string) ($state['wx_pay_platform_public_key_path'] ?? ''),
-            'wx_pay_platform_public_key_content' => (string) ($state['wx_pay_platform_public_key_content'] ?? ''),
+            'wx_pay_platform_public_key_path' => $platformPath,
+            'wx_pay_platform_public_key_content' => $platformContent,
             'order_expire_minutes' => (int) ($state['order_expire_minutes'] ?? 15),
         ]);
+
+        $this->form->fill(array_merge(
+            $this->toFormData($service->getWechatPayConfig()),
+            [
+                'upload_private_key_pem' => null,
+                'upload_platform_public_key_pem' => null,
+            ],
+        ));
 
         Notification::make()
             ->title('支付配置已保存')

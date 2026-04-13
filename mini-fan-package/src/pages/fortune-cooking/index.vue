@@ -1,16 +1,5 @@
 <template>
-  <view class="mp-page fc has-bottom-nav">
-    <view class="mp-hero fc__hero">
-      <view class="fc__hero-inner">
-        <text class="mp-hero__kicker mp-kicker--on-dark">料理占卜</text>
-        <text class="mp-hero__title fc__hero-title">玄学厨房</text>
-        <text class="mp-hero__sub fc__hero-sub">
-          今日运势、心情、数字与缘分四类占卜，经 BFF 代理生成；与 Web 端类型一致，便于后续扩展。
-        </text>
-        <view class="fc__hero-rule" />
-      </view>
-    </view>
-
+  <view class="mp-page fc has-bottom-nav" :class="{ 'fc--loading-phase': phase === 'loading' }">
     <scroll-view v-if="phase === 'idle'" class="fc__scroll-idle" scroll-y>
       <view class="mp-card fc__panel fc__panel--idle">
         <view class="fc__panel-badge">
@@ -158,16 +147,11 @@
           <text class="fc__submit-txt">开始占卜</text>
           <text class="fc__submit-go">✦</text>
         </button>
-        <text class="fc__idle-foot">需 BFF 实现 POST /api/ai/fortune；返回字段与 Web 占卜 JSON 一致。</text>
       </view>
     </scroll-view>
 
-    <view v-else-if="phase === 'loading'" class="mp-card fc__panel fc__panel--state fc__panel--loading fc__panel--loading-animated">
+    <view v-else-if="phase === 'loading'" class="fc__phase-wrap fc__phase-wrap--loading">
       <view class="fc__ai-loading" :class="{ 'fc__ai-loading--active': phase === 'loading' }">
-        <view class="fc__state-head">
-          <text class="fc__state-kicker">感应中</text>
-          <text class="fc__state-title">{{ processingHint }}</text>
-        </view>
         <view class="fc__ai-core">
           <view class="fc__ai-orbit fc__ai-orbit--a" />
           <view class="fc__ai-orbit fc__ai-orbit--b" />
@@ -177,6 +161,10 @@
           <view class="fc__ai-dot fc__ai-dot--2" />
           <view class="fc__ai-dot fc__ai-dot--3" />
           <view class="fc__ai-dot fc__ai-dot--4" />
+        </view>
+        <view class="fc__ai-copy">
+          <text class="fc__ai-title">{{ processingHint }}</text>
+          <text class="fc__ai-sub">星辰与灶火正在对齐，请稍候…</text>
         </view>
         <view class="fc__ai-skeleton-wrap">
           <view class="fc__ai-skeleton-card">
@@ -191,7 +179,6 @@
           </view>
         </view>
       </view>
-      <text class="fc__loading-hint">星辰与灶火正在对齐，请稍候…</text>
     </view>
 
     <view v-else-if="phase === 'error'" class="mp-card fc__panel fc__panel--state fc__panel--state-error">
@@ -548,7 +535,7 @@ async function maybeSaveHistory(data: { history_saved?: boolean }, f: FortuneRes
     return
   }
   if (!isLoggedIn.value) {
-    historyNote.value = '未登录：本次未写入历史；登录后可在 BFF 支持自动写入或客户端补写'
+    historyNote.value = '未登录：本次结果未保存到历史记录；登录后可自动保存'
     return
   }
   try {
@@ -577,7 +564,7 @@ function mapHttpError(e: unknown): string {
   if (e instanceof HttpError) {
     if (e.statusCode === 401) return '__NEED_LOGIN__'
     if (e.statusCode === 404) {
-      return '玄学厨房接口未部署。请在 BFF 实现 POST /api/ai/fortune 后重试。'
+      return '灵感厨房服务暂不可用，请稍后再试。'
     }
     return e.message || `请求失败 (${e.statusCode})`
   }
@@ -692,32 +679,32 @@ function goLogin() {
   padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
 
-.fc__hero-inner {
-  text-align: center;
+/* 生成中：与「今日菜单」一致，整屏垂直居中，不用顶格白卡片 */
+.fc--loading-phase {
+  padding: 0 !important;
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom)) !important;
+  box-sizing: border-box;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: $mp-bg-page;
 }
 
-.fc__hero-title {
-  max-width: 640rpx;
-  margin-left: auto;
-  margin-right: auto;
+.fc__phase-wrap {
+  box-sizing: border-box;
+  padding: 24rpx;
+  flex: 1;
+  width: 100%;
 }
 
-.fc__hero-sub {
-  max-width: 600rpx;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.fc__hero-rule {
-  width: 72rpx;
-  height: 6rpx;
-  margin: 28rpx auto 0;
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.45);
+.fc__phase-wrap--loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .fc__scroll-idle {
-  max-height: calc(100vh - 200rpx);
+  max-height: calc(100vh - 120rpx);
   padding-bottom: 48rpx;
 }
 
@@ -1028,29 +1015,22 @@ function goLogin() {
   font-size: 28rpx;
 }
 
-.fc__idle-foot {
-  display: block;
-  margin-top: 20rpx;
-  text-align: center;
-  font-size: 22rpx;
-  color: $mp-text-muted;
-  line-height: 1.45;
-}
-
 .fc__panel--state {
   padding: 48rpx 32rpx;
   text-align: center;
 }
 
-.fc__panel--loading-animated {
-  overflow: hidden;
-}
-
 .fc__ai-loading {
   width: 100%;
+  max-width: 690rpx;
+  margin: 0 auto;
+  padding: 10rpx 0 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  opacity: 0;
+  transform: translate3d(0, 18rpx, 0) scale(0.985);
+  animation: fcLoadingEnter 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .fc__ai-loading--active .fc__ai-core {
@@ -1065,7 +1045,29 @@ function goLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 10rpx 0 22rpx;
+}
+
+.fc__ai-copy {
+  margin-top: 42rpx;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.fc__ai-title {
+  font-size: 38rpx;
+  line-height: 1.3;
+  font-weight: 700;
+  color: #2f234f;
+  letter-spacing: 0.01em;
+}
+
+.fc__ai-sub {
+  margin-top: 16rpx;
+  font-size: 26rpx;
+  line-height: 1.6;
+  color: #7d7299;
 }
 
 .fc__ai-glow {
@@ -1170,6 +1172,7 @@ function goLogin() {
 
 .fc__state-head {
   margin-bottom: 24rpx;
+  text-align: center;
 }
 
 .fc__state-kicker {
@@ -1257,9 +1260,15 @@ function goLogin() {
   100% { left: 140%; }
 }
 
-.fc__loading-hint {
-  font-size: 26rpx;
-  color: $mp-text-secondary;
+@keyframes fcLoadingEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18rpx, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
 }
 
 .fc__err-icon {

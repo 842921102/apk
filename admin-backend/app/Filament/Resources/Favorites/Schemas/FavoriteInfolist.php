@@ -62,12 +62,14 @@ class FavoriteInfolist
         foreach (FavoriteSourceType::cases() as $case) {
             if ($case->value === $state) {
                 return match ($case) {
-                    FavoriteSourceType::TodayEat => '吃什么',
-                    FavoriteSourceType::TableDesign => '满汉全席',
-                    FavoriteSourceType::FortuneCooking => '玄学厨房',
-                    FavoriteSourceType::SauceDesign => '酱料大师',
+                    FavoriteSourceType::TodayEat => '今日菜单',
+                    FavoriteSourceType::CustomWizard => '自由搭配',
+                    FavoriteSourceType::TableDesign => '家常好菜',
+                    FavoriteSourceType::FortuneCooking => '灵感厨房',
+                    FavoriteSourceType::SauceDesign => '灵魂蘸料',
                     FavoriteSourceType::Gallery => '图鉴',
                     FavoriteSourceType::RecommendationRecord => '推荐历史',
+                    FavoriteSourceType::Recipe => '标准菜谱',
                 };
             }
         }

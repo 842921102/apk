@@ -24,7 +24,7 @@
         </view>
         <view class="te__banner-hero" :style="bannerHeroLayoutStyle">
           <text class="te__banner-brand">饭否 · 今日灵感</text>
-          <text class="te__banner-title">今天吃什么？</text>
+          <text class="te__banner-title">今日吃什么？</text>
           <text class="te__banner-sub">不用纠结，给你一个刚刚好的答案</text>
         </view>
       </view>
@@ -48,10 +48,15 @@
             <view
               :key="activeHomePanel.id"
               class="te__panel-body te__panel-body--tab te__tab-panel-surface"
-              :class="{ 'te__tab-panel-surface--aux': activeHomePanel.chips?.length }"
             >
-              <text class="te__bridge-title">{{ activeHomePanel.title }}</text>
-              <view class="te__bridge-desc">
+              <view class="te__home-tab-hero" aria-hidden="true">
+                <image
+                  class="te__home-tab-hero-img"
+                  :src="HOME_TAB_HERO_SRC[activeHomePanel.id]"
+                  mode="aspectFit"
+                />
+              </view>
+              <view class="te__bridge-desc te__bridge-desc--single">
                 <text class="te__bridge-desc-txt">{{ activeHomePanel.desc }}</text>
               </view>
               <button
@@ -113,20 +118,26 @@
         </view>
 
         <view class="te__card te__hot" @click="goRecommendationHistory">
-          <view class="te__hot-row">
-            <text class="te__hot-title">热门推荐</text>
-            <view class="te__hot-more">
-              <text class="te__hot-more-txt">最近推荐记录</text>
-              <text class="te__hot-more-chev"> ></text>
+          <view class="te__hot-inner">
+            <text class="te__hot-ico" aria-hidden="true">🔥</text>
+            <view class="te__hot-copy">
+              <text class="te__hot-title">热门推荐</text>
+              <text class="te__hot-sub">最近生成的好味灵感</text>
             </view>
+            <text class="te__hot-go">＞</text>
           </view>
-          <text class="te__hot-sub">看看你最近生成过的好味灵感</text>
         </view>
 
         <view class="te__taste-profile" @click="goTasteProfile">
-          <text class="te__taste-profile-spark">✨</text>
+          <view class="te__taste-profile-ico-wrap" aria-hidden="true">
+            <image
+              class="te__taste-profile-ico"
+              src="/static/me-icons/taste-profile.svg"
+              mode="aspectFit"
+            />
+          </view>
           <view class="te__taste-profile-copy">
-            <text class="te__taste-profile-title">完善口味画像</text>
+            <text class="te__taste-profile-title">我的口味画像</text>
             <text class="te__taste-profile-sub">推荐更懂你的偏好与忌口</text>
           </view>
           <text class="te__taste-profile-go">＞</text>
@@ -397,8 +408,7 @@ type Phase = 'idle' | 'loading' | 'success' | 'error'
 type HomeTabId = 'eat' | 'fortune' | 'table'
 
 /**
- * 「吃什么」：主按钮 + 辅助说明 + 跳过链。
- * 「玄学厨房」「一桌好菜」：标题、说明、主按钮 + 展示用标签与底部辅助文案（无额外交互逻辑）。
+ * 三个 Tab：插画区 + 单行说明 + 主按钮；「今日菜单」另有跳过链。
  */
 type HomeTabPanel = {
   id: HomeTabId
@@ -408,37 +418,37 @@ type HomeTabPanel = {
   primaryLabelLoading?: string
   hint?: string
   linkLabel?: string
-  /** 展示用轻标签（仅 fortune / table） */
   chips?: string[]
-  /** 展示用底部说明（仅 fortune / table） */
   footerNote?: string
+}
+
+/** 与 Tab 一一对应的顶区插画（卡片内不再用大标题文案） */
+const HOME_TAB_HERO_SRC: Record<HomeTabId, string> = {
+  eat: '/static/home/today-menu-panel.svg',
+  fortune: '/static/home/fortune-kitchen-panel.svg',
+  table: '/static/home/table-menu-panel.svg',
 }
 
 const HOME_TAB_PANELS: HomeTabPanel[] = [
   {
     id: 'eat',
-    title: '吃什么',
-    desc: '点选今日状态与口味忌口，再生成；也可以什么都不选。',
+    title: '今日菜单',
+    desc: '刚好的你往往不期而遇',
     primaryLabel: '给我一个今天的答案',
     primaryLabelLoading: '准备中…',
-    hint: '不选也可以，我们会帮你决定',
     linkLabel: '跳过写入今日状态，直接生成',
   },
   {
     id: 'fortune',
-    title: '玄学厨房',
-    desc: '用一点随机与仪式感，换一道意想不到的菜。',
+    title: '灵感厨房',
+    desc: '随机里藏着今日的小惊喜',
     primaryLabel: '进去逛逛',
-    chips: ['今日随机', '不纠结选择', '仪式感做饭'],
-    footerNote: '今天不想思考，就交给一点神秘灵感',
   },
   {
     id: 'table',
-    title: '一桌好菜',
-    desc: '搭配一桌菜，适合聚餐与家宴场景。',
+    title: '家常好菜',
+    desc: '一桌搭配，家宴聚餐都合适',
     primaryLabel: '去搭配一桌',
-    chips: ['家宴搭配', '聚餐推荐', '荤素汤组合'],
-    footerNote: '从一道菜到一桌菜，帮你直接搭配好',
   },
 ]
 
@@ -816,14 +826,14 @@ function onSkipWriteGenerate() {
 const HOME_SHORTCUTS: HomeShortcut[] = [
   {
     id: 'custom',
-    label: '自定义',
+    label: '自由搭配',
     go: () => {
       uni.navigateTo({ url: '/pages/index/index' })
     },
   },
   {
     id: 'sauce',
-    label: '酱料大师',
+    label: '灵魂蘸料',
     go: () => {
       uni.navigateTo({ url: '/pages/sauce-design/index' })
     },
@@ -1368,6 +1378,7 @@ $te-topbar-h: 88rpx;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  transform: translateY(-5rpx);
 }
 
 .te__banner-meteo {
@@ -1460,19 +1471,20 @@ $te-topbar-h: 88rpx;
 .te__folder-tabs {
   display: flex;
   flex-direction: row;
-  align-items: flex-end;
+  align-items: stretch;
   gap: 8rpx;
   min-height: 92rpx;
 }
 
-/* 未选中：略矮的灰紫块，贴在行底，与轨道融合 */
+/* 三个 Tab 同高，仅选中态换底与上圆角 */
 .te__folder-tab {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  align-self: flex-end;
-  height: 72rpx;
+  align-self: stretch;
+  height: 92rpx;
+  min-height: 92rpx;
   padding: 0 8rpx;
   box-sizing: border-box;
   border-radius: 20rpx;
@@ -1480,14 +1492,10 @@ $te-topbar-h: 88rpx;
   transition:
     background 0.24s ease,
     box-shadow 0.24s ease,
-    height 0.24s ease,
     border-radius 0.24s ease;
 }
 
-/* 选中：加高、仅上圆角，底边与白内容区同色相接 */
 .te__folder-tab--on {
-  align-self: stretch;
-  min-height: 92rpx;
   border-radius: 22rpx 22rpx 0 0;
   background: #ffffff;
   box-shadow: none;
@@ -1524,7 +1532,7 @@ $te-topbar-h: 88rpx;
   align-items: stretch;
 }
 
-/* 三个 Tab 共用：与「吃什么」同一套版式 */
+/* 三个 Tab 共用：与「今日菜单」同一套版式 */
 .te__panel-body--tab {
   align-items: center;
   text-align: center;
@@ -1535,15 +1543,6 @@ $te-topbar-h: 88rpx;
   min-height: 400rpx;
   box-sizing: border-box;
   animation: teHomeTabPaneIn 0.28s ease;
-}
-
-/* 玄学厨房 / 一桌好菜：内容更紧凑 */
-.te__tab-panel-surface--aux .te__bridge-desc {
-  margin-top: 20rpx;
-}
-
-.te__tab-panel-surface--aux .te__cta {
-  margin-top: 32rpx;
 }
 
 @keyframes teHomeTabPaneIn {
@@ -1557,15 +1556,21 @@ $te-topbar-h: 88rpx;
   }
 }
 
-.te__bridge-title {
-  display: block;
-  font-size: 52rpx;
-  font-weight: 700;
-  color: #1f2329;
+/* 三个 Tab 顶区：主题插画，占位高度一致 */
+.te__home-tab-hero {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
   width: 100%;
-  text-align: center;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+  min-height: 168rpx;
+  margin-bottom: 4rpx;
+  box-sizing: border-box;
+}
+
+.te__home-tab-hero-img {
+  width: 320rpx;
+  height: 180rpx;
 }
 
 .te__bridge-desc {
@@ -1588,6 +1593,10 @@ $te-topbar-h: 88rpx;
   line-height: 1.65;
   color: #6b7280;
   text-align: center;
+}
+
+.te__bridge-desc--single .te__bridge-desc-txt {
+  -webkit-line-clamp: 1;
 }
 
 .te__cta {
@@ -1661,7 +1670,7 @@ $te-topbar-h: 88rpx;
   text-decoration: none;
 }
 
-/* 玄学厨房 / 一桌好菜：主按钮下轻标签 + 辅助说明（纯展示） */
+/* 灵感厨房 / 家常好菜：主按钮下轻标签 + 辅助说明（纯展示） */
 .te__home-tab-chips {
   display: flex;
   flex-direction: row;
@@ -1753,7 +1762,7 @@ $te-topbar-h: 88rpx;
   flex-shrink: 0;
 }
 
-/* 自定义：三横滑条 */
+/* 自由搭配：三横滑条 */
 .te__glyph--custom {
   display: flex;
   flex-direction: column;
@@ -1898,10 +1907,18 @@ $te-topbar-h: 88rpx;
   box-shadow: 0 8rpx 24rpx rgba(123, 87, 228, 0.08);
 }
 
-.te__taste-profile-spark {
-  font-size: 44rpx;
-  line-height: 1;
+.te__taste-profile-ico-wrap {
+  width: 72rpx;
+  height: 72rpx;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.te__taste-profile-ico {
+  width: 52rpx;
+  height: 52rpx;
 }
 
 .te__taste-profile-copy {
@@ -1933,11 +1950,26 @@ $te-topbar-h: 88rpx;
   padding-left: 8rpx;
 }
 
-.te__hot-row {
+/* 与「我的口味画像」同构：左图标 + 标题/单行说明 + 右箭头，整卡可点 */
+.te__hot-inner {
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.te__hot-ico {
+  font-size: 40rpx;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.te__hot-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
 }
 
 .te__hot-title {
@@ -1946,28 +1978,22 @@ $te-topbar-h: 88rpx;
   color: $te-title;
 }
 
-.te__hot-more {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  font-size: 24rpx;
-  color: $te-primary;
-  font-weight: 600;
-}
-
-.te__hot-more-txt,
-.te__hot-more-chev {
-  font-size: 24rpx;
-  color: $te-primary;
-  font-weight: 600;
-}
-
 .te__hot-sub {
-  display: block;
-  margin-top: 8rpx;
   font-size: 24rpx;
-  color: $mp-text-secondary;
   line-height: 1.45;
+  color: $mp-text-secondary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.te__hot-go {
+  flex-shrink: 0;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: rgba(123, 87, 228, 0.55);
+  line-height: 1;
+  padding-left: 8rpx;
 }
 
 .te__phase-wrap {

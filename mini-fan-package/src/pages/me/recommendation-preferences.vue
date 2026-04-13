@@ -1,9 +1,9 @@
 <template>
   <view class="mp-page rp">
     <view class="mp-card rp__lead">
-      <text class="rp__lead-k">推荐偏好</text>
+      <text class="rp__lead-k">我的口味画像</text>
       <text class="rp__lead-body">
-        推荐画像会持续影响「今天吃什么」结果。建议优先维护下方「编辑推荐画像」，其余入口用于单项调整。
+        推荐更懂你的偏好与忌口。推荐画像会持续影响「今日菜单」结果；建议优先维护下方「编辑推荐画像」，其余入口用于单项调整。
       </text>
     </view>
 

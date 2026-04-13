@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "bff:start": "npm --prefix ../bff-server run start",
     "dev:mp-weixin": "uni -p mp-weixin",
     "build:mp-weixin": "uni build -p mp-weixin",
     "gen:tabbar": "python3 scripts/gen_tabbar_pngs.py",

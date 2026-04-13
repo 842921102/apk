@@ -62,7 +62,13 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useAuth } from '@/composables/useAuth'
 import { useAppMessages } from '@/composables/useAppMessages'
 import { formatListTime } from '@/utils/dateFormat'
-import { getResultDetailByKey, sourceLabel, sourcePagePath, type ResultDetailPayload } from '@/lib/resultDetail'
+import {
+  favoriteApiSourceType,
+  getResultDetailByKey,
+  sourceLabel,
+  sourcePagePath,
+  type ResultDetailPayload,
+} from '@/lib/resultDetail'
 import { isFavoriteRecipe, toggleFavoriteRecipe } from '@/api/biz'
 import { requestRecipeImage } from '@/api/ai'
 import { upsertLocalGalleryItem } from '@/api/gallery'
@@ -122,7 +128,7 @@ async function refreshFavoriteState() {
   }
   try {
     isFavorited.value = await isFavoriteRecipe({
-      source_type: detail.value.source_type,
+      source_type: favoriteApiSourceType(detail.value.source_type),
       source_id: detail.value.source_id,
     })
   } catch {
@@ -145,7 +151,7 @@ async function onToggleFavorite() {
   favoriteLoading.value = true
   try {
     const res = await toggleFavoriteRecipe({
-      source_type: detail.value.source_type,
+      source_type: favoriteApiSourceType(detail.value.source_type),
       source_id: detail.value.source_id,
       title: detail.value.title,
       cuisine: detail.value.cuisine ?? null,

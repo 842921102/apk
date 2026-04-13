@@ -72,7 +72,16 @@
                 <view class="me__atmos-meta">
                   <text class="me__atmos-name me__atmos-name--tap" @click.stop="onNicknameTap">{{ displayPrimary }}</text>
                   <view class="me__atmos-tag-row">
-                    <text class="me__pill me__pill--accent">{{ memberLabel }}</text>
+                    <view
+                      class="me__atmos-sponsor-entry"
+                      hover-class="me__atmos-sponsor-entry--hover"
+                      :hover-stay-time="80"
+                      @click.stop="goMenu('/pages/me/sponsorship')"
+                    >
+                      <text class="me__pill me__pill--accent">{{ memberLabel }}</text>
+                      <text class="me__atmos-sponsor-entry-txt">赞助饭否</text>
+                      <text class="me__atmos-sponsor-entry-chev">›</text>
+                    </view>
                   </view>
                 </view>
               </view>
@@ -90,19 +99,12 @@
           </view>
         </view>
 
-        <!-- 2 核心主卡片（权益卡位）：推荐偏好画像 -->
+        <!-- 2 核心主卡片（权益卡位）：与首页「我的口味画像」文案一致 -->
         <view class="me__block me__block--tight">
           <view class="me__card me__card--lg me__benefit" @click="goMenu('/pages/me/recommendation-preferences')">
             <view class="me__benefit-main">
-              <text class="me__benefit-title">推荐偏好画像</text>
-              <text class="me__benefit-sub">{{ userCardSubtitle }}</text>
-              <view class="me__benefit-metrics">
-                <text class="me__benefit-metric">收藏 {{ favDisplay }}</text>
-                <text class="me__benefit-dot">·</text>
-                <text class="me__benefit-metric">最近推荐 {{ recDisplay }}</text>
-                <text class="me__benefit-dot">·</text>
-                <text class="me__benefit-metric">历史 {{ histDisplay }}</text>
-              </view>
+              <text class="me__benefit-title">我的口味画像</text>
+              <text class="me__benefit-sub">推荐更懂你的偏好与忌口</text>
             </view>
             <view class="me__benefit-cta-wrap" @click.stop="goMenu('/pages/me/recommendation-preferences')">
               <text class="me__benefit-cta">去管理</text>
@@ -138,7 +140,7 @@
           </view>
         </view>
 
-        <!-- 4 玩法记录：与数据概览同款的横向四格 -->
+        <!-- 四玩法历史：跳转「历史」页并按 source_type 筛选 -->
         <view class="me__block me__block--muted">
           <view class="me__card me__card--lg me__stats-bar">
             <block v-for="(tile, idx) in recordTiles" :key="tile.id">
@@ -318,7 +320,8 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { onReady, onShow } from '@dcloudio/uni-app'
 import { useAuth } from '@/composables/useAuth'
-import { fetchHistories, getFavoritesCount, getHistoriesCount } from '@/api/biz'
+import { getFavoritesCount, getHistoriesCount } from '@/api/biz'
+import { fetchMeProfile, putMeProfile } from '@/api/me'
 import { apiListRecommendationRecords } from '@/api/recommendationRecords'
 import { loginWithWechatCode } from '@/api/auth'
 import { HttpError } from '@/api/http'
@@ -336,8 +339,9 @@ import { USER_AGREEMENT_SECTIONS } from '@/config/userAgreement'
 import { PRIVACY_POLICY_SECTIONS } from '@/config/privacyPolicy'
 import { ABOUT_US_SECTIONS } from '@/config/aboutUs'
 import { HELP_CENTER_QA } from '@/config/helpCenter'
-import type { HistoryRow } from '@/types/dto'
-import { openResultDetail, toDetailPayloadFromHistory, normalizeSourceType, type ResultSourceType } from '@/lib/resultDetail'
+import {
+  type ResultSourceType,
+} from '@/lib/resultDetail'
 import type { MeThemedIconName } from '@/lib/meThemedIcons'
 import MeThemedIcon from '@/components/MeThemedIcon.vue'
 
@@ -347,6 +351,7 @@ const {
   syncAuthFromSupabase,
   setToken,
   setCurrentUser,
+  patchCurrentUser,
   logout,
 } = useAuth()
 
@@ -394,10 +399,10 @@ const recordTiles: readonly {
   label: string
   icon: MeThemedIconName
 }[] = [
-  { id: 'today_eat_record', type: 'today_eat', label: '吃什么', icon: 'eat' },
-  { id: 'table_design_record', type: 'table_design', label: '一桌好菜', icon: 'table' },
-  { id: 'fortune_cooking_record', type: 'fortune_cooking', label: '玄学厨房', icon: 'fortune' },
-  { id: 'sauce_design_record', type: 'sauce_design', label: '酱料', icon: 'sauce' },
+  { id: 'custom_wizard_record', type: 'custom_wizard', label: '自由搭配', icon: 'custom' },
+  { id: 'table_design_record', type: 'table_design', label: '家常好菜', icon: 'table' },
+  { id: 'fortune_cooking_record', type: 'fortune_cooking', label: '灵感厨房', icon: 'fortune' },
+  { id: 'sauce_design_record', type: 'sauce_design', label: '灵魂蘸料', icon: 'sauce' },
 ]
 
 const serviceEntries: readonly {
@@ -518,8 +523,6 @@ const histCount = ref(0)
 const recommendationRecCount = ref(0)
 const statsLoading = ref(false)
 
-const historyRows = ref<HistoryRow[]>([])
-
 const displayPrimary = computed(() => {
   const u = currentUser.value
   if (!u) return '用户'
@@ -560,32 +563,6 @@ const recDisplay = computed(() => {
   return String(recommendationRecCount.value)
 })
 
-const userCardSubtitle = computed(() => {
-  if (!configured.value) return '登录环境未完全配置时部分数据仅本地可见'
-  return '收藏、最近推荐与偏好云端同步，换设备也能接着用'
-})
-
-function inferHistorySourceType(h: HistoryRow): ResultSourceType {
-  return normalizeSourceType(h.source_type, h.request_payload)
-}
-
-const latestByType = computed(() => {
-  const out: Record<ResultSourceType, HistoryRow | null> = {
-    today_eat: null,
-    table_design: null,
-    fortune_cooking: null,
-    sauce_design: null,
-    gallery: null,
-  }
-
-  for (const h of historyRows.value) {
-    const t = inferHistorySourceType(h)
-    if (out[t] === null) out[t] = h
-  }
-
-  return out
-})
-
 onMounted(() => {
   initNavLayout()
 })
@@ -612,21 +589,33 @@ async function refresh() {
     histCount.value = 0
     recommendationRecCount.value = 0
     statsLoading.value = false
-    historyRows.value = []
+    memberLabel.value = '普通用户'
     return
   }
   statsLoading.value = true
   try {
-    const [fSettled, hSettled, recSettled, rowsSettled] = await Promise.allSettled([
+    const [fSettled, hSettled, recSettled, meSettled] = await Promise.allSettled([
       getFavoritesCount(),
       getHistoriesCount(),
       apiListRecommendationRecords({ per_page: 1, page: 1 }).then((r) => r.meta.pagination.total),
-      fetchHistories(),
+      fetchMeProfile(),
     ])
     favCount.value = fSettled.status === 'fulfilled' ? fSettled.value : 0
     histCount.value = hSettled.status === 'fulfilled' ? hSettled.value : 0
     recommendationRecCount.value = recSettled.status === 'fulfilled' ? recSettled.value : 0
-    historyRows.value = rowsSettled.status === 'fulfilled' ? rowsSettled.value : []
+    if (meSettled.status === 'fulfilled') {
+      const me = meSettled.value
+      if (me.is_sponsor === true) {
+        memberLabel.value = '赞助用户'
+      } else {
+        memberLabel.value = '普通用户'
+      }
+      if (currentUser.value && typeof me.nickname === 'string') {
+        patchCurrentUser({ nickname: me.nickname.trim() || undefined })
+      }
+    } else {
+      memberLabel.value = '普通用户'
+    }
   } finally {
     statsLoading.value = false
   }
@@ -749,10 +738,18 @@ function closeNickSheet() {
   nickSheetVisible.value = false
 }
 
-function saveNicknameDraft() {
+async function saveNicknameDraft() {
   const u = currentUser.value
   if (!u) return
   const v = nicknameDraft.value.trim()
+  if (apiReady.value) {
+    try {
+      await putMeProfile({ nickname: v || null })
+    } catch (e) {
+      uni.showToast({ title: toastFromError(e), icon: 'none', duration: 2600 })
+      return
+    }
+  }
   setCurrentUser({
     ...u,
     nickname: v || undefined,
@@ -766,16 +763,11 @@ function onSettingsTap() {
 }
 
 function onRecordTileTap(type: ResultSourceType) {
-  if (type === 'today_eat') {
-    goMenu('/pages/recommendation-history/index')
-    return
-  }
-  const h = latestByType.value[type]
-  if (h) {
-    openResultDetail(toDetailPayloadFromHistory(h))
-    return
-  }
-  goMenu('/pages/histories/index')
+  const allowed: ResultSourceType[] = ['custom_wizard', 'table_design', 'fortune_cooking', 'sauce_design']
+  if (!allowed.includes(type)) return
+  uni.navigateTo({
+    url: `/pages/histories/index?source_type=${encodeURIComponent(type)}`,
+  })
 }
 
 function onServiceTap(id: ServiceId) {
@@ -815,7 +807,6 @@ async function doLogout() {
   favCount.value = 0
   histCount.value = 0
   recommendationRecCount.value = 0
-  historyRows.value = []
   uni.showToast({ title: '已退出登录', icon: 'none' })
 }
 </script>
@@ -1051,6 +1042,41 @@ $me-line: rgba(139, 92, 246, 0.09);
   align-self: flex-start;
 }
 
+.me__atmos-tag-row {
+  align-self: flex-start;
+}
+
+/* 昵称下：身份标签 + 赞助入口（与「普通用户」同一行） */
+.me__atmos-sponsor-entry {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12rpx 10rpx;
+  margin-top: 2rpx;
+  padding: 8rpx 14rpx 8rpx 8rpx;
+  margin-left: -8rpx;
+  border-radius: 999rpx;
+  box-sizing: border-box;
+}
+
+.me__atmos-sponsor-entry--hover {
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.me__atmos-sponsor-entry-txt {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: $me-purple;
+}
+
+.me__atmos-sponsor-entry-chev {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: rgba(139, 92, 246, 0.45);
+  line-height: 1;
+}
+
 .me__atmos-actions {
   flex-shrink: 0;
   display: flex;
@@ -1091,7 +1117,7 @@ $me-line: rgba(139, 92, 246, 0.09);
   margin-top: 28rpx;
 }
 
-/* 推荐偏好画像：叠在氛围渐变之上，避免被下层渐变/圆角区域盖住 */
+/* 我的口味画像：叠在氛围渐变之上，避免被下层渐变/圆角区域盖住 */
 .me__block--tight {
   position: relative;
   z-index: 20;
@@ -1140,27 +1166,6 @@ $me-line: rgba(139, 92, 246, 0.09);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-}
-
-.me__benefit-metrics {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4rpx 0;
-  margin-top: 4rpx;
-}
-
-.me__benefit-metric {
-  font-size: 22rpx;
-  color: $me-text-3;
-  font-weight: 500;
-}
-
-.me__benefit-dot {
-  font-size: 22rpx;
-  color: $me-text-3;
-  margin: 0 10rpx;
 }
 
 .me__benefit-cta-wrap {

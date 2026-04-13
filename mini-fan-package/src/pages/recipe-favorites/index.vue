@@ -34,8 +34,8 @@
       <view class="mp-empty">
         <view class="mp-empty__icon">📖</view>
         <text class="mp-empty__title">暂无菜谱收藏</text>
-        <text class="mp-empty__sub">在「吃什么」推荐结果或做法详情页可收藏标准菜谱</text>
-        <button class="mp-btn-primary" @click="goTodayEat">去吃什么</button>
+        <text class="mp-empty__sub">在「今日菜单」推荐结果或做法详情页可收藏标准菜谱</text>
+        <button class="mp-btn-primary" @click="goTodayEat">去今日菜单</button>
       </view>
     </view>
 

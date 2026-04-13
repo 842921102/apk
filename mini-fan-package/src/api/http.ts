@@ -42,6 +42,40 @@ function stringifyDetail(detail: unknown): string {
   return String(detail).trim()
 }
 
+/**
+ * 微信端 uni.request 默认 dataType=json 时，部分 4xx/5xx 的 JSON 体会解析失败，success 里 data 变成空，
+ * 用户只能看到「无响应体」。用 text 自行解析可避免丢 BFF 返回的 error 详情。
+ */
+function normalizeResponseBody(data: unknown): unknown {
+  if (data == null || data === '') return null
+  if (typeof data === 'object') return data
+  const s = typeof data === 'string' ? data : String(data)
+  const t = s.trim()
+  if (!t) return null
+  if ((t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']'))) {
+    try {
+      return JSON.parse(t) as unknown
+    } catch {
+      /* 非严格 JSON，交给下方当纯文本摘要 */
+    }
+  }
+  return s
+}
+
+/** 微信返回的 header 键名大小写不统一 */
+function headerValue(header: unknown, name: string): string {
+  if (!header || typeof header !== 'object') return ''
+  const want = name.toLowerCase()
+  const o = header as Record<string, unknown>
+  for (const key of Object.keys(o)) {
+    if (key.toLowerCase() === want) {
+      const v = o[key]
+      return v == null ? '' : String(v).trim()
+    }
+  }
+  return ''
+}
+
 function parseErrorMessage(data: unknown, fallback: string, statusCode: number): string {
   if (data == null || data === '') {
     if (statusCode >= 500) {
@@ -143,14 +177,24 @@ export function request<T = unknown>(options: HttpRequestOptions): Promise<T> {
       method: method as UniApp.RequestOptions['method'],
       data: options.data,
       header,
+      dataType: 'text',
       success: (res) => {
         const status = res.statusCode ?? 0
+        const payload = normalizeResponseBody(res.data)
         if (status >= 200 && status < 300) {
-          resolve(res.data as T)
+          resolve(payload as T)
           return
         }
-        const msg = parseErrorMessage(res.data, `请求失败 (${status})`, status)
-        reject(new HttpError(msg, status, res.data))
+        let msg = parseErrorMessage(payload, `请求失败 (${status})`, status)
+        // 502 等且正文为空：多为网关/错端口；用 BFF 自定义头区分是否命中本仓库 Node
+        if (payload == null && status >= 500) {
+          const fromBff = headerValue(res.header, 'x-wte-bff')
+          const depsUrl = joinUrl(base, '/health/deps')
+          msg += fromBff
+            ? ' BFF 已响应但正文为空，请在电脑查看 bff-server 终端里 [bff] /api/auth/wechat 的报错。'
+            : ` 未命中本仓库 BFF（无 X-Wte-Bff 头）：用浏览器打开 ${depsUrl} 应得到 JSON；若打不开或不是 JSON，说明小程序配置的 API 地址上未运行本仓库 bff-server（请在 bff-server 目录 npm start，端口与 VITE_API_BASE_URL 一致）。`
+        }
+        reject(new HttpError(msg, status, payload))
       },
       fail: (err) => {
         reject(new Error(err.errMsg || '网络请求失败'))

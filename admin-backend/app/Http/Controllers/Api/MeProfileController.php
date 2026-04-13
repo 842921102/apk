@@ -39,6 +39,9 @@ class MeProfileController extends Controller
             'today_status' => $daily ? $this->serializeDaily($daily) : null,
             'recommendation_context_tags' => $this->recommendationContext->buildTagsForUser($user),
             'needs_onboarding' => $profile->onboarding_completed_at === null,
+            'is_sponsor' => $user->isSponsorEffective(),
+            'sponsor_until' => $user->sponsor_until?->toIso8601String(),
+            'nickname' => (string) $user->name,
         ]);
     }
 
@@ -51,6 +54,14 @@ class MeProfileController extends Controller
 
         $profile = $user->ensureProfile();
         $data = $request->validated();
+
+        if (array_key_exists('nickname', $data)) {
+            $rawNick = $data['nickname'];
+            unset($data['nickname']);
+            $trimmed = is_string($rawNick) ? trim($rawNick) : '';
+            $user->name = $trimmed !== '' ? mb_substr($trimmed, 0, 64) : '微信用户';
+            $user->save();
+        }
 
         if (! empty($data['complete_onboarding'])) {
             $profile->onboarding_completed_at = $profile->onboarding_completed_at ?? now();
@@ -73,10 +84,15 @@ class MeProfileController extends Controller
             $this->recommendationEventRecorder->profilePreferenceUpdated($user, $changedKeys);
         }
 
+        $user->refresh();
+
         return response()->json([
             'profile' => $this->serializeProfile($profile->fresh()),
-            'recommendation_context_tags' => $this->recommendationContext->buildTagsForUser($user->fresh()),
+            'recommendation_context_tags' => $this->recommendationContext->buildTagsForUser($user),
             'needs_onboarding' => $profile->fresh()->onboarding_completed_at === null,
+            'is_sponsor' => $user->isSponsorEffective(),
+            'sponsor_until' => $user->sponsor_until?->toIso8601String(),
+            'nickname' => (string) $user->fresh()->name,
         ]);
     }
 
@@ -106,10 +122,15 @@ class MeProfileController extends Controller
 
         $this->recommendationEventRecorder->onboardingCompleted($user, $version);
 
+        $user->refresh();
+
         return response()->json([
             'profile' => $this->serializeProfile($profile->fresh()),
-            'recommendation_context_tags' => $this->recommendationContext->buildTagsForUser($user->fresh()),
+            'recommendation_context_tags' => $this->recommendationContext->buildTagsForUser($user),
             'needs_onboarding' => false,
+            'is_sponsor' => $user->isSponsorEffective(),
+            'sponsor_until' => $user->sponsor_until?->toIso8601String(),
+            'nickname' => (string) $user->fresh()->name,
         ]);
     }
 

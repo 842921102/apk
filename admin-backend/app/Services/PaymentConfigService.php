@@ -32,7 +32,6 @@ final class PaymentConfigService
             'wx_mini_appid',
             'wx_pay_mchid',
             'wx_pay_api_v3_key',
-            'wx_pay_private_key_path',
             'wx_pay_serial_no',
             'wx_pay_notify_url',
         ];
@@ -43,7 +42,41 @@ final class PaymentConfigService
             }
         }
 
+        if (! $this->hasMerchantPrivateKeyConfigured($config)) {
+            throw new RuntimeException('微信支付配置缺失: 商户私钥（请上传 .pem、粘贴 PEM 文本，或填写服务器上可读的文件路径）');
+        }
+
+        if (! $this->hasWechatPlatformPublicKeyConfigured($config)) {
+            throw new RuntimeException('微信支付配置缺失: 微信平台公钥（请上传、粘贴 PEM，或填写服务器路径；回调验签需要）');
+        }
+
         return $config;
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    public function hasMerchantPrivateKeyConfigured(array $config): bool
+    {
+        if (trim((string) ($config['wx_pay_private_key_content'] ?? '')) !== '') {
+            return true;
+        }
+        $path = trim((string) ($config['wx_pay_private_key_path'] ?? ''));
+
+        return $path !== '' && is_file($path);
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    public function hasWechatPlatformPublicKeyConfigured(array $config): bool
+    {
+        if (trim((string) ($config['wx_pay_platform_public_key_content'] ?? '')) !== '') {
+            return true;
+        }
+        $path = trim((string) ($config['wx_pay_platform_public_key_path'] ?? ''));
+
+        return $path !== '' && is_file($path);
     }
 
     /**
@@ -78,11 +111,26 @@ final class PaymentConfigService
             'wx_pay_private_key_path' => (string) env('WX_PAY_PRIVATE_KEY_PATH', ''),
             'wx_pay_private_key_content' => (string) env('WX_PAY_PRIVATE_KEY_CONTENT', ''),
             'wx_pay_serial_no' => (string) env('WX_PAY_SERIAL_NO', ''),
-            'wx_pay_notify_url' => (string) env('WX_PAY_NOTIFY_URL', ''),
+            'wx_pay_notify_url' => $this->defaultNotifyUrl(),
             // 用于验证回调签名（二选一）
             'wx_pay_platform_public_key_path' => (string) env('WX_PAY_PLATFORM_PUBLIC_KEY_PATH', ''),
             'wx_pay_platform_public_key_content' => (string) env('WX_PAY_PLATFORM_PUBLIC_KEY_CONTENT', ''),
             'order_expire_minutes' => 15,
         ];
+    }
+
+    private function defaultNotifyUrl(): string
+    {
+        $fromEnv = env('WX_PAY_NOTIFY_URL');
+        if (is_string($fromEnv) && trim($fromEnv) !== '') {
+            return trim($fromEnv);
+        }
+
+        $base = rtrim((string) env('APP_URL', ''), '/');
+        if ($base === '') {
+            return '';
+        }
+
+        return $base.'/api/pay/wechat/notify';
     }
 }

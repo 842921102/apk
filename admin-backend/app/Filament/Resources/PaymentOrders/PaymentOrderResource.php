@@ -46,10 +46,18 @@ class PaymentOrderResource extends Resource
                 TextInput::make('user_id')->label('用户ID')->disabled()->dehydrated(false),
                 TextInput::make('user.name')->label('用户昵称')->disabled()->dehydrated(false),
                 TextInput::make('title')->label('标题')->disabled()->dehydrated(false),
-                TextInput::make('business_type')->label('业务类型')->disabled()->dehydrated(false),
+                TextInput::make('business_type')
+                    ->label('业务类型')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->formatStateUsing(fn (?string $state): string => static::businessTypeLabel($state)),
                 TextInput::make('business_id')->label('业务ID')->disabled()->dehydrated(false),
                 TextInput::make('amount_fen')->label('金额(分)')->disabled()->dehydrated(false),
-                TextInput::make('status')->label('支付状态')->disabled()->dehydrated(false),
+                TextInput::make('status')
+                    ->label('支付状态')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->formatStateUsing(fn (?string $state): string => static::statusLabel($state)),
                 TextInput::make('transaction_id')->label('微信交易号')->disabled()->dehydrated(false),
                 TextInput::make('paid_at')->label('支付时间')->disabled()->dehydrated(false),
                 TextInput::make('created_at')->label('创建时间')->disabled()->dehydrated(false),
@@ -70,18 +78,36 @@ class PaymentOrderResource extends Resource
                 TextColumn::make('user.name')->label('用户昵称')->searchable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('title')->label('订单标题')->searchable()->limit(20),
                 TextColumn::make('amount_fen')->label('金额')->formatStateUsing(fn (int $state): string => '¥'.number_format($state / 100, 2)),
-                TextColumn::make('business_type')->label('业务类型')->badge(),
-                TextColumn::make('status')->label('支付状态')->badge(),
+                TextColumn::make('business_type')
+                    ->label('业务类型')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state): string => static::businessTypeLabel($state)),
+                TextColumn::make('status')
+                    ->label('支付状态')
+                    ->badge()
+                    ->color(fn (?string $state): string => match ($state) {
+                        'paid' => 'success',
+                        'pending' => 'warning',
+                        'closed' => 'gray',
+                        'failed' => 'danger',
+                        'refunded' => 'info',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (?string $state): string => static::statusLabel($state)),
                 TextColumn::make('created_at')->label('创建时间')->dateTime()->sortable(),
                 TextColumn::make('paid_at')->label('支付时间')->dateTime()->sortable(),
             ])
             ->filters([
+                SelectFilter::make('business_type')->label('业务类型')->options([
+                    'sponsor_monthly' => '月赞助',
+                    'sponsor_love' => '爱心赞助',
+                ]),
                 SelectFilter::make('status')->label('支付状态')->options([
-                    'pending' => 'pending',
-                    'paid' => 'paid',
-                    'closed' => 'closed',
-                    'failed' => 'failed',
-                    'refunded' => 'refunded',
+                    'pending' => '待支付',
+                    'paid' => '已支付',
+                    'closed' => '已关闭',
+                    'failed' => '支付失败',
+                    'refunded' => '已退款',
                 ]),
             ])
             ->recordUrl(fn (PaymentOrder $record): string => static::getUrl('edit', ['record' => $record]));
@@ -93,6 +119,27 @@ class PaymentOrderResource extends Resource
             'index' => ListPaymentOrders::route('/'),
             'edit' => EditPaymentOrder::route('/{record}/edit'),
         ];
+    }
+
+    public static function businessTypeLabel(?string $value): string
+    {
+        return match ($value) {
+            'sponsor_monthly' => '月赞助',
+            'sponsor_love' => '爱心赞助',
+            default => $value !== null && $value !== '' ? $value : '—',
+        };
+    }
+
+    public static function statusLabel(?string $value): string
+    {
+        return match ($value) {
+            'paid' => '已支付',
+            'pending' => '待支付',
+            'closed' => '已关闭',
+            'failed' => '支付失败',
+            'refunded' => '已退款',
+            default => $value !== null && $value !== '' ? $value : '—',
+        };
     }
 
     /**

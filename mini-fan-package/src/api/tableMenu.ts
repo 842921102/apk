@@ -88,7 +88,7 @@ function normalizeDishRecipeResponse(raw: unknown): TableDishRecipeResponse {
 }
 
 /**
- * 满汉全席 / 一桌好菜菜单生成：仅请求自有 BFF。
+ * 满汉全席 / 家常好菜菜单生成：仅请求自有 BFF。
  * 约定：POST /api/ai/table-menu，body: `{ config, locale? }`
  */
 export async function requestTableMenu(body: TableMenuRequestBody): Promise<TableMenuResponse> {

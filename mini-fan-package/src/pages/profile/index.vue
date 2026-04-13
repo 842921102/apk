@@ -52,8 +52,11 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { putMeProfile } from '@/api/me'
+import { HttpError } from '@/api/http'
 import { useAuth } from '@/composables/useAuth'
 import { useAppConfig } from '@/composables/useAppConfig'
+import { API_BASE_URL } from '@/constants'
 
 const { config } = useAppConfig()
 
@@ -93,9 +96,18 @@ function onBack() {
   uni.navigateBack()
 }
 
-function onSaveProfile() {
+async function onSaveProfile() {
   if (!currentUser.value) return
   const nextName = nicknameDraft.value.trim()
+  if (API_BASE_URL.trim()) {
+    try {
+      await putMeProfile({ nickname: nextName || null })
+    } catch (e) {
+      const msg = e instanceof HttpError ? e.message.slice(0, 240) : '保存失败'
+      uni.showToast({ title: msg, icon: 'none' })
+      return
+    }
+  }
   setCurrentUser({
     ...currentUser.value,
     nickname: nextName || undefined,
