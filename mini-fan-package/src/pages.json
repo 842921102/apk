@@ -56,78 +56,6 @@
       }
     },
     {
-      "path": "pages/recommendation-history/index",
-      "style": {
-        "navigationBarTitleText": "最近推荐",
-        "enablePullDownRefresh": true,
-        "onReachBottomDistance": 80
-      }
-    },
-    {
-      "path": "pages/recommendation-history/detail",
-      "style": {
-        "navigationBarTitleText": "推荐详情"
-      }
-    },
-    {
-      "path": "pages/recipe/detail",
-      "style": {
-        "navigationBarTitleText": "做法详情"
-      }
-    },
-    {
-      "path": "pages/recipe-favorites/index",
-      "style": {
-        "navigationBarTitleText": "菜谱收藏",
-        "enablePullDownRefresh": true
-      }
-    },
-    {
-      "path": "pages/table-menu/index",
-      "style": {
-        "navigationBarTitleText": "家常好菜"
-      }
-    },
-    {
-      "path": "pages/fortune-cooking/index",
-      "style": {
-        "navigationBarTitleText": "灵感厨房"
-      }
-    },
-    {
-      "path": "pages/sauce-design/index",
-      "style": {
-        "navigationBarTitleText": "灵魂蘸料"
-      }
-    },
-    {
-      "path": "pages/gallery/index",
-      "style": {
-        "navigationBarTitleText": "封神图鉴",
-        "enablePullDownRefresh": true
-      }
-    },
-    {
-      "path": "pages/result-detail/index",
-      "style": {
-        "navigationBarTitleText": "结果详情"
-      }
-    },
-    {
-      "path": "pages/profile/index",
-      "style": {
-        "navigationBarTitleText": "个人资料"
-      }
-    },
-    {
-      "path": "pages/onboarding/index",
-      "style": {
-        "navigationBarTitleText": "了解你的口味",
-        "navigationStyle": "custom",
-        "navigationBarTextStyle": "black"
-      }
-    },
-    {
       "path": "pages/me/diet-preferences",
       "style": {
         "navigationBarTitleText": "饮食偏好"
@@ -171,6 +99,13 @@
       }
     },
     {
+      "path": "pages/me/requirement-feedback",
+      "style": {
+        "navigationBarTitleText": "需求反馈",
+        "navigationBarBackgroundColor": "#f6f7fb"
+      }
+    },
+    {
       "path": "pages/inspiration/publish",
       "style": {
         "navigationBarTitleText": "发布灵感"
@@ -180,55 +115,6 @@
       "path": "pages/inspiration/detail",
       "style": {
         "navigationBarTitleText": "灵感详情"
-      }
-    },
-    {
-      "path": "pages/circle/publish",
-      "style": {
-        "navigationBarTitleText": "发帖"
-      }
-    },
-    {
-      "path": "pages/circle/detail",
-      "style": {
-        "navigationBarTitleText": "帖子详情"
-      }
-    },
-    {
-      "path": "pages/circle/my-posts",
-      "style": {
-        "navigationBarTitleText": "我的发布"
-      }
-    },
-    {
-      "path": "pages/mall/product-detail",
-      "style": {
-        "navigationBarTitleText": "商品详情"
-      }
-    },
-    {
-      "path": "pages/mall/order-create",
-      "style": {
-        "navigationBarTitleText": "确认下单"
-      }
-    },
-    {
-      "path": "pages/mall/orders",
-      "style": {
-        "navigationBarTitleText": "我的订单",
-        "enablePullDownRefresh": true
-      }
-    },
-    {
-      "path": "pages/mall/order-detail",
-      "style": {
-        "navigationBarTitleText": "订单详情"
-      }
-    },
-    {
-      "path": "pages/pay/test-pay",
-      "style": {
-        "navigationBarTitleText": "支付测试"
       }
     }
   ],
@@ -264,5 +150,193 @@
         "selectedIconPath": "static/tabbar/tab-me-active.png"
       }
     ]
-  }
+  },
+  "subPackages": [
+    {
+      "root": "pages/recommendation-history",
+      "pages": [
+        {
+          "path": "index",
+          "style": {
+            "navigationBarTitleText": "最近推荐",
+            "enablePullDownRefresh": true,
+            "onReachBottomDistance": 80
+          }
+        },
+        {
+          "path": "detail",
+          "style": {
+            "navigationBarTitleText": "推荐详情"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/recipe",
+      "pages": [
+        {
+          "path": "detail",
+          "style": {
+            "navigationBarTitleText": "做法详情"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/recipe-favorites",
+      "pages": [
+        {
+          "path": "index",
+          "style": {
+            "navigationBarTitleText": "菜谱收藏",
+            "enablePullDownRefresh": true
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/table-menu",
+      "pages": [
+        {
+          "path": "index",
+          "style": {
+            "navigationBarTitleText": "家常好菜"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/fortune-cooking",
+      "pages": [
+        {
+          "path": "index",
+          "style": {
+            "navigationBarTitleText": "灵感厨房"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/sauce-design",
+      "pages": [
+        {
+          "path": "index",
+          "style": {
+            "navigationBarTitleText": "灵魂蘸料"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/gallery",
+      "pages": [
+        {
+          "path": "index",
+          "style": {
+            "navigationBarTitleText": "封神图鉴",
+            "enablePullDownRefresh": true
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/result-detail",
+      "pages": [
+        {
+          "path": "index",
+          "style": {
+            "navigationBarTitleText": "结果详情"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/profile",
+      "pages": [
+        {
+          "path": "index",
+          "style": {
+            "navigationBarTitleText": "个人资料"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/onboarding",
+      "pages": [
+        {
+          "path": "index",
+          "style": {
+            "navigationBarTitleText": "了解你的口味",
+            "navigationStyle": "custom",
+            "navigationBarTextStyle": "black"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/circle",
+      "pages": [
+        {
+          "path": "publish",
+          "style": {
+            "navigationBarTitleText": "发帖"
+          }
+        },
+        {
+          "path": "detail",
+          "style": {
+            "navigationBarTitleText": "帖子详情"
+          }
+        },
+        {
+          "path": "my-posts",
+          "style": {
+            "navigationBarTitleText": "我的发布"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/mall",
+      "pages": [
+        {
+          "path": "product-detail",
+          "style": {
+            "navigationBarTitleText": "商品详情"
+          }
+        },
+        {
+          "path": "order-create",
+          "style": {
+            "navigationBarTitleText": "确认下单"
+          }
+        },
+        {
+          "path": "orders",
+          "style": {
+            "navigationBarTitleText": "我的订单",
+            "enablePullDownRefresh": true
+          }
+        },
+        {
+          "path": "order-detail",
+          "style": {
+            "navigationBarTitleText": "订单详情"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/pay",
+      "pages": [
+        {
+          "path": "test-pay",
+          "style": {
+            "navigationBarTitleText": "支付测试"
+          }
+        }
+      ]
+    }
+  ]
 }

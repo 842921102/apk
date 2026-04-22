@@ -1,13 +1,5 @@
 <template>
   <view class="mp-page hist has-bottom-nav">
-    <view
-      v-if="ready && isLoggedIn && backendReady && filterLeadText"
-      class="mp-card mp-card--inset hist__lead"
-    >
-      <text class="mp-kicker mp-kicker--accent">说明</text>
-      <text class="hist__lead-text">{{ filterLeadText }}</text>
-    </view>
-
     <view v-if="!ready" class="mp-card hist__state">
       <text class="hist__muted">加载中…</text>
     </view>
@@ -25,7 +17,7 @@
       <view class="mp-empty">
         <view class="mp-empty__icon">⚙️</view>
         <text class="mp-empty__title">未配置接口地址</text>
-        <text class="mp-empty__sub">请在项目中配置 VITE_API_BASE_URL（通常为 BFF 根地址，与微信登录一致）</text>
+        <text class="mp-empty__sub">请在 config/env 中配置 API 根地址（通常为 BFF 根地址，与微信登录一致）</text>
       </view>
     </view>
 
@@ -282,20 +274,15 @@ function onDelete(item: HistoryRow) {
 <style lang="scss" scoped>
 @import '@/uni.scss';
 
+.hist {
+  min-height: 100vh;
+  padding: 24rpx 24rpx 0;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #f6f4fc 0%, #f9fafb 120rpx);
+}
+
 .has-bottom-nav {
   padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
-}
-
-.hist__lead {
-  margin-bottom: 8rpx;
-}
-
-.hist__lead-text {
-  display: block;
-  margin-top: 10rpx;
-  font-size: 26rpx;
-  line-height: 1.55;
-  color: $mp-text-secondary;
 }
 
 .hist__state {

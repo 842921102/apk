@@ -3,7 +3,7 @@ import { API_BASE_URL } from '@/constants'
 import type { HomeBannerAmbient } from '@/types/ambient'
 
 /**
- * 对接：GET {VITE_API_BASE_URL}/api/miniapp/home-banner-ambient
+ * 对接：GET {API_BASE_URL}/api/miniapp/home-banner-ambient
  * JSON 根对象或包在 data / ambient / home_banner_ambient / homeBannerAmbient 下：
  * city_name | cityName，weather_text | weatherText，weather_icon_emoji | weatherIconEmoji，
  * 可选 weather_code：sunny | clear | cloudy | overcast | rain | drizzle | snow | fog | wind

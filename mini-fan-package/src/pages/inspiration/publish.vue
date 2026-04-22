@@ -47,11 +47,16 @@ const submitting = ref(false)
 onLoad((query) => {
   const preset = typeof query?.images === 'string' ? decodeURIComponent(query.images) : ''
   const fromAi = typeof query?.from === 'string' ? query.from === 'ai_result' : false
+  const presetTitle = typeof query?.title === 'string' ? decodeURIComponent(query.title) : ''
+  const presetDesc = typeof query?.description === 'string' ? decodeURIComponent(query.description) : ''
+
   if (preset) images.value = preset.split(',').filter(Boolean).slice(0, 9)
   if (fromAi) {
     sourceType.value = 'ai_generated'
     publishSource.value = 'ai_result'
   }
+  if (presetTitle) title.value = presetTitle
+  if (presetDesc) description.value = presetDesc
 })
 
 async function pickImage() {

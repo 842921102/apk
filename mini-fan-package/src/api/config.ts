@@ -3,7 +3,7 @@
  *
  * ## 链路总览
  * 1. `defaultConfig.cloneAppConfigDefault()`：首屏与异常时的完整默认快照
- * 2. `fetchRemoteAppConfig()`：并行 `GET {VITE_API_BASE_URL}/api/miniapp/config` + 可选 `VITE_APP_CONFIG_URL`
+ * 2. `fetchRemoteAppConfig()`：并行 `GET {API_BASE_URL}/api/miniapp/config` + 可选 `APP_CONFIG_URL`
  * 3. `configRemoteMap.parseRemoteConfigPayload(body)`：包装层剥离、分组展开、camelCase、plaza 数组 → `Partial<AppConfig>`
  * 4. `applyRemotePartialToAppConfig(base, partial)`：按 `APP_CONFIG_*_KEYS` 合并字符串/布尔；`plaza_entries` 走 `mergePlazaWithDefaults`（含 sort_order 排序）
  * 5. `getAppConfig()`：内存缓存 + 单飞请求，供 `useAppConfig` 与各页消费
@@ -18,7 +18,7 @@
  * | `composables/useNavigationBarTitleFromConfig` 等 | 导航栏标题、列表分区等 UI 辅助，不修改配置语义 |
  */
 import { request } from '@/api/http'
-import { API_BASE_URL } from '@/constants'
+import { API_BASE_URL, APP_CONFIG_URL } from '@/constants'
 import { parseRemoteConfigPayload } from '@/api/configRemoteMap'
 import {
   APP_CONFIG_BOOLEAN_KEYS,
@@ -91,7 +91,7 @@ async function fetchBffMiniappConfig(): Promise<Partial<AppConfig>> {
 
 /** 静态 JSON URL（CDN / OSS 等，失败返回 {}） */
 async function fetchStaticAppConfigUrl(): Promise<Partial<AppConfig>> {
-  const url = import.meta.env.VITE_APP_CONFIG_URL?.trim()
+  const url = APP_CONFIG_URL.trim()
   if (!url) return {}
 
   return new Promise((resolve) => {

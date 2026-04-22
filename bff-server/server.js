@@ -99,6 +99,18 @@ function safeString(v) {
   return typeof v === 'string' ? v : String(v)
 }
 
+function normalizeBearerToken(v) {
+  const token = safeString(v).trim()
+  if (!token) return ''
+  return token.replace(/^bearer\s+/i, '').trim()
+}
+
+function createUpstreamError(message, extras = {}) {
+  const err = new Error(safeString(message) || 'upstream_error')
+  Object.assign(err, extras)
+  return err
+}
+
 /** base_url + api_path；若 base 已含 path（误填完整端点），避免重复拼接导致 404 */
 function buildModelRequestUrl(baseUrl, apiPath) {
   const base = safeString(baseUrl).replace(/\/$/, '')
@@ -263,7 +275,7 @@ async function callChatCompletionByScene(sceneCode, { systemPrompt, userPrompt, 
   const baseUrl = safeString(runtime?.base_url).replace(/\/$/, '')
   const apiPath = safeString(runtime?.model?.api_path || '/chat/completions')
   const modelCode = safeString(runtime?.model?.model_code)
-  const apiKey = safeString(runtime?.api_key)
+  const apiKey = normalizeBearerToken(runtime?.api_key)
 
   if (!baseUrl || !modelCode || !apiKey) {
     throw new Error('scene_runtime_invalid')
@@ -330,7 +342,7 @@ async function callMessagesByScene(sceneCode, { messages, temperature }) {
   const baseUrl = safeString(runtime?.base_url).replace(/\/$/, '')
   const apiPath = safeString(runtime?.model?.api_path || '/chat/completions')
   const modelCode = safeString(runtime?.model?.model_code)
-  const apiKey = safeString(runtime?.api_key)
+  const apiKey = normalizeBearerToken(runtime?.api_key)
 
   if (!baseUrl || !modelCode || !apiKey) {
     throw new Error('scene_runtime_invalid')
@@ -408,7 +420,7 @@ async function callImageGenerationByScene(sceneCode, { prompt, size = '1024x1024
   const baseUrl = safeString(runtime?.base_url).replace(/\/$/, '')
   const apiPath = safeString(runtime?.model?.api_path || '/images/generations')
   const modelCode = safeString(runtime?.model?.model_code)
-  const apiKey = safeString(runtime?.api_key)
+  const apiKey = normalizeBearerToken(runtime?.api_key)
 
   if (!baseUrl || !modelCode || !apiKey) {
     throw new Error('scene_runtime_invalid')
@@ -436,7 +448,12 @@ async function callImageGenerationByScene(sceneCode, { prompt, size = '1024x1024
   const data = await resp.json().catch(() => ({}))
   if (!resp.ok) {
     const msg = data?.error?.message || data?.message || `model_image_request_failed(${status})`
-    throw new Error(msg)
+    throw createUpstreamError(msg, {
+      statusCode: status,
+      sceneCode,
+      upstreamBody: data,
+      upstreamUrl: requestUrl,
+    })
   }
 
   return data
@@ -2230,11 +2247,36 @@ const server = http.createServer(async (req, res) => {
       if (!prompt) {
         return json(res, 400, { error: { message: 'prompt_missing' } })
       }
-      const result = await proxyToRecipeImage({
-        prompt,
-        size: body?.size,
-      })
-      return json(res, 200, result)
+      try {
+        const result = await proxyToRecipeImage({
+          prompt,
+          size: body?.size,
+        })
+        return json(res, 200, result)
+      } catch (e) {
+        const statusCode = Number(e?.statusCode || 0)
+        const sceneCode = safeString(e?.sceneCode || AI_SCENES.IMAGE)
+        const upstreamBody = e?.upstreamBody
+        const detail = upstreamBody?.error?.detail || upstreamBody?.detail || ''
+        const hint = upstreamBody?.error?.hint || upstreamBody?.hint || ''
+        const upstreamMessage =
+          safeString(upstreamBody?.error?.message || upstreamBody?.message || '').trim() ||
+          (e instanceof Error ? e.message : 'recipe_image_failed')
+        const msg = [
+          upstreamMessage,
+          detail ? `detail=${safeString(detail).slice(0, 200)}` : '',
+          hint ? `hint=${safeString(hint).slice(0, 120)}` : '',
+        ]
+          .filter(Boolean)
+          .join(' | ')
+        return json(res, statusCode >= 400 ? statusCode : 502, {
+          error: {
+            message: msg || 'recipe_image_failed',
+            scene_code: sceneCode,
+            upstream_status: statusCode || undefined,
+          },
+        })
+      }
     }
 
     if (req.method === 'POST' && pathname === '/api/ai/ingredients-recognize') {
@@ -2257,6 +2299,19 @@ const server = http.createServer(async (req, res) => {
     const msg = e instanceof Error ? e.message : 'internal_error'
     return json(res, 500, { error: { message: msg } })
   }
+})
+
+server.on('error', (err) => {
+  const code = safeString(err?.code)
+  if (code === 'EADDRINUSE') {
+    console.error(`[bff] 启动失败：端口 ${PORT} 已被占用（${HOST}:${PORT}）`)
+    console.error('[bff] 你可以执行以下命令排查并重启：')
+    console.error(`[bff]   lsof -nP -iTCP:${PORT} -sTCP:LISTEN`)
+    console.error(`[bff]   kill <PID> && cd bff-server && npm start`)
+    console.error('[bff] 或者修改 bff-server/.env 的 PORT 后重启')
+    return
+  }
+  console.error('[bff] server error', err)
 })
 
 server.listen(PORT, HOST, () => {

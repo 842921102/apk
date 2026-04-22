@@ -17,7 +17,7 @@
       <view class="mp-empty">
         <view class="mp-empty__icon">⚙️</view>
         <text class="mp-empty__title">未配置接口地址</text>
-        <text class="mp-empty__sub">请在项目中配置 VITE_API_BASE_URL（通常为 BFF 根地址，与微信登录一致）</text>
+        <text class="mp-empty__sub">请在 config/env 中配置 API 根地址（通常为 BFF 根地址，与微信登录一致）</text>
       </view>
     </view>
 
@@ -40,20 +40,28 @@
     </view>
 
     <template v-else>
-      <scroll-view class="fav__tabs-scroll" scroll-x :show-scrollbar="false">
-        <view class="fav__tabs">
-          <view
-            v-for="tab in tabs"
-            :key="tab.key"
-            class="fav__tab"
-            :class="{ 'fav__tab--active': activeTab === tab.key }"
-            @click="activeTab = tab.key"
-          >
-            <text class="fav__tab-label">{{ tab.label }}</text>
-            <text class="fav__tab-count">{{ tabCount(tab.key) }}</text>
+      <!-- 顶部筛选 Tab，样式对齐「订单管理」页面 -->
+      <view class="fav__tabs-wrap">
+        <scroll-view
+          scroll-x
+          class="fav__tabs-scroll"
+          :show-scrollbar="false"
+          :enable-flex="true"
+        >
+          <view class="fav__tabs">
+            <view
+              v-for="tab in tabs"
+              :key="tab.key"
+              class="fav__tab"
+              :class="{ 'fav__tab--active': activeTab === tab.key }"
+              @click="activeTab = tab.key"
+            >
+              <text class="fav__tab-label">{{ tab.label }}</text>
+              <text class="fav__tab-count">{{ tabCount(tab.key) }}</text>
+            </view>
           </view>
-        </view>
-      </scroll-view>
+        </scroll-view>
+      </view>
 
       <view v-if="filteredList.length === 0" class="mp-card fav__state fav__state--tab-empty">
         <view class="mp-empty">
@@ -279,49 +287,73 @@ function onDelete(item: FavoriteRow) {
   padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
 
+.fav__tabs-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin: 0 -24rpx 8rpx;
+  padding: 0 24rpx;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(18rpx);
+  border-bottom: 1rpx solid rgba(122, 87, 209, 0.06);
+}
+
 .fav__tabs-scroll {
-  margin: 0 0 20rpx;
+  width: 100%;
   white-space: nowrap;
 }
 
 .fav__tabs {
-  display: inline-flex;
+  display: flex;
   flex-direction: row;
-  gap: 14rpx;
-  padding-right: 12rpx;
+  padding: 0 4rpx;
+  box-sizing: border-box;
 }
 
 .fav__tab {
-  min-width: 132rpx;
-  padding: 14rpx 18rpx;
-  border-radius: 18rpx;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1rpx solid rgba(122, 87, 209, 0.14);
-  box-shadow: 0 4rpx 14rpx rgba(122, 87, 209, 0.06);
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4rpx;
-}
-
-.fav__tab--active {
-  background: linear-gradient(145deg, rgba(122, 87, 209, 0.18) 0%, #fff 78%);
-  border-color: rgba(122, 87, 209, 0.4);
-  box-shadow: 0 10rpx 20rpx rgba(122, 87, 209, 0.12);
+  position: relative;
+  flex-shrink: 0;
+  padding: 22rpx 20rpx 18rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8rpx;
 }
 
 .fav__tab-label {
-  font-size: 22rpx;
-  font-weight: 700;
-  color: $mp-text-primary;
-  line-height: 1.2;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: $mp-text-secondary;
 }
 
 .fav__tab-count {
+  min-width: 32rpx;
+  height: 32rpx;
+  padding: 0 8rpx;
+  border-radius: 999rpx;
+  background: rgba(122, 87, 209, 0.08);
+  color: $mp-accent;
   font-size: 20rpx;
-  color: $mp-text-muted;
-  line-height: 1;
+  font-weight: 600;
+  line-height: 32rpx;
+  text-align: center;
+}
+
+.fav__tab--active .fav__tab-label {
+  color: $mp-text-primary;
+  font-weight: 800;
+}
+
+.fav__tab--active::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 8rpx;
+  transform: translateX(-50%);
+  width: 48rpx;
+  height: 6rpx;
+  border-radius: 999rpx;
+  background: $mp-accent;
 }
 
 .fav__state {

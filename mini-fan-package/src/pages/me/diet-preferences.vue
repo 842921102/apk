@@ -1,15 +1,42 @@
 <template>
   <view class="pg">
     <view class="mp-card pg__card">
-      <text class="pg__hint">本页信息会同步到推荐画像，用于长期优化推荐结果。</text>
-      <text class="pg__label">口味偏好（可多项）</text>
-      <input v-model="flavorText" class="pg__input" placeholder="例如：清淡、鲜香、微辣" />
-      <text class="pg__label">忌口与不吃</text>
-      <input v-model="tabooText" class="pg__input" placeholder="例如：香菜、内脏、重辣" />
-      <text class="pg__label">饮食类型</text>
-      <input v-model="dietText" class="pg__input" placeholder="例如：家常、减脂、健身、轻食" />
-      <text class="pg__label">健康目标（选填）</text>
-      <input v-model="healthGoal" class="pg__input" placeholder="例如：控糖、养胃、控盐" />
+      <view class="pg__field">
+        <text class="pg__label">口味偏好（可多项）</text>
+        <input
+          v-model="flavorText"
+          class="pg__input"
+          placeholder="例如：清淡、鲜香、微辣"
+          placeholder-class="pg__placeholder"
+        />
+      </view>
+      <view class="pg__field">
+        <text class="pg__label">忌口与不吃</text>
+        <input
+          v-model="tabooText"
+          class="pg__input"
+          placeholder="例如：香菜、内脏、重辣"
+          placeholder-class="pg__placeholder"
+        />
+      </view>
+      <view class="pg__field">
+        <text class="pg__label">饮食类型</text>
+        <input
+          v-model="dietText"
+          class="pg__input"
+          placeholder="例如：家常、减脂、健身、轻食"
+          placeholder-class="pg__placeholder"
+        />
+      </view>
+      <view class="pg__field">
+        <text class="pg__label">健康目标（选填）</text>
+        <input
+          v-model="healthGoal"
+          class="pg__input"
+          placeholder="例如：控糖、养胃、控盐"
+          placeholder-class="pg__placeholder"
+        />
+      </view>
       <button class="mp-btn-primary pg__btn" :loading="loading" @click="onSave">保存饮食偏好</button>
     </view>
   </view>
@@ -85,32 +112,37 @@ async function onSave() {
   background: linear-gradient(180deg, #f6f4fc 0%, #f9fafb 120rpx);
 }
 .pg__card {
-  padding: 32rpx;
+  padding: 28rpx 24rpx 32rpx;
   border-color: rgba(122, 87, 209, 0.2);
 }
-.pg__hint {
-  display: block;
-  font-size: 25rpx;
-  color: #6b7280;
-  line-height: 1.6;
-  margin-bottom: 24rpx;
+.pg__field + .pg__field {
+  margin-top: 20rpx;
 }
 .pg__label {
   display: block;
   font-size: 26rpx;
   font-weight: 800;
   color: #1f2937;
-  margin-top: 24rpx;
-  margin-bottom: 12rpx;
+  margin-bottom: 10rpx;
 }
 .pg__input {
   width: 100%;
-  padding: 20rpx 22rpx;
+  height: 84rpx;
+  padding: 0 24rpx;
   box-sizing: border-box;
-  background: #f9fafb;
-  border-radius: 14rpx;
+  background: #f6f7fb;
+  border: 1rpx solid rgba(31, 35, 41, 0.1);
+  border-radius: 16rpx;
   font-size: 26rpx;
   color: #111827;
+  line-height: 84rpx;
+}
+.pg__input:focus {
+  border-color: rgba(122, 87, 209, 0.55);
+  background: #fff;
+}
+.pg__placeholder {
+  color: #9ca3af;
 }
 .pg__btn {
   margin-top: 40rpx;

@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\TodayEatRecommendController;
 use App\Http\Controllers\Api\TodayEatRerollController;
 use App\Http\Controllers\Api\TodayEatSelectAlternativeController;
 use App\Http\Controllers\Api\UploadController;
+use App\Http\Controllers\Api\UserFeedbackController;
 use App\Http\Controllers\Auth\WechatAuthController;
 use App\Http\Middleware\AuthenticateLaravelAccessToken;
 use Illuminate\Support\Facades\Route;
@@ -106,4 +107,6 @@ Route::middleware([AuthenticateLaravelAccessToken::class])->group(function (): v
     Route::post('/histories', [HistoryController::class, 'store']);
     Route::get('/histories/{history}', [HistoryController::class, 'show']);
     Route::delete('/histories/{history}', [HistoryController::class, 'destroy']);
+    Route::get('/me/user-feedbacks', [UserFeedbackController::class, 'index']);
+    Route::post('/me/user-feedbacks', [UserFeedbackController::class, 'store']);
 });

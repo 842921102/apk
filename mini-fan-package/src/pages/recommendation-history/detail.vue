@@ -31,14 +31,11 @@
             >
               <text>{{ isRecipeFavorited ? '已收藏菜谱' : '收藏这道菜' }}</text>
             </button>
-            <text v-else class="rh-detail__recipe-fav-hint">
-              标准菜谱入库后可收藏，便于在「菜谱收藏」中回看
-            </text>
           </view>
         </view>
 
         <view class="rh-detail__banner mp-card mp-card--inset">
-          <text class="rh-detail__banner-k">快照</text>
+          <text class="rh-detail__banner-k">推荐快照</text>
           <text class="rh-detail__banner-t">
             {{ detail.recommendation_date }} · {{ sourceLabel(detail.recommendation_source) }} · {{ mealLabel(detail.meal_type) }}
           </text>
@@ -55,8 +52,38 @@
           :alternatives-interactive="false"
           :cuisine="detail.cuisine"
           :ingredients-text="ingredientsText"
-          :recipe-content="detail.recipe_content || '（本条记录未保存制作正文）'"
+          :recipe-preamble="recipePreambleForBody"
+          :recipe-content="recipeBodyPlain"
+          layout="compact"
         />
+
+        <view v-if="ingredientsTags.length || displaySteps.length" class="mp-card rh-detail__recipe-card">
+          <text class="rh-detail__recipe-title">制作参考</text>
+
+          <view v-if="detail.cuisine" class="rh-detail__section">
+            <text class="rh-detail__label">菜系</text>
+            <text class="rh-detail__value">{{ detail.cuisine }}</text>
+          </view>
+
+          <view v-if="ingredientsTags.length" class="rh-detail__section">
+            <text class="rh-detail__label">食材</text>
+            <view class="rh-detail__tags">
+              <view v-for="(tag, idx) in ingredientsTags" :key="idx" class="rh-detail__tag">
+                <text class="rh-detail__tag-txt">{{ tag }}</text>
+              </view>
+            </view>
+          </view>
+
+          <view v-if="displaySteps.length" class="rh-detail__section">
+            <text class="rh-detail__label">{{ operationStepsLabel }}</text>
+            <view class="rh-detail__steps">
+              <view v-for="(step, index) in displaySteps" :key="index" class="rh-detail__step">
+                <view class="rh-detail__step-index">{{ index + 1 }}</view>
+                <text class="rh-detail__step-text">{{ step }}</text>
+              </view>
+            </view>
+          </view>
+        </view>
       </view>
     </scroll-view>
   </view>
@@ -77,6 +104,7 @@ import { apiGetRecommendationRecord, apiSetRecommendationRecordFavorite } from '
 import { useAppMessages } from '@/composables/useAppMessages'
 import { useAuth } from '@/composables/useAuth'
 import type { RecommendationRecordDetail } from '@/types/recommendationHistory'
+import { parseRecipeDetailDisplay, stripEmbeddedIngredientsLine } from '@/lib/recipeContentDisplay'
 
 const msg = useAppMessages()
 const { isLoggedIn } = useAuth()
@@ -110,10 +138,45 @@ const mainTagline = computed(() => {
   return '以下为已保存的推荐快照，可与当时上下文对照回看。'
 })
 
+const ingredientsTags = computed<string[]>(() => {
+  const ing: unknown = detail.value?.ingredients
+  if (Array.isArray(ing) && ing.length) {
+    return ing.filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+  }
+  if (typeof ing === 'string') {
+    return ing
+      .split(/[、，,]/)
+      .map((x) => x.trim())
+      .filter(Boolean)
+  }
+  return []
+})
+
 const ingredientsText = computed(() => {
-  const ing = detail.value?.ingredients
-  if (!ing?.length) return '—'
-  return ing.join('、')
+  if (!ingredientsTags.value.length) return '—'
+  return ingredientsTags.value.join('、')
+})
+
+const parsedRecipe = computed(() => parseRecipeDetailDisplay(detail.value?.recipe_content || ''))
+
+const recipePreambleForBody = computed(() => {
+  let t = (parsedRecipe.value.narrative || '').trim()
+  if (!t) return ''
+  if (ingredientsTags.value.length) t = stripEmbeddedIngredientsLine(t)
+  return t.trim()
+})
+
+const displaySteps = computed<string[]>(() => parsedRecipe.value.steps)
+
+const operationStepsLabel = computed(() =>
+  recipePreambleForBody.value ? '操作步骤' : '制作步骤',
+)
+
+const recipeBodyPlain = computed(() => {
+  const raw = (detail.value?.recipe_content || '').trim()
+  if (!raw) return '（本条记录未保存制作正文）'
+  if (parsedRecipe.value.suppressRecipeBodyDuplicate && displaySteps.value.length) return ''
+  return raw
 })
 
 const canFavoriteDishRecipe = computed(() => {
@@ -297,14 +360,6 @@ async function onToggleRecipeFavorite() {
   width: 100%;
 }
 
-.rh-detail__recipe-fav-hint {
-  display: block;
-  font-size: 24rpx;
-  line-height: 1.45;
-  color: $mp-text-muted;
-  padding: 4rpx 6rpx 0;
-}
-
 .rh-detail__banner-k {
   font-size: 20rpx;
   font-weight: 800;
@@ -343,5 +398,87 @@ async function onToggleRecipeFavorite() {
 .te__tb-main {
   width: 100%;
   margin: 0;
+}
+
+.rh-detail__recipe-card {
+  padding: 20rpx 22rpx;
+}
+
+.rh-detail__recipe-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: $mp-text-primary;
+  margin-bottom: 10rpx;
+}
+
+.rh-detail__section {
+  margin-top: 12rpx;
+}
+
+.rh-detail__label {
+  display: block;
+  font-size: 24rpx;
+  color: $mp-text-muted;
+}
+
+.rh-detail__value {
+  margin-top: 6rpx;
+  font-size: 26rpx;
+  color: $mp-text-primary;
+}
+
+.rh-detail__tags {
+  margin-top: 8rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.rh-detail__tag {
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: rgba(122, 87, 209, 0.06);
+  border: 1rpx solid rgba(122, 87, 209, 0.16);
+}
+
+.rh-detail__tag-txt {
+  font-size: 24rpx;
+  color: $mp-text-primary;
+}
+
+.rh-detail__steps {
+  margin-top: 10rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.rh-detail__step {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10rpx;
+}
+
+.rh-detail__step-index {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rh-detail__step-text {
+  flex: 1;
+  font-size: 26rpx;
+  line-height: 1.6;
+  color: $mp-text-primary;
 }
 </style>

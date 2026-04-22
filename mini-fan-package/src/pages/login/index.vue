@@ -16,7 +16,7 @@
         <text class="btn-wx-text">微信一键登录</text>
       </button>
 
-      <text v-if="!apiReady" class="warn">未检测到 BFF 地址，请先配置 `VITE_API_BASE_URL`。</text>
+      <text v-if="!apiReady" class="warn">未检测到 BFF 地址，请先配置 config/env（见 README_ENV.md）。</text>
 
       <view v-else-if="apiUsesLoopback" class="warn-card">
         <text class="warn-card-title">当前为 localhost，真机不可访问</text>

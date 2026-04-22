@@ -31,7 +31,6 @@
 
         <view class="me__guest-newbie">
           <view class="me__section-head me__section-head--guest">
-            <text class="me__section-kicker">新手</text>
             <text class="me__section-title">新手指引</text>
           </view>
           <view class="me__card me__card--lg me__newbie-card me__newbie-card--soft">
@@ -45,9 +44,6 @@
           </view>
         </view>
 
-        <view class="me__guest-settings-bar">
-          <text class="me__guest-settings-tap" @click="onSettingsTap">设置</text>
-        </view>
       </view>
 
       <!-- —— 已登录：参考「头部氛围 → 主权益卡 → 数据概览 → 主功能卡 → 生成记录 → 服务」骨架 —— -->
@@ -178,12 +174,44 @@
               </view>
               <template v-if="entry.id === 'about_us'">
                 <view class="me__list-rule" />
+                <!-- #ifdef MP-WEIXIN -->
+                <button
+                  class="me__list-row me__list-row-btn"
+                  open-type="contact"
+                  hover-class="me__list-row--hover"
+                  :hover-stay-time="80"
+                >
+                  <view class="me__list-ico">
+                    <MeThemedIcon name="chat" :size-rpx="36" />
+                  </view>
+                  <view class="me__list-mid">
+                    <text class="me__list-title">我的客服</text>
+                  </view>
+                  <view class="me__list-chev">
+                    <MeThemedIcon name="chevronRight" :size-rpx="28" />
+                  </view>
+                </button>
+                <!-- #endif -->
+                <!-- #ifndef MP-WEIXIN -->
                 <view class="me__list-row" hover-class="me__list-row--hover" :hover-stay-time="80" @click="onServiceTap('help_center')">
                   <view class="me__list-ico">
                     <MeThemedIcon name="chat" :size-rpx="36" />
                   </view>
                   <view class="me__list-mid">
                     <text class="me__list-title">我的客服</text>
+                  </view>
+                  <view class="me__list-chev">
+                    <MeThemedIcon name="chevronRight" :size-rpx="28" />
+                  </view>
+                </view>
+                <!-- #endif -->
+                <view class="me__list-rule" />
+                <view class="me__list-row" hover-class="me__list-row--hover" :hover-stay-time="80" @click="goMenu('/pages/me/requirement-feedback')">
+                  <view class="me__list-ico">
+                    <MeThemedIcon name="chat" :size-rpx="36" />
+                  </view>
+                  <view class="me__list-mid">
+                    <text class="me__list-title">需求反馈</text>
                   </view>
                   <view class="me__list-chev">
                     <MeThemedIcon name="chevronRight" :size-rpx="28" />
@@ -209,16 +237,10 @@
             <button class="me__logout-btn" @click="onLogoutTap">
               <text class="me__logout-txt">{{ logoutButtonLabel }}</text>
             </button>
-            <text class="me__ver-line">版本 v{{ appVersion }}</text>
           </view>
         </view>
       </view>
     </scroll-view>
-
-    <!-- 未登录：版本号固定在 TabBar 上方 -->
-    <view v-if="!isLoggedIn" class="me__guest-ver-fixed">
-      <text class="me__ver-fixed">版本 v{{ appVersion }}</text>
-    </view>
 
     <!-- 微信头像授权（从相册/拍照在 actionSheet 中直接选） -->
     <view
@@ -356,7 +378,6 @@ const {
 } = useAuth()
 
 const logoutButtonLabel = LOGOUT_BUTTON
-const appVersion = '1.0.0'
 const newbieGuideSteps = NEWBIE_GUIDE_STEPS
 
 const memberLabel = ref('普通用户')
@@ -435,11 +456,6 @@ function rpxToPx(rpx: number, winW: number): number {
  * 本页为原生 tabBar（pages.json tabBar.custom=false），windowHeight 已是「导航以下、tabBar 以上」的可视高度，
  * 再按自定义 MpIcoTabBar 去扣 96rpx 会在 scroll-view 下方多出一条无法滚动的空白带，看起来像白条遮挡内容。
  */
-/** 未登录：底部固定版本条占位高度（与 .me__guest-ver-fixed 对齐） */
-function guestVersionStripPx(): number {
-  return isLoggedIn.value ? 0 : rpxToPx(64, windowWidthPx.value)
-}
-
 /**
  * 顶栏占位高度（状态栏 + 导航条）：用于把用户区内容上推，渐变背景铺到物理顶部。
  * scroll-view 自身从 top:0 全高，顶栏透明叠在上面。
@@ -456,14 +472,13 @@ const guestHeroPadTopPx = computed(() => navBleedBottomPx.value + rpxToPx(8, win
 function measureMeScroll() {
   const sys = uni.getSystemInfoSync()
   const wh = Number(sys.windowHeight) || 667
-  const strip = guestVersionStripPx()
   uni.createSelectorQuery()
     .select('.me__nav')
     .boundingClientRect((rect) => {
       const inset =
         rect && typeof rect.bottom === 'number' ? rect.bottom : statusBarPx.value + navBarPx.value
       navBleedBottomPx.value = inset
-      meScrollHeightPx.value = Math.max(200, wh - strip)
+      meScrollHeightPx.value = Math.max(200, wh)
     })
     .exec()
 }
@@ -1255,6 +1270,18 @@ $me-line: rgba(139, 92, 246, 0.09);
   box-sizing: border-box;
 }
 
+.me__list-row-btn {
+  margin: 0;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+}
+
+.me__list-row-btn::after {
+  border: none;
+}
+
 .me__list-row--hover {
   background: rgba($me-purple-soft, 0.35);
 }
@@ -1323,14 +1350,6 @@ $me-line: rgba(139, 92, 246, 0.09);
   font-weight: 600;
 }
 
-.me__ver-line {
-  display: block;
-  padding: 4rpx 24rpx 12rpx;
-  font-size: 22rpx;
-  color: $me-text-3;
-  text-align: center;
-}
-
 /* —— 未登录章节标题 —— */
 .me__section-head--guest {
   display: flex;
@@ -1339,14 +1358,6 @@ $me-line: rgba(139, 92, 246, 0.09);
   gap: 12rpx;
   margin-bottom: 14rpx;
   padding-left: 6rpx;
-}
-
-.me__section-kicker {
-  font-size: 20rpx;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  color: $me-purple;
-  text-transform: uppercase;
 }
 
 .me__section-title {
@@ -1358,20 +1369,6 @@ $me-line: rgba(139, 92, 246, 0.09);
 .me__newbie-card--soft {
   background: rgba($me-purple-soft, 0.72);
   border-color: rgba(167, 139, 250, 0.22);
-}
-
-.me__guest-settings-bar {
-  margin: 28rpx 0 0;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-}
-
-.me__guest-settings-tap {
-  font-size: 26rpx;
-  font-weight: 600;
-  color: $me-text-2;
-  padding: 12rpx 24rpx;
 }
 
 .me__guest-newbie {
@@ -1425,28 +1422,6 @@ $me-line: rgba(139, 92, 246, 0.09);
   line-height: 1.55;
   color: #5b4a9e;
   padding-top: 4rpx;
-}
-
-.me__guest-ver-fixed {
-  position: fixed;
-  left: 0;
-  right: 0;
-  z-index: 920;
-  /* 原生 tabBar 页：可视区底即 tab 上沿，勿再按自定义 TabBar 预留 96rpx */
-  bottom: 0;
-  min-height: 48rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8rpx 0;
-  background: rgba($me-bg, 0.96);
-  border-top: 1rpx solid rgba(139, 92, 246, 0.1);
-  pointer-events: none;
-}
-
-.me__ver-fixed {
-  font-size: 22rpx;
-  color: $me-text-3;
 }
 
 .me__avatar-ring {

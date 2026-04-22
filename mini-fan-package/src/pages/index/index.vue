@@ -562,8 +562,21 @@ async function generateWizardImage() {
       uni.showToast({ title: '图片已生成并入图鉴', icon: 'success' })
     }
   } catch (e: unknown) {
-    const err = e as Error
-    uni.showToast({ title: err.message || '生成图片失败', icon: 'none' })
+    if (e instanceof HttpError && e.statusCode === 401) {
+      const body = (e.body && typeof e.body === 'object' ? e.body : {}) as {
+        error?: { scene_code?: string; upstream_status?: number }
+      }
+      const sceneCode = String(body?.error?.scene_code || '')
+      const upstreamStatus = Number(body?.error?.upstream_status || 0)
+      if (sceneCode === 'recipe_image_generation' && upstreamStatus === 401) {
+        uni.showToast({ title: '图片模型鉴权失败：请在后台检查该场景 API Key（不要带 Bearer 前缀）', icon: 'none' })
+      } else {
+        uni.showToast({ title: e.message || '生成图片失败', icon: 'none' })
+      }
+    } else {
+      const err = e as Error
+      uni.showToast({ title: err.message || '生成图片失败', icon: 'none' })
+    }
   } finally {
     recipeImageLoading.value = false
   }

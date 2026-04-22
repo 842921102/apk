@@ -6,36 +6,41 @@
 
     <template v-else>
       <view class="mp-card rd__head">
-        <text class="mp-kicker mp-kicker--accent">统一详情</text>
+        <text class="mp-kicker mp-kicker--accent">结果详情</text>
         <text class="rd__title">{{ detail.title || '未命名' }}</text>
         <text class="rd__meta">
-          {{ sourceLabel(detail.source_type) }} · {{ detail.cuisine || '—' }} · {{ formatListTime(detail.created_at) }}
+          {{ detail.cuisine || '—' }} · {{ formatListTime(detail.created_at) }}
         </text>
       </view>
 
-      <view class="mp-card rd__section">
-        <text class="rd__label">来源类型</text>
-        <text class="rd__value">{{ detail.source_type }}</text>
+      <view v-if="displayNarrative" class="mp-card rd__section rd__section--narrative">
+        <text class="rd__label">{{ narrativeSectionLabel }}</text>
+        <text class="rd__content rd__content--narrative">{{ displayNarrative }}</text>
       </view>
 
-      <view v-if="ingredientsText" class="mp-card rd__section">
+      <view v-if="ingredientsTags.length" class="mp-card rd__section">
         <text class="rd__label">食材</text>
-        <text class="rd__value">{{ ingredientsText }}</text>
+        <view class="rd__tags">
+          <view v-for="(tag, idx) in ingredientsTags" :key="idx" class="rd__tag">
+            <text class="rd__tag-txt">{{ tag }}</text>
+          </view>
+        </view>
       </view>
 
       <view class="mp-card rd__section">
-        <text class="rd__label">正文内容</text>
-        <text class="rd__content">{{ detail.content || '暂无正文' }}</text>
+        <text class="rd__label">{{ operationStepsLabel }}</text>
+        <view v-if="displaySteps.length" class="rd__steps">
+          <view v-for="(step, index) in displaySteps" :key="index" class="rd__step">
+            <view class="rd__step-index">{{ index + 1 }}</view>
+            <text class="rd__step-text">{{ step }}</text>
+          </view>
+        </view>
+        <text v-else class="rd__content">{{ detail.content || '暂无正文' }}</text>
       </view>
 
       <view v-if="extraPayloadText" class="mp-card rd__section">
         <text class="rd__label">额外说明</text>
         <text class="rd__content">{{ extraPayloadText }}</text>
-      </view>
-
-      <view v-if="requestPayloadText" class="mp-card rd__section">
-        <text class="rd__label">请求参数</text>
-        <text class="rd__content">{{ requestPayloadText }}</text>
       </view>
 
       <view class="mp-card rd__actions">
@@ -49,7 +54,6 @@
           {{ imageLoading ? '生成配图中…' : detail.image_url ? '重新生成配图' : '生成配图' }}
         </button>
         <button v-if="detail.image_url" class="mp-btn-ghost" @click="onPreviewImage">预览配图</button>
-        <button class="mp-btn-ghost" @click="onRegenerate">再来一次</button>
         <button class="mp-btn-ghost" @click="onBack">返回上一页</button>
       </view>
     </template>
@@ -62,17 +66,12 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useAuth } from '@/composables/useAuth'
 import { useAppMessages } from '@/composables/useAppMessages'
 import { formatListTime } from '@/utils/dateFormat'
-import {
-  favoriteApiSourceType,
-  getResultDetailByKey,
-  sourceLabel,
-  sourcePagePath,
-  type ResultDetailPayload,
-} from '@/lib/resultDetail'
+import { favoriteApiSourceType, getResultDetailByKey, sourceLabel, type ResultDetailPayload } from '@/lib/resultDetail'
 import { isFavoriteRecipe, toggleFavoriteRecipe } from '@/api/biz'
 import { requestRecipeImage } from '@/api/ai'
 import { upsertLocalGalleryItem } from '@/api/gallery'
 import { favoriteContentDigest } from '@/lib/favoriteDigest'
+import { parseRecipeDetailDisplay, stripEmbeddedIngredientsLine } from '@/lib/recipeContentDisplay'
 
 const msg = useAppMessages()
 const { isLoggedIn, syncAuthFromSupabase } = useAuth()
@@ -83,10 +82,39 @@ const isFavorited = ref(false)
 const favoriteLoading = ref(false)
 const imageLoading = ref(false)
 
-const ingredientsText = computed(() => {
-  const arr = detail.value?.ingredients ?? []
-  return arr.length ? arr.join('、') : ''
+const ingredientsTags = computed<string[]>(() => {
+  const raw: unknown = detail.value?.ingredients ?? []
+  if (Array.isArray(raw) && raw.length) {
+    return raw.filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+  }
+  if (typeof raw === 'string') {
+    return raw
+      .split(/[、，,]/)
+      .map((x) => x.trim())
+      .filter(Boolean)
+  }
+  return []
 })
+
+const parsedRecipeBody = computed(() => parseRecipeDetailDisplay(detail.value?.content || ''))
+
+const displayNarrative = computed(() => {
+  let t = (parsedRecipeBody.value.narrative || '').trim()
+  if (!t) return ''
+  if (ingredientsTags.value.length) t = stripEmbeddedIngredientsLine(t)
+  return t.trim()
+})
+
+const displaySteps = computed<string[]>(() => parsedRecipeBody.value.steps)
+
+const narrativeSectionLabel = computed(() => {
+  if (detail.value?.source_type === 'fortune_cooking') return '运势与解析'
+  return '说明'
+})
+
+const operationStepsLabel = computed(() =>
+  displayNarrative.value ? '操作步骤' : '烹饪步骤',
+)
 
 const requestPayloadText = computed(() => {
   const payload = detail.value?.request_payload
@@ -171,16 +199,6 @@ async function onToggleFavorite() {
   }
 }
 
-function onRegenerate() {
-  if (!detail.value) return
-  const path = sourcePagePath(detail.value.source_type)
-  if (detail.value.source_type === 'today_eat') {
-    uni.switchTab({ url: path })
-    return
-  }
-  uni.navigateTo({ url: path })
-}
-
 function onBack() {
   uni.navigateBack()
 }
@@ -233,12 +251,25 @@ function onPreviewImage() {
 }
 
 function onPublishToInspiration() {
-  if (!detail.value?.image_url) {
+  if (!detail.value) return
+  if (!isLoggedIn.value) {
+    const target = detailKey.value
+      ? `/pages/result-detail/index?key=${encodeURIComponent(detailKey.value)}`
+      : '/pages/result-detail/index'
+    const redirect = encodeURIComponent(target)
+    uni.navigateTo({ url: `/pages/login/index?redirect=${redirect}` })
+    return
+  }
+  if (!detail.value.image_url) {
     uni.showToast({ title: '请先生成配图', icon: 'none' })
     return
   }
   const images = encodeURIComponent(detail.value.image_url)
-  uni.navigateTo({ url: `/pages/inspiration/publish?from=ai_result&images=${images}` })
+  const title = encodeURIComponent(detail.value.title || '')
+  const description = encodeURIComponent(detail.value.content?.slice(0, 200) || '')
+  uni.navigateTo({
+    url: `/pages/inspiration/publish?from=ai_result&images=${images}&title=${title}&description=${description}`,
+  })
 }
 
 function buildImagePrompt(payload: ResultDetailPayload): string {
@@ -264,6 +295,13 @@ function buildImagePrompt(payload: ResultDetailPayload): string {
 
 <style lang="scss" scoped>
 @import '@/uni.scss';
+
+.rd {
+  min-height: 100vh;
+  padding: 24rpx 24rpx calc(24rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #f6f4fc 0%, #f9fafb 120rpx);
+}
 
 .rd__state {
   min-height: 320rpx;
@@ -300,6 +338,15 @@ function buildImagePrompt(payload: ResultDetailPayload): string {
   margin-bottom: 14rpx;
 }
 
+.rd__section--narrative {
+  border-color: rgba(122, 87, 209, 0.22);
+  background: linear-gradient(180deg, #faf8ff 0%, #fff 48rpx);
+}
+
+.rd__content--narrative {
+  color: $mp-text-secondary;
+}
+
 .rd__label {
   display: block;
   font-size: 24rpx;
@@ -317,6 +364,60 @@ function buildImagePrompt(payload: ResultDetailPayload): string {
   margin-top: 8rpx;
   white-space: pre-wrap;
   font-size: 28rpx;
+  line-height: 1.6;
+  color: $mp-text-primary;
+}
+
+.rd__tags {
+  margin-top: 10rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.rd__tag {
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: rgba(122, 87, 209, 0.06);
+  border: 1rpx solid rgba(122, 87, 209, 0.16);
+}
+
+.rd__tag-txt {
+  font-size: 24rpx;
+  color: $mp-text-primary;
+}
+
+.rd__steps {
+  margin-top: 12rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.rd__step {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10rpx;
+}
+
+.rd__step-index {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rd__step-text {
+  flex: 1;
+  font-size: 26rpx;
   line-height: 1.6;
   color: $mp-text-primary;
 }

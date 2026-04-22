@@ -3,9 +3,15 @@
 interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL: string
   readonly VITE_SUPABASE_ANON_KEY: string
-  /** AI 代理 BFF 根地址，如 https://api.example.com */
+  /**
+   * 已由 `config/env` 接管；Vite 仍可能注入空字符串以保持兼容。
+   * 业务侧请使用 `@/constants` 的 `API_BASE_URL`。
+   */
   readonly VITE_API_BASE_URL: string
-  /** 可选：远端小程序文案配置 JSON 完整 URL */
+  /**
+   * 已由 `config/env` 中 `appConfigUrl` 接管；此处可为空。
+   * 业务侧请使用 `@/constants` 的 `APP_CONFIG_URL`。
+   */
   readonly VITE_APP_CONFIG_URL?: string
 }
 

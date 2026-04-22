@@ -17,7 +17,7 @@
       <view class="mp-empty">
         <view class="mp-empty__icon">⚙️</view>
         <text class="mp-empty__title">未配置接口地址</text>
-        <text class="mp-empty__sub">请配置 VITE_API_BASE_URL（与微信登录一致）</text>
+        <text class="mp-empty__sub">请在 config/env 中配置 API 根地址（与微信登录一致）</text>
       </view>
     </view>
 

@@ -57,6 +57,9 @@
 
     <view class="te-body__detail-fold">
       <text class="te-body__detail-fold-k">制作参考</text>
+      <view v-if="recipePreamble.trim()" class="te-body__preamble-card">
+        <text class="te-body__preamble-body">{{ recipePreamble }}</text>
+      </view>
       <view class="te-body__meta-grid te-body__meta-grid--compact">
         <view class="te-body__meta-cell">
           <text class="te-body__meta-label">菜系</text>
@@ -67,7 +70,7 @@
           <text class="te-body__meta-value">{{ ingredientsText }}</text>
         </view>
       </view>
-      <view class="te-body__body-sheet te-body__body-sheet--muted">
+      <view v-if="recipeContent.trim()" class="te-body__body-sheet te-body__body-sheet--muted">
         <text class="te-body__body-text">{{ recipeContent }}</text>
       </view>
     </view>
@@ -88,12 +91,15 @@ const props = withDefaults(
     cuisine?: string | null
     ingredientsText: string
     recipeContent: string
+    /** 运势/说明等，与下方「操作步骤」编号区隔 */
+    recipePreamble?: string
   }>(),
   {
     coverImage: null,
     destinyText: '',
     cuisine: null,
     alternativesInteractive: false,
+    recipePreamble: '',
   },
 )
 
@@ -296,6 +302,22 @@ function onAltTap(alt: string) {
   color: $mp-text-muted;
   text-transform: uppercase;
   margin-bottom: 16rpx;
+}
+
+.te-body__preamble-card {
+  margin-bottom: 16rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 16rpx;
+  background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%);
+  border: 1rpx solid #e9d5ff;
+}
+
+.te-body__preamble-body {
+  font-size: 28rpx;
+  line-height: 1.65;
+  color: #5b21b6;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .te-body__meta-grid--compact {

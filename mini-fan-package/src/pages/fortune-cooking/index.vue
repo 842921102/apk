@@ -233,6 +233,11 @@
           <text class="fc__sheet-body">{{ result.description }}</text>
         </view>
 
+        <view v-if="fortuneStepInline" class="fc__sheet fc__sheet--pink">
+          <text class="fc__sheet-k">今日运势</text>
+          <text class="fc__sheet-body">{{ fortuneStepInline }}</text>
+        </view>
+
         <view v-if="result.ingredients.length" class="fc__section">
           <text class="fc__section-k">神秘食材</text>
           <view v-for="(ing, idx) in result.ingredients" :key="idx" class="fc__ing-row">
@@ -241,9 +246,9 @@
           </view>
         </view>
 
-        <view v-if="result.steps.length" class="fc__section">
+        <view v-if="displayCookingSteps.length" class="fc__section">
           <text class="fc__section-k">制作步骤</text>
-          <view v-for="(step, idx) in result.steps" :key="idx" class="fc__step-row">
+          <view v-for="(step, idx) in displayCookingSteps" :key="idx" class="fc__step-row">
             <text class="fc__step-num">{{ idx + 1 }}</text>
             <text class="fc__step-txt">{{ step }}</text>
           </view>
@@ -305,6 +310,7 @@ import {
   fortuneTypeLabel,
   difficultyLabel,
 } from '@/constants/fortuneCooking'
+import { detachFortuneNarrativeFromStepList } from '@/lib/recipeContentDisplay'
 
 type Phase = 'idle' | 'loading' | 'success' | 'error'
 
@@ -329,6 +335,16 @@ const processingHint = ref('正在解读星象…')
 const numInput = ref(7)
 const favoriteLoading = ref(false)
 const isFavorited = ref(false)
+
+const displayCookingSteps = computed(() => {
+  const s = result.value?.steps ?? []
+  return detachFortuneNarrativeFromStepList(s).operationSteps
+})
+
+const fortuneStepInline = computed(() => {
+  const s = result.value?.steps ?? []
+  return detachFortuneNarrativeFromStepList(s).narrativeFromStep
+})
 
 const daily = reactive({
   zodiac: '',
@@ -516,14 +532,16 @@ function buildRequest(): FortuneRequestBody {
 }
 
 function formatFortuneContent(f: FortuneResult): string {
+  const { narrativeFromStep, operationSteps } = detachFortuneNarrativeFromStepList(f.steps ?? [])
   const parts = [
     `【${fortuneTypeLabel(f.type)}】`,
     f.reason,
     f.description,
     f.mysticalMessage,
+    narrativeFromStep,
     f.tips.length ? `建议：${f.tips.join('；')}` : '',
     f.ingredients.length ? `食材：${f.ingredients.join('、')}` : '',
-    f.steps.length ? `步骤：\n${f.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}` : '',
+    operationSteps.length ? `步骤：\n${operationSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}` : '',
   ]
   return parts.filter(Boolean).join('\n\n')
 }

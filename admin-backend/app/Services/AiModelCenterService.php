@@ -90,7 +90,14 @@ final class AiModelCenterService
     }
 
     /**
-     * @return array{status: string, request_url: string, request_payload: array<string,mixed>, response_payload: array<string,mixed>|null, error_message: string|null}
+     * @return array{
+     *   status: string,
+     *   request_url: string,
+     *   request_payload: array<string,mixed>,
+     *   response_payload: array<string,mixed>|null,
+     *   error_message: string|null,
+     *   error_detail: array<string,string>|null
+     * }
      */
     public function testConnection(AiModelConfig $config, int $testerId): array
     {
@@ -126,6 +133,7 @@ final class AiModelCenterService
         $status = 'failed';
         $errorMessage = null;
         $responsePayload = null;
+        $errorDetail = null;
 
         try {
             $resp = Http::timeout($timeoutSec)
@@ -138,6 +146,11 @@ final class AiModelCenterService
                 $status = 'success';
             } else {
                 $errorMessage = 'http_'.$resp->status();
+                $errorDetail = $this->extractUpstreamErrorDetail($responsePayload);
+                $summary = $this->formatErrorDetailSummary($errorDetail);
+                if ($summary !== '') {
+                    $errorMessage .= ' '.$summary;
+                }
             }
         } catch (\Throwable $e) {
             $errorMessage = mb_substr($e->getMessage(), 0, 500);
@@ -161,7 +174,57 @@ final class AiModelCenterService
             'request_payload' => $payload,
             'response_payload' => $responsePayload,
             'error_message' => $errorMessage,
+            'error_detail' => $errorDetail,
         ];
+    }
+
+    /**
+     * @param  array<string,mixed>|null  $responsePayload
+     * @return array<string,string>|null
+     */
+    private function extractUpstreamErrorDetail(?array $responsePayload): ?array
+    {
+        if (! is_array($responsePayload)) {
+            return null;
+        }
+
+        $raw = $responsePayload['error'] ?? $responsePayload;
+        if (! is_array($raw)) {
+            return null;
+        }
+
+        $out = [];
+        foreach (['type', 'code', 'message', 'hint', 'detail'] as $key) {
+            $v = $raw[$key] ?? null;
+            if (! is_scalar($v)) {
+                continue;
+            }
+            $s = trim((string) $v);
+            if ($s !== '') {
+                $out[$key] = mb_substr($s, 0, 240);
+            }
+        }
+
+        return $out === [] ? null : $out;
+    }
+
+    /**
+     * @param  array<string,string>|null  $errorDetail
+     */
+    private function formatErrorDetailSummary(?array $errorDetail): string
+    {
+        if (! $errorDetail) {
+            return '';
+        }
+
+        $parts = [];
+        foreach (['type', 'code', 'message', 'hint', 'detail'] as $key) {
+            if (isset($errorDetail[$key]) && $errorDetail[$key] !== '') {
+                $parts[] = $key.'='.$errorDetail[$key];
+            }
+        }
+
+        return mb_substr(implode(' | ', $parts), 0, 500);
     }
 
     /**

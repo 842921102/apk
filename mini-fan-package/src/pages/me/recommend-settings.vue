@@ -1,18 +1,19 @@
 <template>
   <view class="pg">
     <view class="mp-card pg__card">
-      <text class="pg__hint">用于控制推荐的呈现方式与功能开关，可随时调整并即时生效。</text>
       <text class="pg__label">推荐风格（选填）</text>
-      <input v-model="styleDraft" class="pg__input" placeholder="例如：偏实用、清淡优先、快手为主" />
+      <input
+        v-model="styleDraft"
+        class="pg__input"
+        placeholder="例如：偏实用、清淡优先、快手为主"
+        placeholder-class="pg__placeholder"
+      />
       <view class="pg__row">
         <text class="pg__row-title">食命推荐</text>
         <switch :checked="destiny" color="#7A57D1" @change="onDestinyChange" />
       </view>
       <view class="pg__row">
-        <view class="pg__row-mid">
-          <text class="pg__row-title">特殊时期贴心推荐</text>
-          <text class="pg__row-sub">开启后，可在生成前补充当日状态以提升推荐匹配度</text>
-        </view>
+        <text class="pg__row-title">特殊时期贴心推荐</text>
         <switch :checked="period" color="#7A57D1" @change="onPeriodChange" />
       </view>
       <button class="mp-btn-primary pg__btn" :loading="loading" @click="onSave">保存推荐设置</button>
@@ -93,13 +94,6 @@ async function onSave() {
   padding: 32rpx;
   border-color: rgba(122, 87, 209, 0.2);
 }
-.pg__hint {
-  display: block;
-  font-size: 25rpx;
-  color: #6b7280;
-  line-height: 1.6;
-  margin-bottom: 24rpx;
-}
 .pg__label {
   display: block;
   font-size: 26rpx;
@@ -109,12 +103,22 @@ async function onSave() {
 }
 .pg__input {
   width: 100%;
-  padding: 20rpx 22rpx;
+  height: 84rpx;
+  padding: 0 22rpx;
   box-sizing: border-box;
-  background: #f9fafb;
-  border-radius: 14rpx;
+  background: #f7f8fa;
+  border: 1rpx solid #e5e7eb;
+  border-radius: 16rpx;
   font-size: 26rpx;
   color: #111827;
+  line-height: 84rpx;
+}
+.pg__input:focus {
+  background: #fff;
+  border-color: rgba(122, 87, 209, 0.45);
+}
+.pg__placeholder {
+  color: #9ca3af;
 }
 .pg__row {
   display: flex;
@@ -124,21 +128,10 @@ async function onSave() {
   padding-top: 28rpx;
   border-top: 1rpx solid #e5e7eb;
 }
-.pg__row-mid {
-  flex: 1;
-  padding-right: 20rpx;
-}
 .pg__row-title {
   font-size: 26rpx;
   font-weight: 800;
   color: #111827;
-}
-.pg__row-sub {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 23rpx;
-  color: #6b7280;
-  line-height: 1.5;
 }
 .pg__btn {
   margin-top: 40rpx;

@@ -17,7 +17,7 @@
       <view class="mp-empty">
         <view class="mp-empty__icon">⚙️</view>
         <text class="mp-empty__title">未配置接口地址</text>
-        <text class="mp-empty__sub">请配置 VITE_API_BASE_URL（与微信登录、今日菜单一致）</text>
+        <text class="mp-empty__sub">请在 config/env 中配置 API 根地址（与微信登录、今日菜单一致）</text>
       </view>
     </view>
 
@@ -253,6 +253,13 @@ async function onToggleFavorite(item: RecommendationRecordListItem) {
 <style lang="scss" scoped>
 @import '@/uni.scss';
 
+.rh {
+  min-height: 100vh;
+  padding: 24rpx 24rpx 0;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #f6f4fc 0%, #f9fafb 120rpx);
+}
+
 .has-bottom-nav {
   padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
@@ -265,9 +272,7 @@ async function onToggleFavorite(item: RecommendationRecordListItem) {
 }
 
 .rh__scroll {
-  max-height: calc(100vh - 24rpx);
-  padding: 24rpx 24rpx 32rpx;
-  box-sizing: border-box;
+  max-height: calc(100vh - 120rpx);
 }
 
 .rh__search {
@@ -308,7 +313,10 @@ async function onToggleFavorite(item: RecommendationRecordListItem) {
 
 .rh__row {
   margin-bottom: 20rpx;
-  padding: 24rpx 24rpx 22rpx;
+  padding: 20rpx;
+  border-color: rgba(122, 87, 209, 0.2);
+  background: #fff;
+  box-shadow: 0 8rpx 24rpx rgba(122, 87, 209, 0.07);
 }
 
 .rh__row-head {

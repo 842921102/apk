@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '@/constants'
+import { API_BASE_URL, DEFAULT_HTTP_HEADERS, REQUEST_TIMEOUT_MS } from '@/constants'
 import { getToken } from '@/composables/useAuth'
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
@@ -156,12 +156,13 @@ function parseErrorMessage(data: unknown, fallback: string, statusCode: number):
 export function request<T = unknown>(options: HttpRequestOptions): Promise<T> {
   const base = API_BASE_URL.trim()
   if (!base) {
-    return Promise.reject(new Error('未配置 VITE_API_BASE_URL'))
+    return Promise.reject(new Error('未配置 API 根地址：请检查 mini-fan-package/config/env/index.ts 的 ENV_MODE 与对应环境的 baseUrl'))
   }
 
   const url = joinUrl(base, options.url)
   const token = getToken()
   const header: Record<string, string> = {
+    ...DEFAULT_HTTP_HEADERS,
     'Content-Type': 'application/json',
     ...options.header,
   }
@@ -177,6 +178,7 @@ export function request<T = unknown>(options: HttpRequestOptions): Promise<T> {
       method: method as UniApp.RequestOptions['method'],
       data: options.data,
       header,
+      timeout: REQUEST_TIMEOUT_MS,
       dataType: 'text',
       success: (res) => {
         const status = res.statusCode ?? 0
@@ -192,7 +194,7 @@ export function request<T = unknown>(options: HttpRequestOptions): Promise<T> {
           const depsUrl = joinUrl(base, '/health/deps')
           msg += fromBff
             ? ' BFF 已响应但正文为空，请在电脑查看 bff-server 终端里 [bff] /api/auth/wechat 的报错。'
-            : ` 未命中本仓库 BFF（无 X-Wte-Bff 头）：用浏览器打开 ${depsUrl} 应得到 JSON；若打不开或不是 JSON，说明小程序配置的 API 地址上未运行本仓库 bff-server（请在 bff-server 目录 npm start，端口与 VITE_API_BASE_URL 一致）。`
+            : ` 未命中本仓库 BFF（无 X-Wte-Bff 头）：用浏览器打开 ${depsUrl} 应得到 JSON；若打不开或不是 JSON，说明当前 baseUrl 上未运行本仓库 bff-server（本地请在 bff-server 目录 npm start，端口与 config/env/dev 中 baseUrl 一致）。`
         }
         reject(new HttpError(msg, status, payload))
       },

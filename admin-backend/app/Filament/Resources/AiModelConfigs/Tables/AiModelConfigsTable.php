@@ -70,6 +70,11 @@ class AiModelConfigsTable
                                 ? ($result['error_message'] ?? '测试完成')
                                 : trim(
                                     ($result['error_message'] ?? '测试完成')
+                                        .(is_array($result['error_detail'] ?? null)
+                                            ? "\n".collect($result['error_detail'])
+                                                ->map(fn ($v, $k): string => (string) $k.': '.(string) $v)
+                                                ->implode("\n")
+                                            : '')
                                         .(isset($result['request_url']) ? "\n".$result['request_url'] : ''),
                                 );
 

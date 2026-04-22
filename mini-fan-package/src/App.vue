@@ -6,8 +6,10 @@
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
 import { syncLaravelMeSummaryIfNeeded } from '@/composables/useAuth'
+import { logMiniappEnvOnLaunch } from '@/utils/env'
 
 onLaunch(async () => {
+  logMiniappEnvOnLaunch()
   console.log('App Launch')
   await syncLaravelMeSummaryIfNeeded()
   try {
