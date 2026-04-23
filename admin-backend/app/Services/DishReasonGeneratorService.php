@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\RecommendationSession;
 use App\Support\AiScene;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -100,12 +102,12 @@ final class DishReasonGeneratorService
         /** @var list<string> $excludedForTemplate */
         $excludedForTemplate = $reroll !== null ? array_slice($reroll['excluded_dishes'] ?? [], 0, 48) : [];
 
-        $runtime = $this->aiModelCenter->resolveRuntimeConfig(AiScene::RecipeTextGeneration->value);
+        $runtime = $this->resolveRuntimeConfigSafely();
         $baseUrl = rtrim((string) ($runtime['base_url'] ?? ''), '/');
         $apiPath = ltrim((string) (($runtime['model']['api_path'] ?? '/chat/completions')), '/');
         $modelCode = (string) ($runtime['model']['model_code'] ?? '');
         $apiKey = (string) ($runtime['api_key'] ?? '');
-        $aiReady = $baseUrl !== '' && $modelCode !== '' && $apiKey !== '';
+        $aiReady = is_array($runtime) && $baseUrl !== '' && $modelCode !== '' && $apiKey !== '';
 
         if ($aiReady) {
             $timeoutSec = max(8, (int) ceil(((int) ($runtime['timeout_ms'] ?? 120000)) / 1000));
@@ -262,12 +264,12 @@ final class DishReasonGeneratorService
         /** @var list<string> $excludedForTemplate */
         $excludedForTemplate = array_slice($excludedPastMains, 0, 48);
 
-        $runtime = $this->aiModelCenter->resolveRuntimeConfig(AiScene::RecipeTextGeneration->value);
+        $runtime = $this->resolveRuntimeConfigSafely();
         $baseUrl = rtrim((string) ($runtime['base_url'] ?? ''), '/');
         $apiPath = ltrim((string) (($runtime['model']['api_path'] ?? '/chat/completions')), '/');
         $modelCode = (string) ($runtime['model']['model_code'] ?? '');
         $apiKey = (string) ($runtime['api_key'] ?? '');
-        $aiReady = $baseUrl !== '' && $modelCode !== '' && $apiKey !== '';
+        $aiReady = is_array($runtime) && $baseUrl !== '' && $modelCode !== '' && $apiKey !== '';
 
         if ($aiReady && $selectedTrim !== '') {
             $timeoutSec = max(8, (int) ceil(((int) ($runtime['timeout_ms'] ?? 120000)) / 1000));
@@ -930,6 +932,28 @@ final class DishReasonGeneratorService
         }
 
         return null;
+    }
+
+    /**
+     * AI 配置缺失/禁用时不抛给客户端，改为走模板兜底。
+     *
+     * @return array<string,mixed>|null
+     */
+    private function resolveRuntimeConfigSafely(): ?array
+    {
+        try {
+            return $this->aiModelCenter->resolveRuntimeConfig(AiScene::RecipeTextGeneration->value);
+        } catch (HttpResponseException $e) {
+            $message = (string) $e->getMessage();
+            if (str_contains($message, 'scene_config_not_found') || str_contains($message, 'scene_config_disabled')) {
+                Log::warning('recipe_text_generation runtime config unavailable, fallback to template.', [
+                    'message' => $message,
+                ]);
+                return null;
+            }
+
+            throw $e;
+        }
     }
 
     /**

@@ -239,7 +239,16 @@ final class TencentCosService
             return $this->getConfig();
         }
 
-        return array_merge($this->getConfig(), Arr::only($config, array_keys($this->defaultConfig())));
+        $current = $this->getConfig();
+        $incoming = Arr::only($config, array_keys($this->defaultConfig()));
+
+        // 表单里的 SecretKey 允许“留空表示不修改”。
+        // 在连接测试/上传测试时，也应沿用已保存的 SecretKey，避免被空字符串覆盖。
+        if (array_key_exists('secret_key', $incoming) && trim((string) $incoming['secret_key']) === '') {
+            unset($incoming['secret_key']);
+        }
+
+        return array_merge($current, $incoming);
     }
 
     private function buildObjectKey(string $prefix, string $filename, bool $useUniqueName): string

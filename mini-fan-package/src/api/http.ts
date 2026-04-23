@@ -95,10 +95,23 @@ function parseErrorMessage(data: unknown, fallback: string, statusCode: number):
 
   if (data && typeof data === 'object') {
     const o = data as Record<string, unknown>
+    const topMessage = typeof o.message === 'string' ? o.message.trim() : ''
+    if (topMessage === 'scene_config_disabled') {
+      return '当前推荐模型配置已被停用，请联系管理员在后台启用“今日菜单”场景模型配置。'
+    }
+    if (topMessage === 'scene_config_not_found') {
+      return '当前推荐模型尚未配置，请联系管理员在后台新增“今日菜单”场景模型配置。'
+    }
     const err = o.error
     if (err && typeof err === 'object') {
       const er = err as Record<string, unknown>
       const m = er.message
+      if (m === 'scene_config_disabled') {
+        return '当前推荐模型配置已被停用，请联系管理员在后台启用“今日菜单”场景模型配置。'
+      }
+      if (m === 'scene_config_not_found') {
+        return '当前推荐模型尚未配置，请联系管理员在后台新增“今日菜单”场景模型配置。'
+      }
       const detailStr = stringifyDetail(er.detail)
       const hintStr = stringifyDetail(er.hint)
       if (typeof m === 'string' && m) {
