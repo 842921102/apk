@@ -4,15 +4,15 @@
 
 - **唯一开关**：`config/env/index.ts` 里的 `ENV_MODE`（`'dev' | 'test' | 'prod'`）。
 - **统一出口**：业务代码通过 `@/constants` 读取 `API_BASE_URL`、`APP_CONFIG_URL`、`REQUEST_TIMEOUT_MS` 等；`src/api/http.ts` 的 `request()` 自动拼接域名。
-- **与 `.env` 的关系**：Supabase 密钥仍在 `.env` 的 `VITE_SUPABASE_*`；**BFF / API 域名改在 `config/env` 各文件维护**，不再依赖 `VITE_API_BASE_URL` 驱动业务。
+- **与 `.env` 的关系**：Supabase 密钥仍在 `.env` 的 `VITE_SUPABASE_*`；**Laravel API 域名在 `config/env` 各文件维护**，不再依赖 `VITE_API_BASE_URL` 驱动业务。
 
 ---
 
 ## 1. 本地开发
 
-1. 默认 **`ENV_MODE = 'dev'`**（见 `config/env/index.ts`），`config/env/dev.ts` 默认指向 `http://127.0.0.1:8800`（与本仓库 `bff-server` 默认端口一致）。
-2. 若 BFF 端口不同，改 `dev.ts` 里的地址，或改本机 `bff-server` 的 `PORT` 与之一致。
-3. **真机预览**：手机无法访问你电脑上的 `127.0.0.1`，请把 `dev` 里的地址改成电脑的 **局域网 IP**（例如 `http://192.168.0.108:8787`），手机与电脑同一 Wi‑Fi。
+1. 默认 **`ENV_MODE = 'dev'`**（见 `config/env/index.ts`），`config/env/dev.ts` 默认指向 `http://127.0.0.1:8000`（与本仓库 `php artisan serve` 默认端口一致）。
+2. 若本机 Laravel 端口不同，改 `dev.ts` 里的 `baseUrl` / `uploadUrl` / `downloadUrl`。
+3. **真机预览**：手机无法访问你电脑上的 `127.0.0.1`，请把 `dev` 里的地址改成电脑的 **局域网 IP**（例如 `http://192.168.0.108:8000`），手机与电脑同一 Wi‑Fi。
 4. 微信开发者工具：**详情 → 本地设置** 勾选「不校验合法域名、web-view、TLS 版本以及 HTTPS 证书」（仅开发期）。
 
 ---
@@ -51,7 +51,7 @@
 
 | 类型 | 说明 |
 |------|------|
-| **request 合法域名** | BFF/API 根域名，如 `https://api.example.com` |
+| **request 合法域名** | Laravel API 根域名，如 `https://fanf.yajianjs.com` |
 | **uploadFile 合法域名** | 若与 API 同域，与上相同；若分域名则单独添加 |
 | **downloadFile 合法域名** | 同上 |
 | **socket 合法域名** | 若使用 WebSocket，配置 **wss://** 主机（与 `prod.ts` 的 `wsUrl` 一致） |

@@ -26,7 +26,7 @@ class UserInfolist
                             ->defaultImageUrl('data:image/svg+xml,'.rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#d1d5db"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6v1H4v-1z"/></svg>')),
                         TextEntry::make('name')
                             ->label('昵称 / 姓名')
-                            ->helperText('微信登录用户默认可能为「微信用户」，可在管理端修正展示名；小程序内自定义头像昵称若未同步接口则仅本字段可见。'),
+                            ,
                         TextEntry::make('avatar_url')
                             ->label('头像地址')
                             ->placeholder('未在服务端存储（小程序选择头像多为本地临时路径，未回传时可空）'),
@@ -117,7 +117,6 @@ class UserInfolist
                     ])
                     ->columns(2),
                 Section::make('最近每日状态')
-                    ->description('按日汇总的用户自填状态；列表页不展示此维度，仅在详情中便于排查推荐上下文。')
                     ->schema([
                         TextEntry::make('daily_status_digest')
                             ->label('近 7 日')
@@ -127,7 +126,6 @@ class UserInfolist
                     ->columns(1)
                     ->collapsible(),
                 Section::make('最近推荐记录')
-                    ->description('来自 recipe_histories 的生成记录摘要。')
                     ->schema([
                         TextEntry::make('recent_histories_digest')
                             ->label('近 10 条')
@@ -137,7 +135,6 @@ class UserInfolist
                     ->columns(1)
                     ->collapsible(),
                 Section::make('业务数据概览')
-                    ->description('收藏与历史记录均已写入本系统数据库。')
                     ->schema([
                         TextEntry::make('favorites_count')
                             ->label('收藏数量')

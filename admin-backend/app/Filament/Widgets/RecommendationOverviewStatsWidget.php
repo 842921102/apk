@@ -30,27 +30,21 @@ class RecommendationOverviewStatsWidget extends StatsOverviewWidget
 
         return [
             Stat::make('今日推荐次数', $o['recommend_count'])
-                ->description($this->compareDescription($o, 'recommend_count'))
                 ->descriptionIcon(Heroicon::OutlinedArrowTrendingUp)
                 ->icon(Heroicon::OutlinedChartBar),
             Stat::make('今日活跃用户', $o['active_users'])
-                ->description($this->compareDescription($o, 'active_users'))
                 ->descriptionIcon(Heroicon::OutlinedArrowTrendingUp)
                 ->icon(Heroicon::OutlinedUsers),
             Stat::make('今日收藏次数', $o['favorites_count'])
-                ->description($this->compareDescription($o, 'favorites_count'))
                 ->descriptionIcon(Heroicon::OutlinedArrowTrendingUp)
                 ->icon(Heroicon::OutlinedHeart),
             Stat::make('今日查看做法', $o['recipe_view_count'])
-                ->description($this->compareDescription($o, 'recipe_view_count'))
                 ->descriptionIcon(Heroicon::OutlinedArrowTrendingUp)
                 ->icon(Heroicon::OutlinedEye),
             Stat::make('今日换推荐', $o['reroll_count'])
-                ->description($this->compareDescription($o, 'reroll_count'))
                 ->descriptionIcon(Heroicon::OutlinedArrowTrendingUp)
                 ->icon(Heroicon::OutlinedArrowPath),
             Stat::make('今日反馈', $o['feedback_count'])
-                ->description($this->compareDescription($o, 'feedback_count'))
                 ->descriptionIcon(Heroicon::OutlinedArrowTrendingUp)
                 ->icon(Heroicon::OutlinedChatBubbleLeftRight),
         ];

@@ -1,5 +1,5 @@
 /**
- * 与现有 Supabase 表字段对齐的占位类型（后续接 BFF 再细化）
+ * 与现有 Supabase 表字段对齐的占位类型
  * Web: favorites / recipe_histories
  */
 

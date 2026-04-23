@@ -1,5 +1,5 @@
 /**
- * Laravel 收藏 API（经 BFF 透传时需配置 ADMIN_BACKEND_BASE_URL）
+ * Laravel 收藏 API
  */
 import { request } from '@/api/http'
 

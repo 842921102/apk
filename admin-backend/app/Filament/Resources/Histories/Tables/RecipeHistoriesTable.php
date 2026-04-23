@@ -54,7 +54,6 @@ final class RecipeHistoriesTable
                     ->sortable(),
                 TextColumn::make('user.name')
                     ->label('用户')
-                    ->description(fn (RecipeHistory $record): string => (string) $record->user?->email)
                     ->searchable()
                     ->limit(16)
                     ->tooltip(fn (?string $state): ?string => $state),

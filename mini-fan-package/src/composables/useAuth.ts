@@ -86,7 +86,7 @@ export function getToken(): string {
   return accessToken.value
 }
 
-/** 预留：BFF 返回 access + refresh 时调用，再 syncAuthFromSupabase */
+/** 预留：后端返回 access + refresh 时调用，再 syncAuthFromSupabase */
 export async function setSupabaseSession(accessTokenStr: string, refreshToken?: string) {
   // 避免 TS 把 `undefined` 传给 refresh_token（supabase-js 的类型可能不接受可选值）
   const payload: { access_token: string; refresh_token?: string } = {

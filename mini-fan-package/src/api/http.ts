@@ -4,7 +4,7 @@ import { getToken } from '@/composables/useAuth'
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
 export interface HttpRequestOptions {
-  /** 相对路径（如 /api/ai/today-eat）或完整 https URL */
+  /** 相对路径（如 /api/me/profile）或完整 https URL */
   url: string
   method?: HttpMethod
   data?: Record<string, unknown>
@@ -44,7 +44,7 @@ function stringifyDetail(detail: unknown): string {
 
 /**
  * 微信端 uni.request 默认 dataType=json 时，部分 4xx/5xx 的 JSON 体会解析失败，success 里 data 变成空，
- * 用户只能看到「无响应体」。用 text 自行解析可避免丢 BFF 返回的 error 详情。
+ * 用户只能看到「无响应体」。用 text 自行解析可避免丢服务端 error 详情。
  */
 function normalizeResponseBody(data: unknown): unknown {
   if (data == null || data === '') return null
@@ -62,24 +62,10 @@ function normalizeResponseBody(data: unknown): unknown {
   return s
 }
 
-/** 微信返回的 header 键名大小写不统一 */
-function headerValue(header: unknown, name: string): string {
-  if (!header || typeof header !== 'object') return ''
-  const want = name.toLowerCase()
-  const o = header as Record<string, unknown>
-  for (const key of Object.keys(o)) {
-    if (key.toLowerCase() === want) {
-      const v = o[key]
-      return v == null ? '' : String(v).trim()
-    }
-  }
-  return ''
-}
-
 function parseErrorMessage(data: unknown, fallback: string, statusCode: number): string {
   if (data == null || data === '') {
     if (statusCode >= 500) {
-      return `${fallback}（无响应体，检查 BFF/网关/Laravel 是否可达）`
+      return `${fallback}（无响应体，检查网关或 Laravel 是否可达）`
     }
     return fallback
   }
@@ -149,9 +135,8 @@ function parseErrorMessage(data: unknown, fallback: string, statusCode: number):
 }
 
 /**
- * 统一请求：BFF / AI 代理
- * - 自动附加 Authorization: Bearer（有 Supabase access_token 时，便于 BFF 校验）
- * - 不直连第三方 AI，仅请求配置的 API_BASE_URL
+ * 统一请求 Laravel API
+ * - 自动附加 Authorization: Bearer（微信登录后的 Laravel access_token）
  */
 export function request<T = unknown>(options: HttpRequestOptions): Promise<T> {
   const base = API_BASE_URL.trim()
@@ -163,6 +148,7 @@ export function request<T = unknown>(options: HttpRequestOptions): Promise<T> {
   const token = getToken()
   const header: Record<string, string> = {
     ...DEFAULT_HTTP_HEADERS,
+    Accept: 'application/json',
     'Content-Type': 'application/json',
     ...options.header,
   }
@@ -171,6 +157,15 @@ export function request<T = unknown>(options: HttpRequestOptions): Promise<T> {
   }
 
   const method = options.method || 'GET'
+
+  // 请求前诊断（base / path / 最终 URL）；全量打印便于排查 404；稳定后可删或改为 debugLog 条件
+  console.log('[http:request]', {
+    baseURL: base,
+    url: options.url,
+    fullUrl: url,
+    method,
+    data: options.data,
+  })
 
   return new Promise((resolve, reject) => {
     uni.request({
@@ -188,13 +183,9 @@ export function request<T = unknown>(options: HttpRequestOptions): Promise<T> {
           return
         }
         let msg = parseErrorMessage(payload, `请求失败 (${status})`, status)
-        // 502 等且正文为空：多为网关/错端口；用 BFF 自定义头区分是否命中本仓库 Node
         if (payload == null && status >= 500) {
-          const fromBff = headerValue(res.header, 'x-wte-bff')
-          const depsUrl = joinUrl(base, '/health/deps')
-          msg += fromBff
-            ? ' BFF 已响应但正文为空，请在电脑查看 bff-server 终端里 [bff] /api/auth/wechat 的报错。'
-            : ` 未命中本仓库 BFF（无 X-Wte-Bff 头）：用浏览器打开 ${depsUrl} 应得到 JSON；若打不开或不是 JSON，说明当前 baseUrl 上未运行本仓库 bff-server（本地请在 bff-server 目录 npm start，端口与 config/env/dev 中 baseUrl 一致）。`
+          const upUrl = joinUrl(base, '/up')
+          msg += ` 可尝试用浏览器打开 ${upUrl} 检查 Laravel 是否存活。`
         }
         reject(new HttpError(msg, status, payload))
       },

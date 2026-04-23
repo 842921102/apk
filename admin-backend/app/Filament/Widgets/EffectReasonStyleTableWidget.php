@@ -21,7 +21,6 @@ class EffectReasonStyleTableWidget extends TableWidget
     {
         return $table
             ->heading('推荐理由 reason_style')
-            ->description('近 7 天 · 按曝光排序')
             ->records(function (): Collection {
                 $list = $this->analytics()->copyStylePerformance($this->now(), 7)['reason_style'] ?? [];
 

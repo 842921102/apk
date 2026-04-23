@@ -355,7 +355,7 @@ async function onToggleRecipeFavorite() {
   } catch (e: unknown) {
     const err = e as Error & { code?: string }
     if (err.code === BIZ_NEED_LARAVEL_AUTH || err.message === BIZ_NEED_LARAVEL_AUTH) {
-      msg.toastSaveFailed('请先使用微信一键登录')
+      msg.toastSaveFailed('请先微信一键登录')
     } else {
       msg.toastSaveFailed(err.message || '操作失败')
     }

@@ -26,8 +26,7 @@ class CirclePostForm
                             ->searchable()
                             ->preload()
                             ->disabled()
-                            ->dehydrated(false)
-                            ->helperText('用户由小程序侧创建帖子时确定，后台只读。'),
+                            ->dehydrated(false),
                     ]),
                 Section::make('帖子内容')
                     ->schema([
@@ -54,8 +53,7 @@ class CirclePostForm
                             ->default([])
                             ->addActionLabel('添加图片')
                             ->reorderable()
-                            ->columnSpanFull()
-                            ->helperText('与小程序一致：存绝对 URL；运营可从对象存储复制链接粘贴。'),
+                            ->columnSpanFull(),
                         TextInput::make('topic')
                             ->label('话题 / 分类')
                             ->maxLength(64)
@@ -82,8 +80,7 @@ class CirclePostForm
                             ->searchable()
                             ->preload()
                             ->native(false)
-                            ->nullable()
-                            ->helperText('仅展示已创建商品，绑定后将在灵感详情页展示商品卡片。'),
+                            ->nullable(),
                     ])
                     ->columns(2),
                 Section::make('运营设置')
@@ -102,8 +99,7 @@ class CirclePostForm
                         DateTimePicker::make('published_at')
                             ->label('发布时间')
                             ->seconds(false)
-                            ->native(false)
-                            ->helperText('前台仅展示「正常」且已设置发布时间的帖子。'),
+                            ->native(false),
                     ])
                     ->columns(2),
             ]);

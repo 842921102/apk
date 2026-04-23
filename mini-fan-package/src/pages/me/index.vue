@@ -132,7 +132,7 @@
             </view>
           </view>
           <view v-if="!configured" class="me__env-tip">
-            <text class="me__env-tip-txt">配置小程序 BFF 地址后，可查看云端收藏与历史数量。</text>
+            <text class="me__env-tip-txt">服务连接异常时，收藏与历史数量可能暂时无法显示。</text>
           </view>
         </view>
 
@@ -652,12 +652,12 @@ function pickAvatarFromUser(wxUser: Record<string, unknown>): string | undefined
 
 async function onWeChatLoginInline() {
   if (!apiReady.value) {
-    uni.showToast({ title: '未配置 BFF 地址', icon: 'none' })
+    uni.showToast({ title: '服务连接未就绪，请稍后再试', icon: 'none' })
     return
   }
   if (apiUsesLoopback.value && !isWxDevtools.value) {
     uni.showToast({
-      title: '真机请改用局域网 IP 的 BFF 地址',
+      title: '当前网络环境暂不可用，请稍后重试',
       icon: 'none',
       duration: 2600,
     })

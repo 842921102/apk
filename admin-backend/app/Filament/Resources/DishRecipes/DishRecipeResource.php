@@ -50,12 +50,10 @@ class DishRecipeResource extends Resource
                         TextInput::make('title')
                             ->label('菜名')
                             ->required()
-                            ->maxLength(120)
-                            ->helperText('与推荐主菜名一致时，小程序做法页会优先匹配本条。'),
+                            ->maxLength(120),
                         TextInput::make('dish_key')
                             ->label('匹配键（可选）')
-                            ->maxLength(128)
-                            ->helperText('留空则保存时按菜名自动生成，用于与推荐记录里的菜名归一匹配。'),
+                            ->maxLength(128),
                         Textarea::make('description')
                             ->label('菜品简介')
                             ->rows(3)

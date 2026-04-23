@@ -16,21 +16,20 @@
         <text class="btn-wx-text">微信一键登录</text>
       </button>
 
-      <text v-if="!apiReady" class="warn">未检测到 BFF 地址，请先配置 config/env（见 README_ENV.md）。</text>
+      <text v-if="!apiReady" class="warn">服务连接未就绪，请稍后再试。</text>
 
       <view v-else-if="apiUsesLoopback" class="warn-card">
-        <text class="warn-card-title">当前为 localhost，真机不可访问</text>
-        <text class="warn-card-sub">请改成电脑局域网 IP（例如 `http://192.168.0.108:8800`）后重新编译。</text>
+        <text class="warn-card-title">当前网络环境暂不可用</text>
+        <text class="warn-card-sub">请切换网络或稍后重试。</text>
       </view>
 
       <view class="helper">
         <text class="helper-title" @click="showTechDetail = !showTechDetail">
-          {{ showTechDetail ? '收起连接信息' : '展开连接信息' }}
+          {{ showTechDetail ? '收起说明' : '展开说明' }}
         </text>
         <view v-if="showTechDetail" class="helper-content">
-          <text class="hint">当前 BFF：{{ apiBaseUrlDisplay }}</text>
-          <text class="hint">需确保 BFF 已配置 `ADMIN_BACKEND_BASE_URL`。</text>
-          <text class="hint">Laravel 需配置 `WECHAT_APP_ID` 与 `WECHAT_APP_SECRET`。</text>
+          <text class="hint">若登录失败，请检查网络后重试。</text>
+          <text class="hint">如问题持续，可联系管理员协助处理。</text>
         </view>
       </view>
     </view>
@@ -96,12 +95,12 @@ function toastFromError(e: unknown): string {
 
 async function onWeChatLogin() {
   if (!apiReady.value) {
-    uni.showToast({ title: '未配置 BFF 地址', icon: 'none' })
+    uni.showToast({ title: '服务连接未就绪，请稍后再试', icon: 'none' })
     return
   }
   if (apiUsesLoopback.value && !isWxDevtools.value) {
     uni.showToast({
-      title: '真机请改用局域网 IP 的 BFF 地址',
+      title: '当前网络环境暂不可用，请稍后重试',
       icon: 'none',
       duration: 2600,
     })

@@ -23,7 +23,6 @@ class RecommendationTopDishesTableWidget extends TableWidget
     {
         return $table
             ->heading('今日最受欢迎推荐菜 TOP5')
-            ->description('按收藏 + 查看做法综合排序')
             ->records(function (): Collection {
                 $rows = $this->dashboard()->rankings($this->now())['top_dishes'] ?? [];
 

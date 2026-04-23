@@ -73,8 +73,7 @@ class PaymentOrderResource extends Resource
                 TextColumn::make('order_no')->label('订单号')->searchable()->copyable(),
                 TextColumn::make('user_id')
                     ->label('用户')
-                    ->searchable()
-                    ->description(fn (PaymentOrder $record): string => (string) ($record->user?->name ?? '')),
+                    ->searchable(),
                 TextColumn::make('user.name')->label('用户昵称')->searchable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('title')->label('订单标题')->searchable()->limit(20),
                 TextColumn::make('amount_fen')->label('金额')->formatStateUsing(fn (int $state): string => '¥'.number_format($state / 100, 2)),

@@ -1,8 +1,8 @@
 import type { AuthCurrentUser } from '@/types/auth'
 
 /**
- * 仅获取微信 login code，不涉及 BFF / openid。
- * 下一步：将 code POST 给 BFF，替换下方的 mock 组装逻辑。
+ * 仅获取微信 login code，不涉及后端 / openid。
+ * 下一步：将 code POST 给后端，替换下方的 mock 组装逻辑。
  */
 export function requestWeChatLoginCode(): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -28,7 +28,7 @@ export interface MockLoginResult {
 }
 
 /**
- * 占位：模拟 BFF 成功响应。接入真实接口后删除此函数，改为解析 HTTP 响应。
+ * 占位：模拟成功响应。接入真实接口后删除此函数，改为解析 HTTP 响应。
  */
 export function buildMockLoginResult(wxCode: string): MockLoginResult {
   const suffix = wxCode.length >= 8 ? wxCode.slice(0, 8) : wxCode

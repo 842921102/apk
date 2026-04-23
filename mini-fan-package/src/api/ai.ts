@@ -2,8 +2,7 @@ import { request } from '@/api/http'
 import type { TodayEatRequestBody, TodayEatResult } from '@/types/ai'
 
 /**
- * 「今日菜单」AI 代理：仅请求自有 BFF，不直连第三方模型。
- * BFF 实现：POST /api/ai/today-eat
+ * 「今日菜单」：请求 Laravel `POST /api/me/today-eat*`（模型中心 + 推荐管线）。
  */
 export async function requestTodayEat(body: TodayEatRequestBody): Promise<TodayEatResult> {
   const payload: Record<string, unknown> = {
@@ -17,32 +16,31 @@ export async function requestTodayEat(body: TodayEatRequestBody): Promise<TodayE
     payload.realtime_context = body.realtime_context
   }
   return request<TodayEatResult>({
-    url: '/api/ai/today-eat',
+    url: '/api/me/today-eat',
     method: 'POST',
     data: payload,
   })
 }
 
-/** 同一会话内换一道（需首轮返回的 recommendation_session_id，且已登录走 Laravel） */
 export async function requestTodayEatReroll(body: {
   recommendation_session_id: string
   preferences: TodayEatRequestBody['preferences']
   locale?: string
   realtime_context?: TodayEatRequestBody['realtime_context']
 }): Promise<TodayEatResult> {
+  const payload: Record<string, unknown> = {
+    recommendation_session_id: body.recommendation_session_id,
+    preferences: body.preferences,
+    locale: body.locale ?? 'zh-CN',
+    realtime_context: body.realtime_context,
+  }
   return request<TodayEatResult>({
-    url: '/api/ai/today-eat/reroll',
+    url: '/api/me/today-eat/reroll',
     method: 'POST',
-    data: {
-      recommendation_session_id: body.recommendation_session_id,
-      preferences: body.preferences,
-      locale: body.locale ?? 'zh-CN',
-      realtime_context: body.realtime_context,
-    },
+    data: payload,
   })
 }
 
-/** 用户点选备选菜作为今日主菜（重新生成完整解释与备选列表） */
 export async function requestTodayEatSelectAlternative(body: {
   recommendation_session_id: string
   selected_dish: string
@@ -50,16 +48,17 @@ export async function requestTodayEatSelectAlternative(body: {
   locale?: string
   realtime_context?: TodayEatRequestBody['realtime_context']
 }): Promise<TodayEatResult> {
+  const payload: Record<string, unknown> = {
+    recommendation_session_id: body.recommendation_session_id,
+    selected_dish: body.selected_dish,
+    preferences: body.preferences,
+    locale: body.locale ?? 'zh-CN',
+    realtime_context: body.realtime_context,
+  }
   return request<TodayEatResult>({
-    url: '/api/ai/today-eat/select-alternative',
+    url: '/api/me/today-eat/select-alternative',
     method: 'POST',
-    data: {
-      recommendation_session_id: body.recommendation_session_id,
-      selected_dish: body.selected_dish,
-      preferences: body.preferences,
-      locale: body.locale ?? 'zh-CN',
-      realtime_context: body.realtime_context,
-    },
+    data: payload,
   })
 }
 
@@ -68,7 +67,7 @@ export async function requestRecipeImage(body: {
   size?: string
 }): Promise<{ url: string; raw?: unknown }> {
   return request<{ url: string; raw?: unknown }>({
-    url: '/api/ai/recipe-image',
+    url: '/api/me/recipe-image',
     method: 'POST',
     data: {
       prompt: body.prompt,
@@ -81,7 +80,7 @@ export async function requestRecognizeIngredients(body: {
   image_base64: string
 }): Promise<{ ingredients: string[]; raw?: unknown }> {
   return request<{ ingredients: string[]; raw?: unknown }>({
-    url: '/api/ai/ingredients-recognize',
+    url: '/api/me/ingredients-recognize',
     method: 'POST',
     data: {
       image_base64: body.image_base64,

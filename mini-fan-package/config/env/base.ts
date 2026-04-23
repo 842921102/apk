@@ -12,7 +12,7 @@ export interface MiniappEnvConfig {
   /** 是否在控制台打印较详细的环境与调试信息 */
   debugLog: boolean
   defaultHeaders: Record<string, string>
-  /** BFF / 统一 API 根地址，无末尾 / */
+  /** Laravel API 根地址，无末尾 / */
   baseUrl: string
   /** 上传域名；与 API 同域时与 baseUrl 相同 */
   uploadUrl: string
@@ -22,7 +22,7 @@ export interface MiniappEnvConfig {
   wsUrl: string
   /** 可选：静态资源 CDN 前缀，无则留空 */
   staticAssetBase: string
-  /** 可选：远端静态 JSON（GET）；留空则仅走 BFF /api/miniapp/config */
+  /** 可选：远端静态 JSON（GET）；留空则仅走 Laravel GET /api/miniapp/config */
   appConfigUrl: string
 }
 

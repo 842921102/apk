@@ -4,11 +4,10 @@
 
 This repository now keeps only these parts:
 
-- `admin-backend`: Laravel admin backend and APIs
-- `bff-server`: Node BFF proxy
+- `admin-backend`: Laravel admin backend and APIs (including mini-program generative AI)
 - `mini-fan-package`: WeChat mini program frontend
 
-Legacy Android project, old web frontend, and unrelated deployment files were removed.
+Legacy Android project, old web frontend, the former Node BFF, and unrelated deployment files were removed.
 
 ## Feature Scope
 
@@ -25,10 +24,7 @@ From repository root:
 # Mini program dev
 npm run dev:mp-weixin
 
-# BFF
-npm run bff:start
-
-# Laravel (or run artisan directly in admin-backend)
+# Laravel (default http://127.0.0.1:8000)
 npm run admin:serve
 ```
 
@@ -36,7 +32,6 @@ Or run each project directly:
 
 ```bash
 cd mini-fan-package && npm run dev:mp-weixin
-cd bff-server && npm run start
 cd admin-backend && php artisan serve
 ```
 
@@ -44,6 +39,5 @@ cd admin-backend && php artisan serve
 
 ```text
 admin-backend/      Laravel admin and APIs
-bff-server/         Node BFF
 mini-fan-package/   WeChat mini program
 ```

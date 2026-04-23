@@ -10,7 +10,7 @@ import type {
   CirclePostListParams,
 } from '@/types/circle'
 
-/** true：演示数据；false：请求 BFF（需后端就绪） */
+/** true：演示数据；false：请求后端（需后端就绪） */
 export const CIRCLE_USE_MOCK = true
 
 const STORAGE_KEY = 'wte_circle_mvp_v1'

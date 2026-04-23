@@ -1,4 +1,4 @@
-/** POST /api/ai/table-menu — 与 Web TableDesign 配置对齐，供 BFF 转发 AI */
+/** POST /api/me/table-menu — 与 Web TableDesign 配置对齐 */
 
 export interface TableMenuConfigPayload {
   dishCount: number
@@ -25,11 +25,11 @@ export interface TableMenuDishItem {
 
 export interface TableMenuResponse {
   dishes: TableMenuDishItem[]
-  /** BFF 已在服务端写入历史时为 true */
+  /** 服务端已写入历史时为 true */
   history_saved?: boolean
 }
 
-/** POST /api/ai/table-dish-recipe — 单道菜详细菜谱 */
+/** POST /api/me/table-dish-recipe — 单道菜详细菜谱 */
 
 export interface TableDishRecipeRequestBody {
   dishName: string

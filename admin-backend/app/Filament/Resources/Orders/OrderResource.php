@@ -107,7 +107,6 @@ class OrderResource extends Resource
                 TextColumn::make('order_no')->label('订单号')->searchable()->copyable(),
                 TextColumn::make('user_id')
                     ->label('用户')
-                    ->description(fn (Order $record): string => (string) ($record->user?->name ?? ''))
                     ->sortable(),
                 TextColumn::make('product_name')->label('商品名称')->searchable()->limit(20),
                 ImageColumn::make('product_image')->label('商品图片')->square()->imageSize(40),

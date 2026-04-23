@@ -1,4 +1,4 @@
-/** 与 Web `SauceRecipe` / `SaucePreference` 对齐，供 BFF 与展示层共用 */
+/** 与 Web `SauceRecipe` / `SaucePreference` 对齐，供后端与展示层共用 */
 
 export type SauceCategory = 'spicy' | 'garlic' | 'sweet' | 'complex' | 'regional' | 'fusion'
 

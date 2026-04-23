@@ -21,7 +21,6 @@ class EffectTopDishesByViewTableWidget extends TableWidget
     {
         return $table
             ->heading('菜品表现 · 曝光最多')
-            ->description('近 7 天 · recommendation_view')
             ->records(function (): Collection {
                 $list = $this->analytics()->dishPerformance($this->now(), 7)['top_dishes_by_view'] ?? [];
 

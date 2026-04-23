@@ -23,7 +23,6 @@ class EffectTrendTableWidget extends TableWidget
     {
         return $table
             ->heading('近 7 天趋势')
-            ->description('按自然日统计；比率分母为当日推荐曝光。')
             ->records(function (): Collection {
                 $rows = $this->analytics()->last7DaysTrend($this->now());
 

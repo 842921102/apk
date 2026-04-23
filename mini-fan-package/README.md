@@ -29,35 +29,14 @@ npm run dev:mp-weixin
 3. 登录页使用 **邮箱 + 密码** 登录（与 Web 端同一 Supabase 用户），即可在收藏/历史页拉取同账号数据。
 4. 微信公众平台 → 开发 → 开发管理 → **服务器域名**，将 `https://<你的项目>.supabase.co` 加入 **request 合法域名**（否则真机无法请求）。
 
-### AI 代理 BFF（吃什么）
+### Laravel API（吃什么 / 灵感厨房等）
 
-在 `.env` 中配置 `VITE_API_BASE_URL`（与 Supabase 域名一并加入小程序 **request 合法域名**）。
+API 根地址在 **`config/env/*.ts`**（见 `README_ENV.md`），与生产域名一并配置到微信 **request 合法域名**。
 
-小程序调用 **`POST {VITE_API_BASE_URL}/api/ai/today-eat`**，请求体示例：
+「今日菜单」调用 **`POST {API_BASE_URL}/api/me/today-eat`**（需微信登录后的 Laravel Bearer token）。其它生成式能力为 `POST /api/me/fortune-cooking`、`/api/me/table-menu` 等，均由 **admin-backend** 模型中心驱动。
 
-```json
-{
-  "preferences": { "taste": "清淡", "avoid": "香菜", "people": 2 },
-  "locale": "zh-CN"
-}
-```
-
-建议响应 JSON（字段可扩展）：
-
-```json
-{
-  "title": "菜名",
-  "cuisine": "粤菜",
-  "ingredients": ["番茄", "鸡蛋"],
-  "content": "菜谱正文或摘要（纯文本/Markdown）",
-  "history_saved": false
-}
-```
-
-- **`history_saved: true`**：表示 BFF 已写入 `recipe_histories`，小程序不再补写。
-- 若为 **`false` 或省略** 且用户已登录：小程序会尝试用 Supabase **客户端**插入一条历史（兜底）；**优先仍建议 BFF 写库**。
-
-请求头可带 **`Authorization: Bearer <access_token>`**（与邮箱登录后的 Supabase JWT 一致），便于 BFF 校验用户；若 BFF 允许匿名生成，可不校验。
+- **`history_saved: true`**：表示服务端已写入 `recipe_histories`，小程序不再补写。
+- 若为 **`false` 或省略** 且用户已登录：小程序可能用 Supabase 客户端补写历史（兜底）。
 
 ## 说明
 
@@ -72,4 +51,4 @@ npm run dev:mp-weixin
 
 - `pages.json` / `manifest.json` 位于 **`src/`**（uni-app + Vite 约定），根目录为 `vite.config.ts`。
 - TabBar 图标为 **1×1 占位 PNG**，发布前请替换为规范尺寸图标（建议 81×81 px）。
-- 登录页为 **微信登录骨架**（`uni.login` + mock token），接 BFF 后替换为真实鉴权。
+- 登录为 **微信一键登录** → `POST /api/auth/wechat`（Laravel）。

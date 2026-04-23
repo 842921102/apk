@@ -13,7 +13,7 @@ function asRecord(v: unknown): Record<string, unknown> | null {
 }
 
 /**
- * 解析 BFF 返回：兼容 `{ dishes: [...] }` 或误包一层 `data`
+ * 解析接口返回：兼容 `{ dishes: [...] }` 或误包一层 `data`
  */
 export function normalizeTableMenuResponse(raw: unknown): TableMenuResponse {
   let cur: unknown = raw
@@ -88,12 +88,12 @@ function normalizeDishRecipeResponse(raw: unknown): TableDishRecipeResponse {
 }
 
 /**
- * 满汉全席 / 家常好菜菜单生成：仅请求自有 BFF。
- * 约定：POST /api/ai/table-menu，body: `{ config, locale? }`
+ * 满汉全席 / 家常好菜菜单生成：请求 Laravel。
+ * 约定：POST /api/me/table-menu，body: `{ config, locale? }`
  */
 export async function requestTableMenu(body: TableMenuRequestBody): Promise<TableMenuResponse> {
   const raw = await request<unknown>({
-    url: '/api/ai/table-menu',
+    url: '/api/me/table-menu',
     method: 'POST',
     data: {
       config: body.config,
@@ -104,13 +104,13 @@ export async function requestTableMenu(body: TableMenuRequestBody): Promise<Tabl
 }
 
 /**
- * 单道菜菜谱：POST /api/ai/table-dish-recipe
+ * 单道菜菜谱：POST /api/me/table-dish-recipe
  */
 export async function requestTableDishRecipe(
   body: TableDishRecipeRequestBody,
 ): Promise<TableDishRecipeResponse> {
   const raw = await request<unknown>({
-    url: '/api/ai/table-dish-recipe',
+    url: '/api/me/table-dish-recipe',
     method: 'POST',
     data: {
       dish_name: body.dishName,

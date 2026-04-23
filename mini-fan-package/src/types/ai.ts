@@ -1,4 +1,4 @@
-/** POST /api/ai/today-eat 请求体（与 BFF 约定，可扩展） */
+/** POST /api/me/today-eat 请求体（可扩展） */
 export interface TodayEatPreferences {
   /** 口味偏好，如「清淡」「辣」 */
   taste?: string
@@ -11,7 +11,7 @@ export interface TodayEatPreferences {
 export interface TodayEatRequestBody {
   preferences: TodayEatPreferences
   locale?: string
-  /** 由服务端根据用户授权与当日状态生成的上下文标签，BFF 写入模型提示词 */
+  /** 由服务端根据用户授权与当日状态生成的上下文标签 */
   context_tags?: string[]
   /** 前端实时环境信号（城市/天气/温度），用于增强当次推荐上下文 */
   realtime_context?: {
@@ -25,7 +25,7 @@ export interface TodayEatRequestBody {
 }
 
 /**
- * BFF / Laravel 返回：含推荐理由与食命文案；兼容仅含 title/content 的旧结果。
+ * Laravel 返回：含推荐理由与食命文案；兼容仅含 title/content 的旧结果。
  */
 export interface TodayEatResult {
   /** Laravel 首轮创建；用于「换一个推荐」续跑同一会话 */

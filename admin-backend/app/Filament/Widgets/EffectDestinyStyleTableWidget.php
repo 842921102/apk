@@ -21,7 +21,6 @@ class EffectDestinyStyleTableWidget extends TableWidget
     {
         return $table
             ->heading('食命文案 destiny_style')
-            ->description('近 7 天 · 按曝光排序')
             ->records(function (): Collection {
                 $list = $this->analytics()->copyStylePerformance($this->now(), 7)['destiny_style'] ?? [];
 

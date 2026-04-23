@@ -99,7 +99,7 @@ export function parseHomeBannerAmbient(raw: unknown): HomeBannerAmbient | null {
   }
 }
 
-/** 未配置 BFF、失败或未实现接口时返回 MOCK，不抛错 */
+/** 未配置后端、失败或未实现接口时返回 MOCK，不抛错 */
 export async function fetchHomeBannerAmbient(params?: {
   latitude?: number
   longitude?: number

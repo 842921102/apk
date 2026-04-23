@@ -29,15 +29,13 @@ class UserForm
                 TextInput::make('name')
                     ->label('昵称 / 姓名')
                     ->required()
-                    ->maxLength(255)
-                    ->helperText('可与小程序展示名保持一致；微信登录默认名可能被占位。'),
+                    ->maxLength(255),
                 TextInput::make('email')
                     ->label('邮箱（唯一账号标识）')
                     ->email()
                     ->required()
                     ->maxLength(255)
-                    ->disabled(fn (?string $state): bool => filled($state) && is_string($state) && str_contains($state, '@wechat.local'))
-                    ->helperText('微信用户的合成邮箱以 @wechat.local 结尾时不可修改，避免破坏与微信开放标识的映射关系。'),
+                    ->disabled(fn (?string $state): bool => filled($state) && is_string($state) && str_contains($state, '@wechat.local')),
                 TextInput::make('phone')
                     ->label('手机号')
                     ->tel()
@@ -79,22 +77,16 @@ class UserForm
                         }
 
                         return ! $actor->can('create', User::class);
-                    })
-                    ->helperText(fn (?Model $record): ?string => $record instanceof User && (int) auth()->id() === (int) $record->id
-                        ? '不能修改自己的角色，请使用其他管理员账号。'
-                        : null),
+                    }),
                 Toggle::make('is_sponsor')
                     ->label('赞助用户')
-                    ->helperText('开启后小程序展示「赞助用户」。爱心赞助支付成功会顺延 1 个月有效期（可叠加）；单笔最高 3000 元。用户可在小程序取消身份（不涉及退款）。')
                     ->default(false),
                 DateTimePicker::make('sponsor_until')
                     ->label('赞助有效期至')
                     ->seconds(false)
-                    ->native(false)
-                    ->helperText('到期后定时任务会将「赞助用户」关闭；再次赞助从当前有效结束日顺延 1 个月。'),
+                    ->native(false),
                 Toggle::make('is_active')
                     ->label('账号启用')
-                    ->helperText('禁用后可在业务层拒绝登录（需在接口中校验账号启用状态；微信登录接口建议后续接入校验）。')
                     ->default(true)
                     ->disabled(function (?Model $record): bool {
                         $actor = auth()->user();
@@ -117,12 +109,10 @@ class UserForm
                     ->label('密码')
                     ->password()
                     ->revealable()
-                    ->helperText('新建后台账号必填。微信合成用户一般不使用密码登录；编辑时留空则不修改。')
                     ->minLength(8)
                     ->maxLength(255)
                     ->dehydrated(fn (?string $state): bool => filled($state)),
                 Section::make('饮食与推荐档案')
-                    ->description('对应 user_profiles：性别仅为资料项；「特殊时期」能力由单独开关控制，不与性别绑定。')
                     ->relationship('profile')
                     ->visibleOn('edit')
                     ->schema([

@@ -50,7 +50,6 @@ class WeatherSettings extends Page implements HasForms
         return $schema
             ->schema([
                 Section::make('小程序首页天气')
-                    ->description('用于首页左上角城市和天气展示，支持定位坐标自动解析城市。')
                     ->schema([
                         Toggle::make('enabled')->label('启用天气服务'),
                         Select::make('provider')

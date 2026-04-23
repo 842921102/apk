@@ -450,9 +450,9 @@ async function maybeSaveRecipeHistory(
     if (e.code === BIZ_UNAUTHORIZED || e.message === BIZ_UNAUTHORIZED) {
       msg.toastSaveFailed('登录已过期')
     } else if (e.code === BIZ_NEED_LARAVEL_AUTH || e.message === BIZ_NEED_LARAVEL_AUTH) {
-      msg.toastSaveFailed('请使用微信一键登录后再试')
+      msg.toastSaveFailed('请先微信一键登录')
     } else if (e.code === BIZ_NOT_CONFIGURED || e.message === BIZ_NOT_CONFIGURED) {
-      historyNote.value = '当前环境未启用历史写入配置，已跳过保存。'
+      historyNote.value = '本次结果暂未写入历史记录。'
     } else {
       msg.toastSaveFailed(e.message)
       console.error('[sauce-design] history insert failed:', err)
@@ -504,9 +504,9 @@ async function onToggleFavorite() {
   } catch (e: unknown) {
     const err = e as Error & { code?: string }
     if (err.code === BIZ_NEED_LARAVEL_AUTH || err.message === BIZ_NEED_LARAVEL_AUTH) {
-      msg.toastSaveFailed('请先使用微信一键登录')
+      msg.toastSaveFailed('请先微信一键登录')
     } else if (err.code === BIZ_NOT_CONFIGURED || err.message === BIZ_NOT_CONFIGURED) {
-      msg.toastSaveFailed('当前环境未开启收藏配置')
+      msg.toastSaveFailed('收藏功能暂不可用')
     } else {
       msg.toastSaveFailed(err.message || '收藏失败')
     }
@@ -540,11 +540,11 @@ async function onGetRecommendations() {
   } catch (e: unknown) {
     const { msg, needLogin } = mapRecipeError(e)
     if (needLogin) {
-      uni.showToast({ title: '请先登录后再试推荐', icon: 'none' })
+      uni.showToast({ title: '请先微信一键登录', icon: 'none' })
     } else {
       const hint =
         e instanceof HttpError && e.statusCode === 404
-          ? '推荐接口未部署（POST /api/ai/sauce-recommend）'
+          ? '推荐服务暂不可用，请稍后再试'
           : msg
       uni.showToast({ title: hint.slice(0, 42), icon: 'none' })
     }

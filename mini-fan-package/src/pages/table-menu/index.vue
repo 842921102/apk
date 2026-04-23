@@ -559,7 +559,7 @@ async function maybeSaveHistory(data: { history_saved?: boolean }, payload: Tabl
     if (e.code === BIZ_UNAUTHORIZED || e.message === BIZ_UNAUTHORIZED) {
       msg.toastSaveFailed('登录已过期')
     } else if (e.code === BIZ_NEED_LARAVEL_AUTH || e.message === BIZ_NEED_LARAVEL_AUTH) {
-      msg.toastSaveFailed('请使用微信一键登录后再试')
+      msg.toastSaveFailed('请先微信一键登录')
     } else {
       msg.toastSaveFailed(e.message)
       console.error('[table-menu] history insert failed:', err)

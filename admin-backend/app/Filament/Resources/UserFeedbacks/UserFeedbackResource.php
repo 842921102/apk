@@ -77,7 +77,6 @@ class UserFeedbackResource extends Resource
                 TextColumn::make('content')->label('反馈内容')->limit(32)->toggleable(),
                 TextColumn::make('user.name')
                     ->label('用户')
-                    ->description(fn (UserFeedback $record): string => 'ID: '.(string) $record->user_id)
                     ->searchable()
                     ->placeholder('—'),
                 TextColumn::make('contact')->label('联系方式')->placeholder('—')->toggleable(),

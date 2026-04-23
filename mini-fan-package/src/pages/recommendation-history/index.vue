@@ -16,15 +16,15 @@
     <view v-else-if="!hasApiBase" class="mp-card rh__state">
       <view class="mp-empty">
         <view class="mp-empty__icon">⚙️</view>
-        <text class="mp-empty__title">未配置接口地址</text>
-        <text class="mp-empty__sub">请在 config/env 中配置 API 根地址（与微信登录、今日菜单一致）</text>
+        <text class="mp-empty__title">服务暂不可用</text>
+        <text class="mp-empty__sub">当前无法加载内容，请稍后再试。</text>
       </view>
     </view>
 
     <view v-else-if="!isLaravelSession" class="mp-card rh__state">
       <view class="mp-empty">
         <view class="mp-empty__icon">🔗</view>
-        <text class="mp-empty__title">请使用微信登录</text>
+        <text class="mp-empty__title">请先微信登录</text>
         <text class="mp-empty__sub">最近推荐保存在服务器，需微信一键登录后查看</text>
         <button class="mp-btn-primary" @click="goLogin">{{ config.common_empty_button_text }}</button>
       </view>

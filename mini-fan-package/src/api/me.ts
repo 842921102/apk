@@ -83,7 +83,7 @@ export async function postUserProfileOnboarding(
   body: OnboardingProfileSubmitPayload,
 ): Promise<MeProfileResponse> {
   return request<MeProfileResponse>({
-    /** 与 GET/PUT /api/me/profile 同前缀，便于只透传 /api/me/* 的 BFF */
+    /** 与 GET/PUT /api/me/profile 同前缀，便于统一 /api/me/* 前缀 */
     url: '/api/me/profile/onboarding',
     method: 'POST',
     data: body as Record<string, unknown>,

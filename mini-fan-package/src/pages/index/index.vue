@@ -395,9 +395,9 @@ async function maybeSaveHistory(res: TodayEatResult, tasteText: string) {
     if (e.code === BIZ_UNAUTHORIZED || e.message === BIZ_UNAUTHORIZED) {
       msg.toastSaveFailed('登录已过期')
     } else if (e.code === BIZ_NEED_LARAVEL_AUTH || e.message === BIZ_NEED_LARAVEL_AUTH) {
-      msg.toastSaveFailed('请使用微信一键登录后再试')
+      msg.toastSaveFailed('请先微信一键登录')
     } else if (e.code === BIZ_NOT_CONFIGURED || e.message === BIZ_NOT_CONFIGURED) {
-      historyNote.value = '当前环境未启用历史写入配置，已跳过保存。'
+      historyNote.value = '本次结果暂未写入历史记录。'
     } else {
       msg.toastSaveFailed(e.message)
       console.error('[custom-wizard] history insert failed:', err)
@@ -451,9 +451,9 @@ async function onToggleFavorite() {
   } catch (e: unknown) {
     const err = e as Error & { code?: string }
     if (err.code === BIZ_NEED_LARAVEL_AUTH || err.message === BIZ_NEED_LARAVEL_AUTH) {
-      msg.toastSaveFailed('请先使用微信一键登录')
+      msg.toastSaveFailed('请先微信一键登录')
     } else if (err.code === BIZ_NOT_CONFIGURED || err.message === BIZ_NOT_CONFIGURED) {
-      msg.toastSaveFailed('当前环境未开启收藏配置')
+      msg.toastSaveFailed('收藏功能暂不可用')
     } else {
       msg.toastSaveFailed(err.message || '收藏失败')
     }

@@ -9,7 +9,7 @@ flowchart LR
     C[cloneAppConfigDefault]
   end
   subgraph remote [网络]
-    BFF[GET /api/miniapp/config]
+    Laravel[GET /api/miniapp/config]
     CDN[GET VITE_APP_CONFIG_URL]
   end
   subgraph parse [解析]
@@ -25,7 +25,7 @@ flowchart LR
     U[useAppConfig]
   end
   D --> C
-  BFF --> M
+  Laravel --> M
   CDN --> M
   M --> P
   M --> Z
@@ -50,7 +50,7 @@ flowchart LR
 
 ## 2. 哪些配置已「真实接远端」
 
-在 **已配置** `VITE_API_BASE_URL`（且 BFF 返回合法 JSON）或 `VITE_APP_CONFIG_URL` 时，下列字段均可被远端覆盖（否则整段保持默认）：
+在 **已配置** `VITE_API_BASE_URL`（且后端返回合法 JSON）或 `VITE_APP_CONFIG_URL` 时，下列字段均可被远端覆盖（否则整段保持默认）：
 
 - **首页基础**：`home_title`、`home_subtitle`（及分组 `home`）
 - **首页运营位**：`home_banner_*`、`show_home_banner`、`home_recommend_*`、`show_home_recommend`、`home_hot_*`、`show_home_hot`（及对应分组块）

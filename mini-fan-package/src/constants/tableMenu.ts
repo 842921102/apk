@@ -1,4 +1,4 @@
-/** 与 Web `TableDesign.vue` 选项 id 一致，便于 BFF 共用提示词映射 */
+/** 与 Web `TableDesign.vue` 选项 id 一致，便于共用提示词映射 */
 
 export const TABLE_MENU_TASTE_OPTIONS = [
   { id: 'spicy', name: '麻辣' },

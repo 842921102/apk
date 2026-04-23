@@ -44,7 +44,6 @@ class UsersTable
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('name')
                     ->label('昵称')
-                    ->description(fn (User $record): string => str_contains((string) $record->email, '@wechat.local') ? '微信' : '后台')
                     ->searchable()
                     ->limit(16)
                     ->tooltip(fn (?string $state): ?string => $state),

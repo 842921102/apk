@@ -1,4 +1,4 @@
-/** 与 Web `FortuneCooking` / `aiService` 占卜接口对齐，供 BFF 转发 */
+/** 与 Web `FortuneCooking` / `aiService` 占卜接口对齐 */
 
 export type FortuneType = 'daily' | 'mood' | 'couple' | 'number'
 
@@ -30,7 +30,7 @@ export interface FortuneNumberInput {
 }
 
 /**
- * 请求 BFF：POST /api/ai/fortune
+ * 请求 Laravel：POST /api/me/fortune-cooking
  * 按 fortune_type 携带对应字段（camelCase 与 Web 一致，便于服务端复用提示词）
  */
 export type FortuneRequestBody =

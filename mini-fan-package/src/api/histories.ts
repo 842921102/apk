@@ -1,5 +1,5 @@
 /**
- * Laravel 历史 API（经 BFF 透传）
+ * Laravel 历史 API
  * 依赖：Bearer `laravel_access_*`（微信一键登录后由后端签发）
  */
 import { request } from '@/api/http'

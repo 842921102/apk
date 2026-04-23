@@ -1,6 +1,6 @@
 /**
  * 收藏：Laravel `favorites` 表 + Bearer `laravel_access_*`（微信登录）。
- * 历史：Laravel `recipe_histories`（经 BFF 透传）。
+ * 历史：Laravel `recipe_histories`。
  */
 import type { FavoriteRow, HistoryRow } from '@/types/dto'
 import { getToken, LARAVEL_ACCESS_TOKEN_PREFIX } from '@/composables/useAuth'
@@ -204,8 +204,8 @@ export async function getHistoriesCount(): Promise<number> {
 }
 
 /**
- * BFF 未写入历史时的兜底：由小程序在登录态下写入 `recipe_histories`（与 Web 字段对齐）。
- * 优先仍应由 BFF 在生成成功后写库；若接口返回 `history_saved: true` 则不应再调用本函数。
+ * 服务端未写入历史时的兜底：由小程序在登录态下写入 `recipe_histories`（与 Web 字段对齐）。
+ * 优先仍应由服务端在生成成功后写库；若接口返回 `history_saved: true` 则不应再调用本函数。
  */
 export async function insertRecipeHistoryFromTodayEat(payload: {
   title: string

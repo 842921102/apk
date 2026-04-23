@@ -131,14 +131,14 @@ export function normalizeSauceRecommendations(raw: unknown): string[] {
 }
 
 /**
- * 智能推荐酱料名称：POST /api/ai/sauce-recommend
+ * 智能推荐酱料名称：POST /api/me/sauce-recommend
  */
 export async function requestSauceRecommend(
   preferences: SaucePreference,
   locale = 'zh-CN',
 ): Promise<string[]> {
   const raw = await request<unknown>({
-    url: '/api/ai/sauce-recommend',
+    url: '/api/me/sauce-recommend',
     method: 'POST',
     data: {
       preferences,
@@ -167,14 +167,14 @@ function unwrapRecipePayload(raw: unknown): unknown {
 }
 
 /**
- * 按名称生成酱料配方：POST /api/ai/sauce-recipe
+ * 按名称生成酱料配方：POST /api/me/sauce-recipe
  */
 export async function requestSauceRecipe(
   sauceName: string,
   locale = 'zh-CN',
 ): Promise<SauceRecipeApiResult> {
   const raw = await request<unknown>({
-    url: '/api/ai/sauce-recipe',
+    url: '/api/me/sauce-recipe',
     method: 'POST',
     data: {
       sauce_name: sauceName.trim(),

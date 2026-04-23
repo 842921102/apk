@@ -75,7 +75,7 @@ function applyRemotePartialToAppConfig(
 /** 重新导出，供测试或类型外工具挑字段 */
 export { pickAppConfigPartial } from '@/config/defaultConfig'
 
-/** BFF：真实业务远端配置（失败返回 {}，不抛错） */
+/** 后端：真实业务远端配置（失败返回 {}，不抛错） */
 async function fetchBffMiniappConfig(): Promise<Partial<AppConfig>> {
   if (!API_BASE_URL.trim()) return {}
   try {
@@ -112,7 +112,7 @@ async function fetchStaticAppConfigUrl(): Promise<Partial<AppConfig>> {
 }
 
 /**
- * 并行拉取两路远端，BFF 结果覆盖静态 URL；任一路失败不影响另一路。
+ * 并行拉取两路远端，后端结果覆盖静态 URL；任一路失败不影响另一路。
  */
 export async function fetchRemoteAppConfig(): Promise<Partial<AppConfig>> {
   const [fromBff, fromStatic] = await Promise.all([

@@ -51,7 +51,6 @@ class PaymentSettings extends Page implements HasForms
         return $schema
             ->schema([
                 Section::make('微信小程序支付（JSAPI）')
-                    ->description('证书请使用下方「上传」或「粘贴 PEM」配置；部署到服务器后勿再填写本机绝对路径。回调地址须为公网可访问的 HTTPS（微信要求）。')
                     ->schema([
                         Toggle::make('is_enabled')->label('启用微信支付'),
                         TextInput::make('order_expire_minutes')
@@ -68,8 +67,7 @@ class PaymentSettings extends Page implements HasForms
                             ->required()
                             ->url()
                             ->maxLength(512)
-                            ->columnSpanFull()
-                            ->helperText('示例：https://你的域名/api/pay/wechat/notify。未改 APP_URL 时默认由 .env 的 APP_URL 拼接；上线后请改为正式域名并保存。'),
+                            ->columnSpanFull(),
                         TextInput::make('wx_pay_api_v3_key')
                             ->label('API v3 Key')
                             ->password()
@@ -80,7 +78,6 @@ class PaymentSettings extends Page implements HasForms
                     ->columns(2),
 
                 Section::make('商户证书（推荐：上传至服务器）')
-                    ->description('文件会保存到 storage/app/private/wechat-pay/，随项目部署留在服务器上；与「粘贴 PEM」二选一即可，保存时以上传为准。')
                     ->schema([
                         FileUpload::make('upload_private_key_pem')
                             ->label('上传商户私钥 apiclient_key.pem')
@@ -92,7 +89,6 @@ class PaymentSettings extends Page implements HasForms
                             ->downloadable(false)
                             ->openable(false)
                             ->getUploadedFileNameForStorageUsing(fn () => 'apiclient_key.pem')
-                            ->helperText('覆盖同名文件；保存后会写入「服务器上的绝对路径」到配置。')
                             ->columnSpanFull(),
                         Textarea::make('wx_pay_private_key_content')
                             ->label('或直接粘贴商户私钥 PEM')
@@ -110,7 +106,6 @@ class PaymentSettings extends Page implements HasForms
                             ->downloadable(false)
                             ->openable(false)
                             ->getUploadedFileNameForStorageUsing(fn () => 'wechatpay_platform.pem')
-                            ->helperText('用于回调验签；与下方粘贴二选一。')
                             ->columnSpanFull(),
                         Textarea::make('wx_pay_platform_public_key_content')
                             ->label('或直接粘贴微信平台公钥 PEM')
@@ -120,7 +115,6 @@ class PaymentSettings extends Page implements HasForms
                     ]),
 
                 Section::make('高级：仅当证书已在服务器固定路径时')
-                    ->description('Docker / 运维把 pem 放到固定目录时可填；多数情况请用上方上传。')
                     ->collapsed()
                     ->schema([
                         TextInput::make('wx_pay_private_key_path')

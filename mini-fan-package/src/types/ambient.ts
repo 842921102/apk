@@ -1,4 +1,4 @@
-/** 首页 Banner 左上角：城市 + 天气（BFF GET /api/miniapp/home-banner-ambient） */
+/** 首页 Banner 左上角：城市 + 天气（GET /api/miniapp/home-banner-ambient） */
 export interface HomeBannerAmbient {
   cityName: string
   weatherText: string

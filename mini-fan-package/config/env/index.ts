@@ -12,7 +12,7 @@ import { prodConfig } from './prod'
 //   export const ENV_MODE: EnvMode = 'prod'  // 体验版、正式版
 // =============================================================================
 /** 使用 `as EnvMode` 避免 TS 将字面量收窄，保证 isTest / isProd 等判断类型正确 */
-export const ENV_MODE = 'dev' as EnvMode
+export const ENV_MODE = 'prod' as EnvMode
 
 const packs: Record<EnvMode, Partial<MiniappEnvConfig>> = {
   dev: devConfig,

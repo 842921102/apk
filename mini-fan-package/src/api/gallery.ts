@@ -102,7 +102,7 @@ export function clearLocalGallery(): void {
 }
 
 /**
- * 从 BFF 拉取图鉴列表；成功则写本地缓存并返回。
+ * 从 Laravel 拉取图鉴列表；成功则写本地缓存并返回。
  * 失败（含 404/401/网络）返回本机列表，由调用方展示 `hint`。
  */
 export async function fetchGalleryList(): Promise<{ items: GalleryItem[]; hint: string }> {
@@ -122,7 +122,7 @@ export async function fetchGalleryList(): Promise<{ items: GalleryItem[]; hint: 
     let hint = '暂时无法拉取云端图鉴，已显示本机保存的图片。'
     if (e instanceof HttpError) {
       if (e.statusCode === 404) {
-        hint = '云端图鉴未部署（GET /api/gallery/list），当前为本机图鉴。'
+        hint = '云端图鉴不可用（GET /api/gallery/list），当前为本机图鉴。'
       } else if (e.statusCode === 401) {
         hint = '登录后可同步云端图鉴；当前为本机图鉴。'
       }

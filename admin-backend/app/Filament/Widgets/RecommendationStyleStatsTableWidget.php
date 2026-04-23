@@ -23,7 +23,6 @@ class RecommendationStyleStatsTableWidget extends TableWidget
     {
         return $table
             ->heading('文案风格表现')
-            ->description('reason_style / destiny_style · 收藏率为该风格下记录占比')
             ->records(function (): Collection {
                 $rows = $this->dashboard()->rankings($this->now())['style_stats'] ?? [];
 

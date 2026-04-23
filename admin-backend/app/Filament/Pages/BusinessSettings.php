@@ -50,7 +50,6 @@ class BusinessSettings extends Page implements HasForms
         return $schema
             ->schema([
                 Section::make('腾讯云对象存储 COS')
-                    ->description('配置上传所需密钥、存储参数和测试能力。')
                     ->schema([
                         Section::make('基础配置')
                             ->schema([

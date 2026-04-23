@@ -23,7 +23,6 @@ class RecommendationWorstDishesTableWidget extends TableWidget
     {
         return $table
             ->heading('今日最常被换掉的菜 TOP5')
-            ->description('基于换推荐事件中的上一道菜')
             ->records(function (): Collection {
                 $rows = $this->dashboard()->rankings($this->now())['worst_dishes'] ?? [];
 

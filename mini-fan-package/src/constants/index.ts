@@ -1,13 +1,13 @@
 import { config } from '../../config/env'
 
-/** 本地存储 key（与后续 BFF token 对齐时再统一） */
+/** 本地存储 key（Laravel access_token） */
 export const STORAGE_ACCESS_TOKEN = 'wte_mp_access_token'
 
 /** 当前用户 JSON（AuthCurrentUser） */
 export const STORAGE_CURRENT_USER = 'wte_mp_current_user'
 
 /**
- * BFF / 统一 API 根地址（不要末尾 /）
+ * Laravel API 根地址（不要末尾 /）
  * 来源：`mini-fan-package/config/env/index.ts` 中的 `ENV_MODE`
  */
 export const API_BASE_URL = config.baseUrl

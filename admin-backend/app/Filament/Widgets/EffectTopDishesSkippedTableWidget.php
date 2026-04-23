@@ -21,7 +21,6 @@ class EffectTopDishesSkippedTableWidget extends TableWidget
     {
         return $table
             ->heading('菜品表现 · 最常被跳过')
-            ->description('近 7 天 · 换一换上一道 + 拒绝')
             ->records(function (): Collection {
                 $list = $this->analytics()->dishPerformance($this->now(), 7)['top_dishes_skipped'] ?? [];
 

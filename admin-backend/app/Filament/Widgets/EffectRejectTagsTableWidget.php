@@ -23,7 +23,6 @@ class EffectRejectTagsTableWidget extends TableWidget
     {
         return $table
             ->heading('最易被拒绝标签')
-            ->description('近 7 天 · recommendation_reject')
             ->records(function (): Collection {
                 $list = $this->analytics()->tagPerformance($this->now(), 7)['top_reject_tags'] ?? [];
 

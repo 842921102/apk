@@ -82,7 +82,6 @@ class RecommendationStrategySettings extends Page implements HasForms
 
         $makeTextarea = function (string $key, string $label, string $desc) {
             return Section::make($label)
-                ->description($desc)
                 ->schema([
                     Textarea::make('payload.'.$key)
                         ->hiddenLabel()

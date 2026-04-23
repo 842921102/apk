@@ -16,15 +16,15 @@
     <view v-else-if="!hasApiBase" class="mp-card fav__state">
       <view class="mp-empty">
         <view class="mp-empty__icon">⚙️</view>
-        <text class="mp-empty__title">未配置接口地址</text>
-        <text class="mp-empty__sub">请在 config/env 中配置 API 根地址（通常为 BFF 根地址，与微信登录一致）</text>
+        <text class="mp-empty__title">服务暂不可用</text>
+        <text class="mp-empty__sub">当前无法加载内容，请稍后再试。</text>
       </view>
     </view>
 
     <view v-else-if="isLoggedIn && !isLaravelSession" class="mp-card fav__state">
       <view class="mp-empty">
         <view class="mp-empty__icon">🔗</view>
-        <text class="mp-empty__title">请使用微信登录</text>
+        <text class="mp-empty__title">请先微信登录</text>
         <text class="mp-empty__sub">收藏已保存在饭否服务器，需通过微信一键登录后查看与同步</text>
         <button class="mp-btn-primary" @click="goLogin">{{ config.common_empty_button_text }}</button>
       </view>
@@ -223,7 +223,7 @@ async function load(fromPull = false) {
       list.value = []
     } else if (err.code === BIZ_NEED_LARAVEL_AUTH || err.message === BIZ_NEED_LARAVEL_AUTH) {
       list.value = []
-      msg.toastLoadFailed('请使用微信登录后查看收藏')
+      msg.toastLoadFailed('请先微信登录后查看收藏')
     } else {
       msg.toastLoadFailed(err.message)
     }

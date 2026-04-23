@@ -21,7 +21,6 @@ class EffectImpressionTagsTableWidget extends TableWidget
     {
         return $table
             ->heading('曝光最多标签')
-            ->description('近 7 天 · recommendation_view')
             ->records(function (): Collection {
                 $list = $this->analytics()->tagPerformance($this->now(), 7)['top_impression_tags'] ?? [];
 

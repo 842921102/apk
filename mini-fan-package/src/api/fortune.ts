@@ -79,7 +79,7 @@ function normalizeFortuneResult(raw: unknown, fallbackType: FortuneType): Fortun
 }
 
 /**
- * 解析 BFF：`{ result }` 或扁平字段，或 `data` / `result` 包一层
+ * 解析接口：`{ result }` 或扁平字段，或 `data` / `result` 包一层
  */
 export function normalizeFortuneApiResponse(
   raw: unknown,
@@ -115,7 +115,7 @@ export function normalizeFortuneApiResponse(
 }
 
 /**
- * 灵感厨房：POST /api/ai/fortune
+ * 灵感厨房：POST /api/me/fortune-cooking
  */
 export async function requestFortune(
   body: FortuneRequestBody,
@@ -140,7 +140,7 @@ export async function requestFortune(
   }
 
   const raw = await request<unknown>({
-    url: '/api/ai/fortune',
+    url: '/api/me/fortune-cooking',
     method: 'POST',
     data: payload,
   })

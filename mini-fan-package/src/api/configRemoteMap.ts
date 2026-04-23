@@ -297,7 +297,7 @@ function applyCamelCaseFromRoot(
 }
 
 /**
- * 将 BFF / 静态 URL 返回的 body 解析为 AppConfig 的部分字段
+ * 将后端 / 静态 URL 返回的 body 解析为 AppConfig 的部分字段
  */
 export function parseRemoteConfigPayload(data: unknown): Partial<AppConfig> {
   const u = unwrapRemoteRoot(data)

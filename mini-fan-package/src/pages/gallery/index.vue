@@ -5,7 +5,7 @@
         <text class="mp-hero__kicker mp-kicker--on-dark">封神图鉴</text>
         <text class="mp-hero__title gl__hero-title">美食图鉴</text>
         <text class="mp-hero__sub gl__hero-sub">
-          浏览 AI 厨艺成品图；支持云端列表（BFF）与本机缓存，删除与清空仅影响本机数据直至云端对接完成。
+          浏览你保存的美食成品图，随时回看灵感与创作记录。
         </text>
         <view class="gl__hero-rule" />
       </view>
@@ -94,10 +94,8 @@
 
     <view v-else-if="items.length === 0" class="mp-card gl__empty">
       <text class="gl__empty-ico">🍽️</text>
-      <text class="gl__empty-title">图库还是空的</text>
-      <text class="gl__empty-desc">
-        在 App/Web 生成带图菜谱并保存后，可通过 BFF 同步到此处；也可在后续版本从小程序直接保存到本机图鉴。
-      </text>
+      <text class="gl__empty-title">还没有图鉴内容</text>
+      <text class="gl__empty-desc">去首页生成一份带图菜谱，保存后就会出现在这里。</text>
       <button class="mp-btn-primary gl__empty-btn" @click="goHome">去首页看看</button>
     </view>
 
@@ -250,6 +248,13 @@ function formatDate(dateString: string) {
   return `${date.getMonth() + 1}/${date.getDate()}`
 }
 
+function normalizeLoadHint(hint: string) {
+  const t = hint.trim()
+  if (!t) return ''
+  const blocked = ['未部署', '后端', 'API', '本机', '云端', '/api/', '配置']
+  return blocked.some((k) => t.includes(k)) ? '' : t
+}
+
 async function loadGallery(showFullSpinner = false) {
   if (showFullSpinner || items.value.length === 0) {
     loading.value = true
@@ -259,7 +264,7 @@ async function loadGallery(showFullSpinner = false) {
   try {
     const { items: list, hint } = await fetchGalleryList()
     items.value = list
-    loadHint.value = hint
+    loadHint.value = normalizeLoadHint(hint)
   } finally {
     loading.value = false
   }
@@ -340,9 +345,9 @@ async function onToggleGalleryFavorite() {
   } catch (e: unknown) {
     const err = e as Error & { code?: string }
     if (err.code === BIZ_NEED_LARAVEL_AUTH || err.message === BIZ_NEED_LARAVEL_AUTH) {
-      uni.showToast({ title: '请先使用微信一键登录', icon: 'none' })
+      uni.showToast({ title: '请先微信一键登录', icon: 'none' })
     } else if (err.code === BIZ_NOT_CONFIGURED || err.message === BIZ_NOT_CONFIGURED) {
-      uni.showToast({ title: '当前环境未开启收藏配置', icon: 'none' })
+      uni.showToast({ title: '收藏功能暂不可用', icon: 'none' })
     } else {
       uni.showToast({ title: err.message?.slice(0, 42) || '操作失败', icon: 'none' })
     }
@@ -370,7 +375,7 @@ function onImgError(id: string) {
 function confirmDelete(id: string) {
   uni.showModal({
     title: '确认删除',
-    content: '确定删除这张图片记录吗？此操作不可恢复（本机数据）。',
+    content: '确定删除这张图片记录吗？此操作不可恢复。',
     success: (res) => {
       if (!res.confirm) return
       removeLocalGalleryItem(id)
@@ -384,7 +389,7 @@ function confirmDelete(id: string) {
 function onClearTap() {
   uni.showModal({
     title: '清空图鉴',
-    content: '确定清空本机图鉴全部记录吗？不可恢复。',
+    content: '确定清空图鉴全部记录吗？不可恢复。',
     success: (res) => {
       if (!res.confirm) return
       clearLocalGallery()

@@ -23,7 +23,6 @@ class RecommendationTopTagsTableWidget extends TableWidget
     {
         return $table
             ->heading('今日高表现标签 TOP5')
-            ->description('标签来自推荐记录；收藏关联为记录 is_favorited 简化口径')
             ->records(function (): Collection {
                 $rows = $this->dashboard()->rankings($this->now())['top_tags'] ?? [];
 

@@ -2,13 +2,12 @@
 
 English: [README_EN.md](./README_EN.md)
 
-当前仓库仅保留以下三部分：
+当前仓库仅保留以下两部分：
 
-- `admin-backend`：Laravel 管理端与 API
-- `bff-server`：Node BFF 代理
+- `admin-backend`：Laravel 管理端与 API（含小程序生成式 AI、运营配置等）
 - `mini-fan-package`：微信小程序前端
 
-已移除旧安卓工程、旧 Web 前端及无关部署文件。
+已移除旧安卓工程、旧 Web 前端、原 Node BFF 及无关部署文件。
 
 ## 功能范围
 
@@ -25,10 +24,7 @@ English: [README_EN.md](./README_EN.md)
 # 小程序开发
 npm run dev:mp-weixin
 
-# BFF
-npm run bff:start
-
-# Laravel（可选，或在 admin-backend 内 artisan serve）
+# Laravel（默认 http://127.0.0.1:8000）
 npm run admin:serve
 ```
 
@@ -36,7 +32,6 @@ npm run admin:serve
 
 ```bash
 cd mini-fan-package && npm run dev:mp-weixin
-cd bff-server && npm run start
 cd admin-backend && php artisan serve
 ```
 
@@ -44,6 +39,5 @@ cd admin-backend && php artisan serve
 
 ```text
 admin-backend/      Laravel 后台与 API
-bff-server/         Node BFF
 mini-fan-package/   新版微信小程序
 ```

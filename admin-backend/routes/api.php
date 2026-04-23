@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\CircleCommentController;
 use App\Http\Controllers\Api\CirclePostController;
 use App\Http\Controllers\Api\DishRecipeController;
 use App\Http\Controllers\Api\FavoriteController;
+use App\Http\Controllers\Api\GalleryListController;
 use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\InternalAiRuntimeController;
 use App\Http\Controllers\Api\InternalEatMemeController;
@@ -14,6 +15,10 @@ use App\Http\Controllers\Api\InternalRecommendationRecordController;
 use App\Http\Controllers\Api\MeDailyStatusController;
 use App\Http\Controllers\Api\MeProfileController;
 use App\Http\Controllers\Api\MeSponsorController;
+use App\Http\Controllers\Api\MiniappEatMemeController;
+use App\Http\Controllers\Api\MiniappFeatureDataController;
+use App\Http\Controllers\Api\MiniappGenerativeAiController;
+use App\Http\Controllers\Api\MiniappPublicController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentOrderController;
 use App\Http\Controllers\Api\ProductController;
@@ -46,6 +51,9 @@ Route::get('/inspiration/posts/{post}/comments', [CircleCommentController::class
 Route::get('/mall/products/{product}', [ProductController::class, 'show']);
 Route::get('/uploads/cos/config', [UploadController::class, 'cosConfig']);
 
+Route::get('/miniapp/config', [MiniappPublicController::class, 'config']);
+Route::get('/miniapp/home-banner-ambient', [MiniappPublicController::class, 'homeBannerAmbient']);
+
 Route::get('/internal/ai-runtime/scenes/{sceneCode}', [InternalAiRuntimeController::class, 'scene']);
 Route::get('/internal/eat-meme', [InternalEatMemeController::class, 'index']);
 Route::post('/internal/eat-meme', [InternalEatMemeController::class, 'store']);
@@ -68,6 +76,19 @@ Route::middleware([AuthenticateLaravelAccessToken::class])->group(function (): v
     Route::post('/me/today-eat', TodayEatRecommendController::class);
     Route::post('/me/today-eat/reroll', TodayEatRerollController::class);
     Route::post('/me/today-eat/select-alternative', TodayEatSelectAlternativeController::class);
+
+    Route::post('/me/fortune-cooking', [MiniappGenerativeAiController::class, 'fortuneCooking']);
+    Route::post('/me/sauce-recommend', [MiniappGenerativeAiController::class, 'sauceRecommend']);
+    Route::post('/me/sauce-recipe', [MiniappGenerativeAiController::class, 'sauceRecipe']);
+    Route::post('/me/table-menu', [MiniappGenerativeAiController::class, 'tableMenu']);
+    Route::post('/me/table-dish-recipe', [MiniappGenerativeAiController::class, 'tableDishRecipe']);
+    Route::post('/me/recipe-image', [MiniappGenerativeAiController::class, 'recipeImage']);
+    Route::post('/me/ingredients-recognize', [MiniappGenerativeAiController::class, 'ingredientsRecognize']);
+
+    Route::get('/gallery/list', GalleryListController::class);
+    Route::get('/feature-data', [MiniappFeatureDataController::class, 'index']);
+    Route::get('/eat-meme', [MiniappEatMemeController::class, 'index']);
+    Route::delete('/eat-meme/{eatMeme}', [MiniappEatMemeController::class, 'destroy']);
 
     Route::get('/me/dish-recipes/{dishRecipe}', [DishRecipeController::class, 'show']);
 
